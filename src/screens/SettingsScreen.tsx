@@ -13,11 +13,30 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes } from '../constants/theme';
 import { useSettings, useTheme, useLanguage } from '../contexts/SettingsContext';
 import { AppSettings } from '../types';
+import { useTranslation } from '../i18n/useTranslation';
 
 export const SettingsScreen = () => {
   const { settings, updateSettings, resetSettings } = useSettings();
   const { theme, setTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
+  const { t } = useTranslation();
+
+  const getLanguageName = (lang: AppSettings['language']) => {
+    const names: Record<AppSettings['language'], string> = {
+      en: 'English',
+      vi: 'Tiếng Việt',
+      zh: '中文',
+      ja: '日本語',
+      ko: '한국어',
+    };
+    return names[lang];
+  };
+
+  const getThemeName = (themeValue: AppSettings['theme']) => {
+    if (themeValue === 'dark') return t('dark');
+    if (themeValue === 'light') return t('light');
+    return t('auto');
+  };
 
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
@@ -27,12 +46,12 @@ export const SettingsScreen = () => {
 
   const handleResetSettings = () => {
     Alert.alert(
-      'Reset Settings',
-      'Are you sure you want to reset all settings to defaults?',
+      t('resetAllSettings'),
+      t('confirmReset'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Reset',
+          text: t('reset'),
           style: 'destructive',
           onPress: () => resetSettings(),
         },
@@ -89,11 +108,11 @@ export const SettingsScreen = () => {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Appearance Section */}
-        {renderSection('Appearance', 'color-palette-outline')}
+        {renderSection(t('appearance'), 'color-palette-outline')}
 
         {renderSelector(
-          'Theme',
-          theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : 'Auto',
+          t('theme'),
+          getThemeName(theme),
           () => {
             // Cycle through themes
             const themes: AppSettings['theme'][] = ['dark', 'light', 'auto'];
@@ -101,20 +120,12 @@ export const SettingsScreen = () => {
             const nextTheme = themes[(currentIndex + 1) % themes.length];
             setTheme(nextTheme);
           },
-          'Choose your preferred color theme'
+          t('chooseTheme')
         )}
 
         {renderSelector(
-          'Language',
-          language === 'en'
-            ? 'English'
-            : language === 'vi'
-            ? 'Tiếng Việt'
-            : language === 'zh'
-            ? '中文'
-            : language === 'ja'
-            ? '日本語'
-            : '한국어',
+          t('language'),
+          getLanguageName(language),
           () => {
             // Cycle through languages
             const languages: AppSettings['language'][] = ['en', 'vi', 'zh', 'ja', 'ko'];
@@ -122,7 +133,7 @@ export const SettingsScreen = () => {
             const nextLanguage = languages[(currentIndex + 1) % languages.length];
             setLanguage(nextLanguage);
           },
-          'Select your preferred language'
+          t('selectLanguage')
         )}
 
         {/* Playback Section */}
