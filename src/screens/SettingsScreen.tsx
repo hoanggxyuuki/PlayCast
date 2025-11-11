@@ -137,24 +137,24 @@ export const SettingsScreen = () => {
         )}
 
         {/* Playback Section */}
-        {renderSection('Playback', 'play-circle-outline')}
+        {renderSection(t('playback'), 'play-circle-outline')}
 
         {renderToggle(
-          'Auto-play Next',
+          t('autoPlayNext'),
           settings.autoPlayNext,
           (value) => updateSettings({ autoPlayNext: value }),
-          'Automatically play next video in queue'
+          t('autoPlayNextDesc')
         )}
 
         {renderToggle(
-          'Continue Watching',
+          t('continueWatchingEnabled'),
           settings.continueWatching,
           (value) => updateSettings({ continueWatching: value }),
-          'Resume videos from where you left off'
+          t('continueWatchingDesc')
         )}
 
         {renderSelector(
-          'Default Playback Speed',
+          t('defaultPlaybackSpeed'),
           `${settings.defaultPlaybackSpeed}x`,
           () => {
             // Cycle through speeds
@@ -163,13 +163,13 @@ export const SettingsScreen = () => {
             const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
             updateSettings({ defaultPlaybackSpeed: nextSpeed });
           },
-          'Default video playback speed'
+          t('defaultSpeedDesc')
         )}
 
         {renderSelector(
-          'Default Quality',
+          t('defaultQuality'),
           settings.defaultQuality === 'auto'
-            ? 'Auto'
+            ? t('auto')
             : settings.defaultQuality.toUpperCase(),
           () => {
             // Cycle through qualities
@@ -184,54 +184,54 @@ export const SettingsScreen = () => {
             const nextQuality = qualities[(currentIndex + 1) % qualities.length];
             updateSettings({ defaultQuality: nextQuality });
           },
-          'Preferred video quality'
+          t('preferredQuality')
         )}
 
         {/* Player Features Section */}
-        {renderSection('Player Features', 'film-outline')}
+        {renderSection(t('playerFeatures'), 'film-outline')}
 
         {renderToggle(
-          'Picture-in-Picture',
+          t('pictureInPicture'),
           settings.pictureInPicture,
           (value) => updateSettings({ pictureInPicture: value }),
-          'Watch videos in a floating window'
+          t('pipDesc')
         )}
 
         {renderToggle(
-          'Background Playback',
+          t('backgroundPlayback'),
           settings.backgroundPlayback,
           (value) => updateSettings({ backgroundPlayback: value }),
-          'Continue audio when app is minimized'
+          t('backgroundDesc')
         )}
 
         {/* Gesture Controls Section */}
-        {renderSection('Gesture Controls', 'hand-left-outline')}
+        {renderSection(t('gestureControls'), 'hand-left-outline')}
 
         {renderToggle(
-          'Enable Gesture Controls',
+          t('enableGestures'),
           settings.gestureControls,
           (value) => updateSettings({ gestureControls: value }),
-          'Touch gestures for volume, brightness, and seeking'
+          t('gesturesDesc')
         )}
 
         {settings.gestureControls && (
           <>
             {renderToggle(
-              'Volume Gesture',
+              t('volumeGesture'),
               settings.volumeGesture,
               (value) => updateSettings({ volumeGesture: value }),
-              'Swipe up/down on right side to adjust volume'
+              t('volumeDesc')
             )}
 
             {renderToggle(
-              'Brightness Gesture',
+              t('brightnessGesture'),
               settings.brightnessGesture,
               (value) => updateSettings({ brightnessGesture: value }),
-              'Swipe up/down on left side to adjust brightness'
+              t('brightnessDesc')
             )}
 
             {renderSelector(
-              'Double-tap Seek',
+              t('doubleTapSeek'),
               `${settings.doubleTapSeek}s`,
               () => {
                 // Cycle through seek intervals
@@ -240,21 +240,21 @@ export const SettingsScreen = () => {
                 const nextInterval = intervals[(currentIndex + 1) % intervals.length];
                 updateSettings({ doubleTapSeek: nextInterval });
               },
-              'Seconds to skip when double-tapping'
+              t('seekDesc')
             )}
           </>
         )}
 
         {/* Download Section */}
-        {renderSection('Downloads', 'download-outline')}
+        {renderSection(t('downloads'), 'download-outline')}
 
         {renderSelector(
-          'Download Quality',
+          t('downloadQuality'),
           settings.downloadQuality === 'high'
-            ? 'High'
+            ? t('high')
             : settings.downloadQuality === 'medium'
-            ? 'Medium'
-            : 'Low',
+            ? t('medium')
+            : t('low'),
           () => {
             // Cycle through qualities
             const qualities: AppSettings['downloadQuality'][] = ['high', 'medium', 'low'];
@@ -262,31 +262,31 @@ export const SettingsScreen = () => {
             const nextQuality = qualities[(currentIndex + 1) % qualities.length];
             updateSettings({ downloadQuality: nextQuality });
           },
-          'Quality for offline downloads'
+          t('downloadQualityDesc')
         )}
 
         {/* About Section */}
-        {renderSection('About', 'information-circle-outline')}
+        {renderSection(t('about'), 'information-circle-outline')}
 
         <View style={styles.settingItem}>
-          <Text style={styles.settingLabel}>Version</Text>
+          <Text style={styles.settingLabel}>{t('version')}</Text>
           <Text style={styles.settingValueText}>1.0.0</Text>
         </View>
 
         <View style={styles.settingItem}>
-          <Text style={styles.settingLabel}>App Name</Text>
+          <Text style={styles.settingLabel}>{t('appName')}</Text>
           <Text style={styles.settingValueText}>PlayCast IPTV</Text>
         </View>
 
         {/* Reset Button */}
         <TouchableOpacity style={styles.resetButton} onPress={handleResetSettings}>
           <Ionicons name="refresh-outline" size={24} color={Colors.error} />
-          <Text style={styles.resetButtonText}>Reset All Settings</Text>
+          <Text style={styles.resetButtonText}>{t('resetAllSettings')}</Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            PlayCast IPTV - Professional IPTV Player
+            {t('appTagline')}
           </Text>
           <Text style={styles.footerSubtext}>
             Made with ❤️ for Final Project
