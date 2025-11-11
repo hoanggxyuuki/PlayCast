@@ -198,17 +198,86 @@ http://example.com/stream1.m3u8
 - **Lazy Loading**: Components loaded only when needed
 - **Image Caching**: Channel logos cached automatically
 
+## Premium Features ✨
+
+### Advanced Video Player
+- ✅ **Custom Playback Controls**: Professional player UI with play/pause, seek bar, time display
+- ✅ **Playback Speed Control**: 0.5x to 2x speed options
+- ✅ **Previous/Next Navigation**: Queue-integrated navigation
+- ✅ **Auto-hide Controls**: Smooth fade animations with auto-hide
+- ✅ **Continue Watching**: Resume from last position automatically
+- ✅ **Sleep Timer Integration**: Display countdown in player
+- ✅ **Quality & Options Menus**: Settings accessible during playback
+
+### Gesture Controls 🎮
+- ✅ **Double-tap to Seek**: Left/right double-tap for backward/forward seek (configurable 5-30s)
+- ✅ **Brightness Control**: Vertical swipe on left side adjusts brightness
+- ✅ **Volume Control**: Vertical swipe on right side adjusts volume
+- ✅ **Horizontal Seek**: Swipe left/right to seek through video
+- ✅ **Visual Feedback**: Real-time indicators for all gestures
+
+### Watch History & Analytics 📊
+- ✅ **Full Watch History**: Track all watched channels with thumbnails
+- ✅ **Progress Tracking**: Resume exactly where you left off
+- ✅ **Statistics Dashboard**: Total watch time, videos watched, averages
+- ✅ **Favorite Categories**: Auto-detected based on viewing habits
+- ✅ **Continue Watching**: Filter videos at 5-95% progress
+- ✅ **Smart Cleanup**: Automatic 100-item limit
+
+### Queue Management 🎵
+- ✅ **Create Playlists**: Build your own playback queue
+- ✅ **Shuffle & Reorder**: Randomize or manually arrange
+- ✅ **Move to Top/Bottom**: Quick reordering actions
+- ✅ **Now Playing Indicator**: Visual highlight of current item
+- ✅ **Queue Statistics**: Track total items and position
+- ✅ **Persistent Queue**: Queue saved between sessions
+
+### AI-Powered Recommendations 🤖
+- ✅ **Smart Suggestions**: AI recommendations based on watch history
+- ✅ **Similar Channels**: Levenshtein distance algorithm for matching
+- ✅ **Trending Content**: Most watched in last 7 days
+- ✅ **Category Matching**: Suggestions based on favorite categories
+- ✅ **Multi-factor Scoring**: View count, ratings, completion rate
+
+### Comprehensive Settings ⚙️
+- ✅ **Theme Selection**: Dark, Light, Auto modes
+- ✅ **Multi-language**: English, Tiếng Việt, 中文, 日本語, 한국어
+- ✅ **Playback Preferences**: Auto-play next, default speed/quality
+- ✅ **Player Features**: Picture-in-Picture, background playback
+- ✅ **Gesture Configuration**: Enable/disable individual gestures
+- ✅ **Download Quality**: High, Medium, Low presets
+- ✅ **Reset to Defaults**: One-tap restore
+
+### Social Features 🔗
+- ✅ **Native Share**: System share dialog integration
+- ✅ **Platform-specific URLs**: WhatsApp, Telegram, Facebook, Twitter, Email, SMS
+- ✅ **Copy to Clipboard**: Quick URL copying
+- ✅ **Export Favorites**: Share as M3U playlist
+- ✅ **Share App**: Invite friends functionality
+
+### Sleep Timer 💤
+- ✅ **Predefined Durations**: 15, 30, 45, 60, 90, 120 minutes
+- ✅ **Countdown Display**: MM:SS format in player
+- ✅ **Extend Timer**: Add more time without restarting
+- ✅ **Auto-stop Playback**: Graceful shutdown when timer ends
+
+### User Experience Enhancements
+- ✅ **Loading States**: Smooth loading indicators everywhere
+- ✅ **Empty States**: Helpful placeholders when no content
+- ✅ **Confirmation Dialogs**: Safety for destructive actions
+- ✅ **Pull to Refresh**: Update content with pull gesture
+- ✅ **Professional Animations**: Smooth transitions throughout
+
 ## Future Enhancements
 
 - [ ] EPG (Electronic Program Guide) support
-- [ ] Multiple language support
 - [ ] Chromecast/AirPlay support
-- [ ] Picture-in-Picture mode
 - [ ] Channel recording
 - [ ] Parental controls
-- [ ] Custom channel categories
-- [ ] Import/Export playlists
 - [ ] Cloud sync
+- [ ] Download Manager (offline viewing)
+- [ ] Mini Player (floating window)
+- [ ] Subtitle support
 
 ## Development
 
