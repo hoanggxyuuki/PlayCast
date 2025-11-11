@@ -13,8 +13,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes } from '../constants/theme';
 import { useQueue, useCurrentPlayback } from '../contexts/QueueContext';
 import { QueueItem } from '../types';
+import { useTranslation } from '../i18n/useTranslation';
 
 export const QueueScreen = () => {
+  const { t } = useTranslation();
   const {
     queue,
     currentIndex,
@@ -30,12 +32,12 @@ export const QueueScreen = () => {
 
   const handleClearQueue = () => {
     Alert.alert(
-      'Clear Queue',
-      'Are you sure you want to clear the entire queue?',
+      t('clearQueue'),
+      t('confirmClearQueue'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Clear',
+          text: t('clear'),
           style: 'destructive',
           onPress: () => clearQueue(),
         },
@@ -45,12 +47,12 @@ export const QueueScreen = () => {
 
   const handleRemoveItem = (channelId: string, channelName: string) => {
     Alert.alert(
-      'Remove from Queue',
-      `Remove "${channelName}" from queue?`,
+      t('removeFromQueue'),
+      `${t('remove')} "${channelName}"?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('remove'),
           style: 'destructive',
           onPress: () => removeFromQueue(channelId),
         },
@@ -60,7 +62,7 @@ export const QueueScreen = () => {
 
   const handlePlayItem = (index: number) => {
     setCurrentIndex(index);
-    Alert.alert('Now Playing', `Playing: ${queue[index].channel.name}`);
+    Alert.alert(t('nowPlaying'), queue[index].channel.name);
   };
 
   const renderQueueItem = ({ item, index }: { item: QueueItem; index: number }) => {
@@ -107,7 +109,7 @@ export const QueueScreen = () => {
             </Text>
           )}
           {isPlaying && (
-            <Text style={styles.nowPlayingText}>Now Playing</Text>
+            <Text style={styles.nowPlayingText}>{t('nowPlaying')}</Text>
           )}
         </View>
 
@@ -151,9 +153,9 @@ export const QueueScreen = () => {
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="list-outline" size={64} color={Colors.textSecondary} />
-      <Text style={styles.emptyText}>Queue is empty</Text>
+      <Text style={styles.emptyText}>{t('queueEmpty')}</Text>
       <Text style={styles.emptySubtext}>
-        Add channels to create your playlist queue
+        {t('addChannelsToQueue')}
       </Text>
     </View>
   );
@@ -166,7 +168,7 @@ export const QueueScreen = () => {
           <Ionicons name="musical-notes-outline" size={24} color={Colors.primary} />
           <View style={styles.statInfo}>
             <Text style={styles.statValue}>{totalItems}</Text>
-            <Text style={styles.statLabel}>Items in Queue</Text>
+            <Text style={styles.statLabel}>{t('itemsInQueue')}</Text>
           </View>
         </View>
 
@@ -175,7 +177,7 @@ export const QueueScreen = () => {
             <Ionicons name="play-circle-outline" size={24} color={Colors.primary} />
             <View style={styles.statInfo}>
               <Text style={styles.statValue}>{currentIndex + 1}</Text>
-              <Text style={styles.statLabel}>Currently Playing</Text>
+              <Text style={styles.statLabel}>{t('currentlyPlaying')}</Text>
             </View>
           </View>
         )}
@@ -186,13 +188,13 @@ export const QueueScreen = () => {
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.headerButton} onPress={shuffleQueue}>
             <Ionicons name="shuffle-outline" size={20} color={Colors.text} />
-            <Text style={styles.headerButtonText}>Shuffle</Text>
+            <Text style={styles.headerButtonText}>{t('shuffle')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.headerButton} onPress={handleClearQueue}>
             <Ionicons name="trash-outline" size={20} color={Colors.error} />
             <Text style={[styles.headerButtonText, { color: Colors.error }]}>
-              Clear Queue
+              {t('clearQueue')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -203,7 +205,7 @@ export const QueueScreen = () => {
         <View style={styles.nowPlayingCard}>
           <View style={styles.nowPlayingHeader}>
             <Ionicons name="disc-outline" size={20} color={Colors.primary} />
-            <Text style={styles.nowPlayingLabel}>Now Playing</Text>
+            <Text style={styles.nowPlayingLabel}>{t('nowPlaying')}</Text>
           </View>
           <Text style={styles.nowPlayingTitle} numberOfLines={1}>
             {current.name}
@@ -215,7 +217,7 @@ export const QueueScreen = () => {
       )}
 
       {queue.length > 0 && (
-        <Text style={styles.sectionTitle}>Up Next</Text>
+        <Text style={styles.sectionTitle}>{t('upNext')}</Text>
       )}
     </View>
   );
