@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { usePlaylist } from '../contexts/PlaylistContext';
+import { useTranslation } from '../i18n/useTranslation';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 
 interface AddPlaylistScreenProps {
@@ -26,6 +27,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
   onBack,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const { addPlaylistFromUrl } = usePlaylist();
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
@@ -34,12 +36,12 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
 
   const handleAddPlaylist = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a playlist name');
+      Alert.alert(t('error'), t('pleaseEnterPlaylistName'));
       return;
     }
 
     if (!url.trim()) {
-      Alert.alert('Error', 'Please enter a playlist URL');
+      Alert.alert(t('error'), t('pleaseEnterPlaylistUrl'));
       return;
     }
 
@@ -47,7 +49,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
     try {
       new URL(url);
     } catch {
-      Alert.alert('Error', 'Please enter a valid URL');
+      Alert.alert(t('error'), t('pleaseEnterValidUrl'));
       return;
     }
 
@@ -55,11 +57,11 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
 
     try {
       await addPlaylistFromUrl(url.trim(), name.trim(), type);
-      Alert.alert('Success', 'Playlist added successfully', [
+      Alert.alert(t('success'), t('playlistAddedSuccess'), [
         { text: 'OK', onPress: onSuccess },
       ]);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to add playlist');
+      Alert.alert(t('error'), error.message || t('failedToAddPlaylist'));
     } finally {
       setIsLoading(false);
     }
@@ -67,17 +69,17 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
 
   const exampleUrls = [
     {
-      name: 'M3U Playlist (Vietnam)',
+      name: t('m3uPlaylistVietnam'),
       url: 'https://iptv-org.github.io/iptv/countries/vn.m3u',
       type: 'm3u' as const,
     },
     {
-      name: 'Direct Video (MP4)',
+      name: t('directVideoMp4'),
       url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
       type: 'm3u' as const,
     },
     {
-      name: 'HLS Stream (M3U8)',
+      name: t('hlsStreamM3u8'),
       url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
       type: 'm3u' as const,
     },
@@ -101,7 +103,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
             <TouchableOpacity style={styles.backButton} onPress={onBack}>
               <Ionicons name="arrow-back" size={24} color={Colors.text} />
             </TouchableOpacity>
-            <Text style={styles.title}>Add Playlist</Text>
+            <Text style={styles.title}>{t('addPlaylist')}</Text>
             <View style={{ width: 40 }} />
           </View>
 
@@ -109,10 +111,10 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
           <View style={styles.form}>
             {/* Playlist Name */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Playlist Name</Text>
+              <Text style={styles.label}>{t('playlistName')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter playlist name"
+                placeholder={t('enterPlaylistName')}
                 placeholderTextColor={Colors.textTertiary}
                 value={name}
                 onChangeText={setName}
@@ -122,10 +124,10 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
 
             {/* Playlist URL */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Playlist URL</Text>
+              <Text style={styles.label}>{t('playlistUrl')}</Text>
               <TextInput
                 style={[styles.input, styles.urlInput]}
-                placeholder="https://example.com/playlist.m3u"
+                placeholder={t('enterPlaylistUrl')}
                 placeholderTextColor={Colors.textTertiary}
                 value={url}
                 onChangeText={setUrl}
@@ -141,13 +143,13 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
             <View style={styles.infoBox}>
               <Ionicons name="information-circle" size={20} color={Colors.primary} />
               <Text style={styles.infoText}>
-                You can add M3U playlists, JSON playlists, or direct media URLs (.mp4, .m3u8, .mp3, etc.)
+                {t('supportedFormatsInfo')}
               </Text>
             </View>
 
             {/* Playlist Type */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Type</Text>
+              <Text style={styles.label}>{t('type')}</Text>
               <View style={styles.typeSelector}>
                 <TouchableOpacity
                   style={[
@@ -163,7 +165,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
                       type === 'm3u' && styles.typeButtonTextActive,
                     ]}
                   >
-                    M3U / Direct URL
+                    {t('m3uDirectUrl')}
                   </Text>
                 </TouchableOpacity>
 
@@ -181,7 +183,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
                       type === 'json' && styles.typeButtonTextActive,
                     ]}
                   >
-                    JSON
+                    {t('json')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -189,7 +191,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
 
             {/* Examples */}
             <View style={styles.examplesSection}>
-              <Text style={styles.sectionTitle}>Examples</Text>
+              <Text style={styles.sectionTitle}>{t('examples')}</Text>
               {exampleUrls.map((example, index) => (
                 <TouchableOpacity
                   key={index}
@@ -223,7 +225,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
               ) : (
                 <>
                   <Ionicons name="add-circle" size={24} color={Colors.text} />
-                  <Text style={styles.addButtonText}>Add Playlist</Text>
+                  <Text style={styles.addButtonText}>{t('addPlaylist')}</Text>
                 </>
               )}
             </TouchableOpacity>

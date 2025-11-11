@@ -8,21 +8,31 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePlaylist } from '@/src/contexts/PlaylistContext';
+import { useHistory } from '@/src/contexts/HistoryContext';
 import { ChannelItem } from '@/src/components/channel/ChannelItem';
 import { EmptyState } from '@/src/components/common/EmptyState';
-import { VideoPlayer } from '@/src/components/player/VideoPlayer';
+import { AdvancedVideoPlayer } from '@/src/components/player/AdvancedVideoPlayer';
 import { Channel } from '@/src/types';
 import { Colors, Spacing, FontSizes } from '@/src/constants/theme';
+import { useTranslation } from '@/src/i18n/useTranslation';
 
 export default function FavoritesTab() {
+  const { t } = useTranslation();
   const { getFavoriteChannels, toggleFavorite, isFavorite } = usePlaylist();
+  const { getHistoryForChannel } = useHistory();
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [startPosition, setStartPosition] = useState(0);
 
   const favoriteChannels = getFavoriteChannels();
 
   const handlePlayChannel = (channel: Channel) => {
+    // Get resume position from history
+    const history = getHistoryForChannel(channel.id);
+    const resumeTime = history?.currentTime || 0;
+
     setSelectedChannel(channel);
+    setStartPosition(resumeTime);
     setShowPlayer(true);
   };
 
@@ -34,14 +44,14 @@ export default function FavoritesTab() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Favorite Channels</Text>
+        <Text style={styles.title}>{t('myFavorites')}</Text>
       </View>
 
       {favoriteChannels.length === 0 ? (
         <EmptyState
           icon="heart-outline"
-          title="No Favorites"
-          description="Add channels to your favorites to see them here"
+          title={t('noFavorites')}
+          description={t('addChannelsToFavorites')}
         />
       ) : (
         <FlatList
@@ -67,10 +77,11 @@ export default function FavoritesTab() {
           presentationStyle="fullScreen"
           onRequestClose={handleClosePlayer}
         >
-          <VideoPlayer
+          <AdvancedVideoPlayer
             channel={selectedChannel}
             onClose={handleClosePlayer}
             onError={(error) => console.error('Player error:', error)}
+            startPosition={startPosition}
           />
         </Modal>
       )}

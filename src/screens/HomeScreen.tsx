@@ -16,6 +16,7 @@ import { EmptyState } from '../components/common/EmptyState';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { Playlist } from '../types';
+import { useTranslation } from '../i18n/useTranslation';
 
 interface HomeScreenProps {
   onNavigateToAddPlaylist: () => void;
@@ -26,6 +27,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onNavigateToAddPlaylist,
   onNavigateToChannels,
 }) => {
+  const { t } = useTranslation();
   const { playlists, isLoading, deletePlaylist, refreshPlaylist, refreshData } = usePlaylist();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -37,18 +39,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   const handleDeletePlaylist = (playlist: Playlist) => {
     Alert.alert(
-      'Delete Playlist',
-      `Are you sure you want to delete "${playlist.name}"?`,
+      t('delete'),
+      `${t('delete')} "${playlist.name}"?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await deletePlaylist(playlist.id);
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete playlist');
+              Alert.alert(t('error'), t('error'));
             }
           },
         },
@@ -59,9 +61,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const handleRefreshPlaylist = async (playlist: Playlist) => {
     try {
       await refreshPlaylist(playlist.id);
-      Alert.alert('Success', 'Playlist refreshed successfully');
+      Alert.alert(t('done'), t('done'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to refresh playlist');
+      Alert.alert(t('error'), t('error'));
     }
   };
 
@@ -80,10 +82,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             {item.name}
           </Text>
           <Text style={styles.playlistMeta}>
-            {item.channels.length} channels • {item.type.toUpperCase()}
+            {item.channels.length} {t('channels')} • {item.type.toUpperCase()}
           </Text>
           <Text style={styles.playlistDate}>
-            Updated: {new Date(item.updatedAt).toLocaleDateString()}
+            {new Date(item.updatedAt).toLocaleDateString()}
           </Text>
         </View>
       </View>
@@ -117,7 +119,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   );
 
   if (isLoading && playlists.length === 0) {
-    return <LoadingOverlay message="Loading playlists..." />;
+    return <LoadingOverlay message={t('loading')} />;
   }
 
   return (
@@ -135,8 +137,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       {playlists.length === 0 ? (
         <EmptyState
           icon="list-outline"
-          title="No Playlists"
-          description="Add your first playlist to start watching"
+          title={t('noPlaylists')}
+          description={t('addFirstPlaylist')}
         />
       ) : (
         <FlatList
