@@ -18,11 +18,9 @@ import { VideoPlayerProps, PlayerState } from '../../types';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onError }) => {
-  const player = useVideoPlayer(channel.url, (player) => {
-    player.loop = false;
-    player.play();
-  });
-
+  const [showControls, setShowControls] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [controlsTimeoutId, setControlsTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState>({
     isPlaying: false,
     isPaused: true,
@@ -33,41 +31,71 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
     isMuted: false,
     isFullscreen: true,
   });
-  const [showControls, setShowControls] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [controlsTimeoutId, setControlsTimeoutId] = useState<NodeJS.Timeout | null>(null);
+
+  // Initialize video player with error handling
+  const player = useVideoPlayer(channel.url, (player) => {
+    try {
+      player.loop = false;
+      player.muted = false;
+      player.play();
+    } catch (err) {
+      console.error('Error initializing player:', err);
+      setError('Failed to initialize player');
+    }
+  });
 
   useEffect(() => {
     // Lock to landscape on mount
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-    StatusBar.setHidden(true);
+    const setupOrientation = async () => {
+      try {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        StatusBar.setHidden(true);
+      } catch (err) {
+        console.error('Error setting orientation:', err);
+      }
+    };
+
+    setupOrientation();
 
     return () => {
-      // Unlock orientation and cleanup on unmount
-      ScreenOrientation.unlockAsync();
-      StatusBar.setHidden(false);
+      // Cleanup on unmount
+      const cleanup = async () => {
+        try {
+          await ScreenOrientation.unlockAsync();
+          StatusBar.setHidden(false);
+        } catch (err) {
+          console.error('Error unlocking orientation:', err);
+        }
+      };
+
+      cleanup();
+
       if (controlsTimeoutId) {
         clearTimeout(controlsTimeoutId);
       }
     };
   }, []);
 
-  // Monitor player status
+  // Monitor player status with safe property access
   useEffect(() => {
     const interval = setInterval(() => {
-      if (player) {
-        setPlayerState((prev) => ({
-          ...prev,
-          isPlaying: player.playing,
-          isPaused: !player.playing,
-          currentTime: player.currentTime,
-          duration: player.duration,
-          volume: player.volume,
-          isMuted: player.muted,
-          isBuffering: player.status === 'loading',
-        }));
+      try {
+        if (player && typeof player.playing !== 'undefined') {
+          setPlayerState((prev) => ({
+            ...prev,
+            isPlaying: player.playing ?? false,
+            isPaused: !player.playing ?? true,
+            currentTime: player.currentTime ?? 0,
+            duration: player.duration ?? 0,
+            volume: player.volume ?? 1.0,
+            isMuted: player.muted ?? false,
+            isBuffering: player.status === 'loading',
+          }));
+        }
+      } catch (err) {
+        console.error('Error updating player state:', err);
       }
-    }, 100);
+    }, 200);
 
     return () => clearInterval(interval);
   }, [player]);
@@ -95,15 +123,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
 
   // Handle player errors
   useEffect(() => {
-    if (player.status === 'error') {
-      const errorMessage = 'Failed to load video stream';
-      setError(errorMessage);
-      onError?.(errorMessage);
+    try {
+      if (player && player.status === 'error') {
+        const errorMessage = 'Failed to load video stream';
+        setError(errorMessage);
+        onError?.(errorMessage);
+      }
+    } catch (err) {
+      console.error('Error checking player status:', err);
     }
-  }, [player.status]);
+  }, [player?.status]);
 
   const handlePlayPause = useCallback(() => {
     try {
+      if (!player) return;
+
       if (player.playing) {
         player.pause();
       } else {
@@ -111,11 +145,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
       }
     } catch (err) {
       console.error('Error toggling play/pause:', err);
+      setError('Failed to control playback');
     }
   }, [player]);
 
   const handleMuteUnmute = useCallback(() => {
     try {
+      if (!player) return;
+
       player.muted = !player.muted;
       setPlayerState((prev) => ({ ...prev, isMuted: player.muted }));
     } catch (err) {
@@ -125,6 +162,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
 
   const handleReload = useCallback(() => {
     try {
+      if (!player) return;
+
       setError(null);
       player.replace(channel.url);
       player.play();
@@ -139,7 +178,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
   }, []);
 
   const formatTime = (seconds: number): string => {
-    if (!seconds || isNaN(seconds)) return '0:00';
+    if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
 
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -167,7 +206,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
         />
 
         {/* Buffering Indicator */}
-        {playerState.isBuffering && (
+        {playerState.isBuffering && !error && (
           <View style={styles.bufferingContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
             <Text style={styles.bufferingText}>Loading...</Text>
@@ -182,6 +221,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
             <TouchableOpacity style={styles.reloadButton} onPress={handleReload}>
               <Ionicons name="reload" size={24} color={Colors.text} />
               <Text style={styles.reloadButtonText}>Retry</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.closeButtonAlt} onPress={onClose}>
+              <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -315,6 +357,15 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.text,
     fontWeight: '600',
+  },
+  closeButtonAlt: {
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  closeButtonText: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
   },
   controlsOverlay: {
     ...StyleSheet.absoluteFillObject,
