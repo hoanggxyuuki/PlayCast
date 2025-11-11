@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { usePlaylist } from '../contexts/PlaylistContext';
 import { useHistory } from '../contexts/HistoryContext';
+import { useTranslation } from '../i18n/useTranslation';
 import { ChannelItem } from '../components/channel/ChannelItem';
 import { EmptyState } from '../components/common/EmptyState';
 import { AdvancedVideoPlayer } from '../components/player/AdvancedVideoPlayer';
@@ -28,6 +29,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
   playlistId,
   onBack,
 }) => {
+  const { t } = useTranslation();
   const { playlists, favorites, toggleFavorite, isFavorite } = usePlaylist();
   const { getHistoryForChannel } = useHistory();
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,7 +46,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
 
     const grouped = new Map<string, Channel[]>();
     playlist.channels.forEach(channel => {
-      const group = channel.group || 'Uncategorized';
+      const group = channel.group || t('uncategorized');
       if (!grouped.has(group)) {
         grouped.set(group, []);
       }
@@ -52,7 +54,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
     });
 
     return grouped;
-  }, [playlist]);
+  }, [playlist, t]);
 
   // Filter channels based on search and selected group
   const filteredChannels = useMemo(() => {
@@ -62,7 +64,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
 
     // Filter by group
     if (selectedGroup) {
-      channels = channels.filter(c => (c.group || 'Uncategorized') === selectedGroup);
+      channels = channels.filter(c => (c.group || t('uncategorized')) === selectedGroup);
     }
 
     // Filter by search query
@@ -75,7 +77,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
     }
 
     return channels;
-  }, [playlist, searchQuery, selectedGroup]);
+  }, [playlist, searchQuery, selectedGroup, t]);
 
   const handlePlayChannel = (channel: Channel) => {
     // Get resume position from history
@@ -97,8 +99,8 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
       <SafeAreaView style={styles.container}>
         <EmptyState
           icon="alert-circle-outline"
-          title="Playlist Not Found"
-          description="The requested playlist could not be found"
+          title={t('playlistNotFound')}
+          description={t('playlistNotFoundDesc')}
         />
       </SafeAreaView>
     );
@@ -118,7 +120,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
             {playlist.name}
           </Text>
           <Text style={styles.subtitle}>
-            {filteredChannels.length} channels
+            {filteredChannels.length} {t('channels')}
           </Text>
         </View>
       </View>
@@ -128,7 +130,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
         <Ionicons name="search" size={20} color={Colors.textTertiary} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search channels..."
+          placeholder={t('searchChannels')}
           placeholderTextColor={Colors.textTertiary}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -145,22 +147,22 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
         <View style={styles.groupContainer}>
           <FlatList
             horizontal
-            data={['All', ...groups]}
+            data={[t('all'), ...groups]}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[
                   styles.groupChip,
-                  (item === 'All' && !selectedGroup) ||
+                  (item === t('all') && !selectedGroup) ||
                   item === selectedGroup
                     ? styles.groupChipActive
                     : null,
                 ]}
-                onPress={() => setSelectedGroup(item === 'All' ? null : item)}
+                onPress={() => setSelectedGroup(item === t('all') ? null : item)}
               >
                 <Text
                   style={[
                     styles.groupChipText,
-                    (item === 'All' && !selectedGroup) ||
+                    (item === t('all') && !selectedGroup) ||
                     item === selectedGroup
                       ? styles.groupChipTextActive
                       : null,
@@ -181,11 +183,11 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
       {filteredChannels.length === 0 ? (
         <EmptyState
           icon="tv-outline"
-          title="No Channels Found"
+          title={t('noChannelsFound')}
           description={
             searchQuery
-              ? 'Try a different search term'
-              : 'This playlist has no channels'
+              ? t('tryDifferentSearch')
+              : t('playlistHasNoChannels')
           }
         />
       ) : (

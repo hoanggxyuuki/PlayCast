@@ -67,6 +67,16 @@ export const translations = {
     addChannelsToFavorites: 'Add channels to your favorites',
     removeFromFavorites: 'Remove from favorites',
 
+    // Channels Screen
+    playlistNotFound: 'Playlist Not Found',
+    playlistNotFoundDesc: 'The requested playlist could not be found',
+    searchChannels: 'Search channels...',
+    all: 'All',
+    noChannelsFound: 'No Channels Found',
+    tryDifferentSearch: 'Try a different search term',
+    playlistHasNoChannels: 'This playlist has no channels',
+    uncategorized: 'Uncategorized',
+
     // History
     watchHistory: 'Watch History',
     clearHistory: 'Clear History',
@@ -231,6 +241,16 @@ export const translations = {
     addChannelsToFavorites: 'Thêm kênh vào yêu thích',
     removeFromFavorites: 'Xóa khỏi yêu thích',
 
+    // Channels Screen
+    playlistNotFound: 'Không Tìm Thấy Danh Sách',
+    playlistNotFoundDesc: 'Không thể tìm thấy danh sách đã yêu cầu',
+    searchChannels: 'Tìm kiếm kênh...',
+    all: 'Tất Cả',
+    noChannelsFound: 'Không Tìm Thấy Kênh',
+    tryDifferentSearch: 'Thử từ khóa tìm kiếm khác',
+    playlistHasNoChannels: 'Danh sách này không có kênh nào',
+    uncategorized: 'Chưa Phân Loại',
+
     // History
     watchHistory: 'Lịch Sử Xem',
     clearHistory: 'Xóa Lịch Sử',
@@ -379,6 +399,14 @@ export const translations = {
     playlistAddedSuccess: '播放列表添加成功',
     failedToAddPlaylist: '添加播放列表失败',
     supportedFormatsInfo: '您可以添加M3U播放列表、JSON播放列表或直接媒体URL（.mp4、.m3u8、.mp3等）',
+    playlistNotFound: '未找到播放列表',
+    playlistNotFoundDesc: '找不到请求的播放列表',
+    searchChannels: '搜索频道...',
+    all: '全部',
+    noChannelsFound: '未找到频道',
+    tryDifferentSearch: '尝试其他搜索词',
+    playlistHasNoChannels: '此播放列表没有频道',
+    uncategorized: '未分类',
   },
 
   ja: {
@@ -431,6 +459,14 @@ export const translations = {
     playlistAddedSuccess: 'プレイリストが追加されました',
     failedToAddPlaylist: 'プレイリストの追加に失敗しました',
     supportedFormatsInfo: 'M3Uプレイリスト、JSONプレイリスト、または直接メディアURL（.mp4、.m3u8、.mp3など）を追加できます',
+    playlistNotFound: 'プレイリストが見つかりません',
+    playlistNotFoundDesc: 'リクエストされたプレイリストが見つかりませんでした',
+    searchChannels: 'チャンネルを検索...',
+    all: 'すべて',
+    noChannelsFound: 'チャンネルが見つかりません',
+    tryDifferentSearch: '別の検索語を試してください',
+    playlistHasNoChannels: 'このプレイリストにはチャンネルがありません',
+    uncategorized: '未分類',
   },
 
   ko: {
@@ -483,6 +519,14 @@ export const translations = {
     playlistAddedSuccess: '재생목록이 추가되었습니다',
     failedToAddPlaylist: '재생목록 추가 실패',
     supportedFormatsInfo: 'M3U 재생목록, JSON 재생목록 또는 직접 미디어 URL(.mp4, .m3u8, .mp3 등)을 추가할 수 있습니다',
+    playlistNotFound: '재생목록을 찾을 수 없음',
+    playlistNotFoundDesc: '요청한 재생목록을 찾을 수 없습니다',
+    searchChannels: '채널 검색...',
+    all: '전체',
+    noChannelsFound: '채널을 찾을 수 없음',
+    tryDifferentSearch: '다른 검색어를 시도하세요',
+    playlistHasNoChannels: '이 재생목록에는 채널이 없습니다',
+    uncategorized: '미분류',
   },
 };
 
