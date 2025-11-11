@@ -1,11 +1,12 @@
-// Simplified Video Player for debugging
-import React, { useState } from 'react';
+// Simplified Video Player with loading state
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   Text,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +15,8 @@ import { VideoPlayerProps } from '../../types';
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onError }) => {
   const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   console.log('VideoPlayer mounting with channel:', channel.name, channel.url);
 
@@ -29,12 +32,49 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
     setHasError(true);
   }
 
+  // Monitor player status
+  useEffect(() => {
+    if (!player) return;
+
+    const interval = setInterval(() => {
+      try {
+        // Check if video is loading or playing
+        if (player.status === 'readyToPlay' || player.status === 'idle') {
+          setIsLoading(false);
+        }
+
+        if (player.status === 'error') {
+          setIsLoading(false);
+          setHasError(true);
+          onError?.('Failed to load video');
+        }
+
+        setIsPlaying(player.playing);
+      } catch (err) {
+        console.error('Error checking player status:', err);
+      }
+    }, 500);
+
+    // Set timeout to hide loading after 5 seconds regardless
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 5000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [player]);
+
   if (hasError || !player) {
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={48} color={Colors.error} />
-          <Text style={styles.errorText}>Failed to initialize player</Text>
+          <Text style={styles.errorText}>Failed to load video</Text>
+          <Text style={styles.errorSubtext}>
+            Please check if the URL is valid and try again
+          </Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Close</Text>
           </TouchableOpacity>
@@ -54,7 +94,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
 
       {/* Channel info */}
       <View style={styles.header}>
-        <Text style={styles.channelName}>{channel.name}</Text>
+        <Text style={styles.channelName} numberOfLines={1}>
+          {channel.name}
+        </Text>
+        {channel.group && (
+          <Text style={styles.channelGroup}>{channel.group}</Text>
+        )}
       </View>
 
       {/* Video view */}
@@ -63,7 +108,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
         style={styles.video}
         nativeControls={true}
         contentFit="contain"
+        allowsPictureInPicture={false}
       />
+
+      {/* Loading overlay */}
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading video...</Text>
+          <Text style={styles.loadingSubtext}>Please wait</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -101,6 +156,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.text,
   },
+  channelGroup: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    zIndex: 50,
+  },
+  loadingText: {
+    marginTop: Spacing.md,
+    fontSize: FontSizes.lg,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  loadingSubtext: {
+    marginTop: Spacing.xs,
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -109,8 +187,15 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginTop: Spacing.md,
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
     color: Colors.text,
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    marginTop: Spacing.sm,
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
   button: {

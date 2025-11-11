@@ -75,14 +75,15 @@ export const PlaylistProvider: React.FC<PlaylistProviderProps> = ({ children }) 
 
       let channels: Channel[];
 
+      // Pass custom name to parser for direct media URLs
       if (type === 'm3u') {
-        channels = await M3UParser.parseM3UFromUrl(url);
+        channels = await M3UParser.parseM3UFromUrl(url, name);
       } else {
-        channels = await M3UParser.parseJSONFromUrl(url);
+        channels = await M3UParser.parseJSONFromUrl(url, name);
       }
 
       if (channels.length === 0) {
-        throw new Error('No channels found in playlist');
+        throw new Error('No media found at URL');
       }
 
       const newPlaylist = await StorageService.addPlaylist({
@@ -94,7 +95,7 @@ export const PlaylistProvider: React.FC<PlaylistProviderProps> = ({ children }) 
 
       setPlaylists(prev => [...prev, newPlaylist]);
     } catch (err: any) {
-      setError(err.message || 'Failed to add playlist');
+      setError(err.message || 'Failed to add media');
       throw err;
     } finally {
       setIsLoading(false);

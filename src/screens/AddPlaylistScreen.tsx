@@ -67,8 +67,18 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
 
   const exampleUrls = [
     {
-      name: 'Example M3U Playlist',
+      name: 'M3U Playlist (Vietnam)',
       url: 'https://iptv-org.github.io/iptv/countries/vn.m3u',
+      type: 'm3u' as const,
+    },
+    {
+      name: 'Direct Video (MP4)',
+      url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      type: 'm3u' as const,
+    },
+    {
+      name: 'HLS Stream (M3U8)',
+      url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
       type: 'm3u' as const,
     },
   ];
@@ -127,9 +137,17 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
               />
             </View>
 
+            {/* Info Box */}
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle" size={20} color={Colors.primary} />
+              <Text style={styles.infoText}>
+                You can add M3U playlists, JSON playlists, or direct media URLs (.mp4, .m3u8, .mp3, etc.)
+              </Text>
+            </View>
+
             {/* Playlist Type */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Playlist Type</Text>
+              <Text style={styles.label}>Type</Text>
               <View style={styles.typeSelector}>
                 <TouchableOpacity
                   style={[
@@ -145,7 +163,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
                       type === 'm3u' && styles.typeButtonTextActive,
                     ]}
                   >
-                    M3U
+                    M3U / Direct URL
                   </Text>
                 </TouchableOpacity>
 
@@ -266,6 +284,21 @@ const styles = StyleSheet.create({
   urlInput: {
     minHeight: 60,
     textAlignVertical: 'top',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    lineHeight: 20,
   },
   typeSelector: {
     flexDirection: 'row',
