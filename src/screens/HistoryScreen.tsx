@@ -14,8 +14,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes } from '../constants/theme';
 import { useHistory, useWatchStats, useContinueWatching } from '../contexts/HistoryContext';
 import { WatchHistory } from '../types';
+import { useTranslation } from '../i18n/useTranslation';
 
 export const HistoryScreen = () => {
+  const { t } = useTranslation();
   const {
     history,
     clearHistory,
@@ -44,12 +46,12 @@ export const HistoryScreen = () => {
 
   const handleClearHistory = () => {
     Alert.alert(
-      'Clear History',
-      'Are you sure you want to clear your entire watch history? This cannot be undone.',
+      t('clearHistory'),
+      t('confirmClearHistory'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Clear',
+          text: t('clear'),
           style: 'destructive',
           onPress: () => clearHistory(),
         },
@@ -59,12 +61,12 @@ export const HistoryScreen = () => {
 
   const handleRemoveItem = (channelId: string, channelName: string) => {
     Alert.alert(
-      'Remove from History',
-      `Remove "${channelName}" from your watch history?`,
+      t('removeFromHistory'),
+      `${t('remove')} "${channelName}" ${t('removeFromHistory').toLowerCase()}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('remove'),
           style: 'destructive',
           onPress: () => removeFromHistory(channelId),
         },
@@ -104,19 +106,19 @@ export const HistoryScreen = () => {
       <View style={styles.statCard}>
         <Ionicons name="time-outline" size={32} color={Colors.primary} />
         <Text style={styles.statValue}>{formatWatchTime(totalWatchTime)}</Text>
-        <Text style={styles.statLabel}>Total Watch Time</Text>
+        <Text style={styles.statLabel}>{t('totalWatchTime')}</Text>
       </View>
 
       <View style={styles.statCard}>
         <Ionicons name="play-circle-outline" size={32} color={Colors.primary} />
         <Text style={styles.statValue}>{videosWatched}</Text>
-        <Text style={styles.statLabel}>Videos Watched</Text>
+        <Text style={styles.statLabel}>{t('videosWatched')}</Text>
       </View>
 
       <View style={styles.statCard}>
         <Ionicons name="trending-up-outline" size={32} color={Colors.primary} />
         <Text style={styles.statValue}>{formatWatchTime(averageWatchTime)}</Text>
-        <Text style={styles.statLabel}>Avg. Watch Time</Text>
+        <Text style={styles.statLabel}>{t('avgWatchTime')}</Text>
       </View>
     </View>
   );
@@ -126,7 +128,7 @@ export const HistoryScreen = () => {
 
     return (
       <View style={styles.categoriesContainer}>
-        <Text style={styles.sectionTitle}>Favorite Categories</Text>
+        <Text style={styles.sectionTitle}>{t('favoriteCategories')}</Text>
         <View style={styles.categoryTags}>
           {favoriteCategories.map((category, index) => (
             <View key={index} style={styles.categoryTag}>
@@ -159,7 +161,7 @@ export const HistoryScreen = () => {
           </Text>
           {item.duration > 0 && (
             <Text style={styles.historyMetaText}>
-              {Math.round(item.progress * 100)}% watched
+              {Math.round(item.progress * 100)}% {t('watched')}
             </Text>
           )}
         </View>
@@ -189,9 +191,9 @@ export const HistoryScreen = () => {
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="time-outline" size={64} color={Colors.textSecondary} />
-      <Text style={styles.emptyText}>No watch history yet</Text>
+      <Text style={styles.emptyText}>{t('noHistory')}</Text>
       <Text style={styles.emptySubtext}>
-        Videos you watch will appear here
+        {t('videosWillAppearHere')}
       </Text>
     </View>
   );
@@ -202,10 +204,10 @@ export const HistoryScreen = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Watch History</Text>
+        <Text style={styles.headerTitle}>{t('watchHistory')}</Text>
         {history.length > 0 && (
           <TouchableOpacity onPress={handleClearHistory}>
-            <Text style={styles.clearButton}>Clear All</Text>
+            <Text style={styles.clearButton}>{t('clearAllHistory')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -228,7 +230,7 @@ export const HistoryScreen = () => {
               selectedTab === 'all' && styles.tabTextActive,
             ]}
           >
-            All History
+            {t('allHistory')}
           </Text>
         </TouchableOpacity>
 
@@ -242,7 +244,7 @@ export const HistoryScreen = () => {
               selectedTab === 'continue' && styles.tabTextActive,
             ]}
           >
-            Continue Watching
+            {t('continueWatching')}
           </Text>
         </TouchableOpacity>
       </View>
