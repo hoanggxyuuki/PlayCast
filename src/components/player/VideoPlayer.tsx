@@ -1,5 +1,5 @@
-// Professional Video Player with custom controls
-import React, { useState, useRef, useEffect } from 'react';
+// Professional Video Player with custom controls using expo-video
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,9 +8,8 @@ import {
   ActivityIndicator,
   Dimensions,
   StatusBar,
-  Platform,
 } from 'react-native';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { Colors, Spacing, FontSizes } from '../../constants/theme';
@@ -19,7 +18,11 @@ import { VideoPlayerProps, PlayerState } from '../../types';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onError }) => {
-  const videoRef = useRef<Video>(null);
+  const player = useVideoPlayer(channel.url, (player) => {
+    player.loop = false;
+    player.play();
+  });
+
   const [playerState, setPlayerState] = useState<PlayerState>({
     isPlaying: false,
     isPaused: true,
@@ -32,7 +35,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
   });
   const [showControls, setShowControls] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [controlsTimeoutId, setControlsTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Lock to landscape on mount
@@ -40,99 +43,104 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
     StatusBar.setHidden(true);
 
     return () => {
-      // Unlock orientation on unmount
+      // Unlock orientation and cleanup on unmount
       ScreenOrientation.unlockAsync();
       StatusBar.setHidden(false);
+      if (controlsTimeoutId) {
+        clearTimeout(controlsTimeoutId);
+      }
     };
   }, []);
 
+  // Monitor player status
   useEffect(() => {
-    // Auto-hide controls after 3 seconds
+    const interval = setInterval(() => {
+      if (player) {
+        setPlayerState((prev) => ({
+          ...prev,
+          isPlaying: player.playing,
+          isPaused: !player.playing,
+          currentTime: player.currentTime,
+          duration: player.duration,
+          volume: player.volume,
+          isMuted: player.muted,
+          isBuffering: player.status === 'loading',
+        }));
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [player]);
+
+  // Auto-hide controls
+  useEffect(() => {
     if (showControls && playerState.isPlaying) {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
+      if (controlsTimeoutId) {
+        clearTimeout(controlsTimeoutId);
       }
 
-      controlsTimeoutRef.current = setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setShowControls(false);
       }, 3000);
+
+      setControlsTimeoutId(timeoutId);
     }
 
     return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
+      if (controlsTimeoutId) {
+        clearTimeout(controlsTimeoutId);
       }
     };
   }, [showControls, playerState.isPlaying]);
 
-  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      setPlayerState(prev => ({
-        ...prev,
-        isPlaying: status.isPlaying,
-        isPaused: !status.isPlaying,
-        isBuffering: status.isBuffering,
-        currentTime: status.positionMillis / 1000,
-        duration: status.durationMillis ? status.durationMillis / 1000 : 0,
-        volume: status.volume,
-        isMuted: status.isMuted,
-      }));
-
-      if (status.isBuffering) {
-        setShowControls(true);
-      }
-    } else if (status.error) {
-      const errorMessage = `Playback error: ${status.error}`;
+  // Handle player errors
+  useEffect(() => {
+    if (player.status === 'error') {
+      const errorMessage = 'Failed to load video stream';
       setError(errorMessage);
       onError?.(errorMessage);
     }
-  };
+  }, [player.status]);
 
-  const handlePlayPause = async () => {
-    if (!videoRef.current) return;
-
+  const handlePlayPause = useCallback(() => {
     try {
-      if (playerState.isPlaying) {
-        await videoRef.current.pauseAsync();
+      if (player.playing) {
+        player.pause();
       } else {
-        await videoRef.current.playAsync();
+        player.play();
       }
     } catch (err) {
       console.error('Error toggling play/pause:', err);
     }
-  };
+  }, [player]);
 
-  const handleMuteUnmute = async () => {
-    if (!videoRef.current) return;
-
+  const handleMuteUnmute = useCallback(() => {
     try {
-      await videoRef.current.setIsMutedAsync(!playerState.isMuted);
+      player.muted = !player.muted;
+      setPlayerState((prev) => ({ ...prev, isMuted: player.muted }));
     } catch (err) {
       console.error('Error toggling mute:', err);
     }
-  };
+  }, [player]);
 
-  const handleReload = async () => {
-    if (!videoRef.current) return;
-
+  const handleReload = useCallback(() => {
     try {
       setError(null);
-      await videoRef.current.unloadAsync();
-      await videoRef.current.loadAsync(
-        { uri: channel.url },
-        { shouldPlay: true }
-      );
+      player.replace(channel.url);
+      player.play();
     } catch (err) {
       console.error('Error reloading video:', err);
       setError('Failed to reload stream');
     }
-  };
+  }, [player, channel.url]);
 
-  const toggleControls = () => {
-    setShowControls(prev => !prev);
-  };
+  const toggleControls = useCallback(() => {
+    setShowControls((prev) => !prev);
+  }, []);
 
   const formatTime = (seconds: number): string => {
+    if (!seconds || isNaN(seconds)) return '0:00';
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
@@ -150,19 +158,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
         activeOpacity={1}
         onPress={toggleControls}
       >
-        <Video
-          ref={videoRef}
-          source={{ uri: channel.url }}
+        <VideoView
+          player={player}
           style={styles.video}
-          resizeMode={ResizeMode.CONTAIN}
-          shouldPlay
-          useNativeControls={false}
-          onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-          onError={(err) => {
-            const errorMessage = `Video error: ${err}`;
-            setError(errorMessage);
-            onError?.(errorMessage);
-          }}
+          nativeControls={false}
+          contentFit="contain"
+          allowsFullscreen={false}
+          allowsPictureInPicture={false}
         />
 
         {/* Buffering Indicator */}
@@ -273,8 +275,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   video: {
-    width: SCREEN_HEIGHT, // Swap width and height for landscape
-    height: SCREEN_WIDTH,
+    width: '100%',
+    height: '100%',
   },
   bufferingContainer: {
     ...StyleSheet.absoluteFillObject,

@@ -35,7 +35,7 @@
 - **Expo**: ~54.0.23
 - **Expo Router**: ~6.0.14 (File-based routing)
 - **TypeScript**: ~5.9.2
-- **Expo AV**: Video playback
+- **Expo Video**: Video playback with HLS support
 - **AsyncStorage**: Local data persistence
 - **Expo Screen Orientation**: Screen rotation management
 
@@ -182,8 +182,9 @@ http://example.com/stream1.m3u8
 - **Tab Navigation**: For primary screens (Playlists, Favorites)
 
 ### Video Playback
-- **Expo AV**: Chosen for better Expo integration and cross-platform support
+- **Expo Video**: Modern video playback API with better performance
 - **Custom Controls**: Implemented for better UX and customization
+- **HLS Streaming**: Full support for HTTP Live Streaming
 
 ### Styling
 - **Professional Theme**: Dark theme optimized for video content
