@@ -163,7 +163,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
           style={styles.video}
           nativeControls={false}
           contentFit="contain"
-          allowsFullscreen={false}
           allowsPictureInPicture={false}
         />
 
