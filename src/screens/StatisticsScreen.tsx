@@ -23,12 +23,15 @@ export const StatisticsScreen = () => {
 
   // Calculate statistics
   const stats = useMemo(() => {
-    const totalWatchTime = history.reduce((sum, h) => sum + h.watchDuration, 0);
-    const videosWatched = history.length;
+    // Filter out invalid history items (no channel data)
+    const validHistory = history.filter(h => h && h.channel && h.channel.id);
+
+    const totalWatchTime = validHistory.reduce((sum, h) => sum + h.watchDuration, 0);
+    const videosWatched = validHistory.length;
     const avgWatchTime = videosWatched > 0 ? totalWatchTime / videosWatched : 0;
 
     // Group by category
-    const categoryStats = history.reduce((acc, h) => {
+    const categoryStats = validHistory.reduce((acc, h) => {
       const category = h.channel.group || 'Uncategorized';
       if (!acc[category]) {
         acc[category] = { count: 0, duration: 0 };
@@ -44,13 +47,13 @@ export const StatisticsScreen = () => {
 
     // Watch time by day of week
     const dayStats = [0, 0, 0, 0, 0, 0, 0]; // Sun-Sat
-    history.forEach(h => {
+    validHistory.forEach(h => {
       const day = new Date(h.timestamp).getDay();
       dayStats[day] += h.watchDuration;
     });
 
     // Most watched channels
-    const channelStats = history.reduce((acc, h) => {
+    const channelStats = validHistory.reduce((acc, h) => {
       if (!acc[h.channel.id]) {
         acc[h.channel.id] = { channel: h.channel, count: 0, duration: 0 };
       }

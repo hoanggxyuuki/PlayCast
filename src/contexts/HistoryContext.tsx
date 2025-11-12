@@ -67,6 +67,7 @@ export const HistoryProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Update local state
       const existingIndex = history.findIndex((h) => h.channelId === item.channelId);
       let newHistory: WatchHistory[];
+      const isNewEntry = existingIndex === -1;
 
       if (existingIndex !== -1) {
         // Update existing entry
@@ -79,11 +80,13 @@ export const HistoryProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       setHistory(newHistory);
 
-      // Update stats
-      await StorageService.incrementVideosWatched();
-      await loadStats();
+      // Update stats - only increment count for NEW entries, not updates
+      if (isNewEntry) {
+        await StorageService.incrementVideosWatched();
+        await loadStats();
+      }
 
-      console.log('Added to history:', item.channelName);
+      console.log(isNewEntry ? 'Added to history:' : 'Updated history:', item.channelName);
     } catch (error) {
       console.error('Error adding to history:', error);
       throw error;

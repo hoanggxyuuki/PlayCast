@@ -488,29 +488,57 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           activeOpacity={1}
           onPress={() => setShowMoreMenu(false)}
         >
-          <View style={styles.moreMenu}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={styles.moreMenu}
+          >
             <Text style={styles.menuTitle}>Options</Text>
 
-            <TouchableOpacity style={styles.menuItem}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMoreMenu(false);
+                // TODO: Implement quality selection
+              }}
+            >
               <Ionicons name="settings-outline" size={24} color={Colors.text} />
               <Text style={styles.menuItemText}>Quality</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuItem}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMoreMenu(false);
+                // TODO: Implement subtitles
+              }}
+            >
               <Ionicons name="text-outline" size={24} color={Colors.text} />
               <Text style={styles.menuItemText}>Subtitles</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuItem}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMoreMenu(false);
+                // TODO: Implement sleep timer
+              }}
+            >
               <Ionicons name="timer-outline" size={24} color={Colors.text} />
               <Text style={styles.menuItemText}>Sleep Timer</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuItem}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMoreMenu(false);
+                // TODO: Implement share
+              }}
+            >
               <Ionicons name="share-outline" size={24} color={Colors.text} />
               <Text style={styles.menuItemText}>Share</Text>
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
     </View>
