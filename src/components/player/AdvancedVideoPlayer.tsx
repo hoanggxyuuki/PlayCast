@@ -1,4 +1,4 @@
-// Advanced Video Player with Premium Controls
+// Advanced Video Player with Landscape Support and Fixed UI
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -11,18 +11,19 @@ import {
   Modal,
   ScrollView,
   Animated,
+  Platform,
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, FontSizes } from '../../constants/theme';
 import { VideoPlayerProps } from '../../types';
 import { useHistory } from '../../contexts/HistoryContext';
 import { useQueue } from '../../contexts/QueueContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { SleepTimerService } from '../../services/sleepTimerService';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   channel,
@@ -43,35 +44,57 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [sleepTimerRemaining, setSleepTimerRemaining] = useState('');
+  const [isLandscape, setIsLandscape] = useState(false);
+  const [dimensions, setDimensions] = useState(Dimensions.get('window'));
 
   // Contexts
-  const { addToHistory, updateProgress, getHistoryForChannel } = useHistory();
+  const { addToHistory, updateProgress } = useHistory();
   const { playNext: queueNext, playPrevious: queuePrev, hasNext, hasPrevious } = useQueue();
   const { settings } = useSettings();
+  const insets = useSafeAreaInsets();
 
   // Refs
   const controlsTimeout = useRef<NodeJS.Timeout>();
   const progressInterval = useRef<NodeJS.Timeout>();
   const controlsOpacity = useRef(new Animated.Value(1)).current;
 
-  // Player initialization with resume support
+  // Player initialization
   let player;
   try {
     player = useVideoPlayer(channel.url, (p) => {
-      console.log('Player initialized');
-
       // Resume from last position if enabled
       if (settings.continueWatching && startPosition > 0) {
         p.currentTime = startPosition;
-        console.log('Resuming from:', startPosition);
       }
-
       p.play();
     });
   } catch (err) {
     console.error('Failed to create player:', err);
     setHasError(true);
   }
+
+  // Handle orientation changes
+  useEffect(() => {
+    // Allow all orientations
+    ScreenOrientation.unlockAsync();
+
+    // Listen for orientation changes
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setDimensions(window);
+      const isLandscapeMode = window.width > window.height;
+      setIsLandscape(isLandscapeMode);
+    });
+
+    // Check initial orientation
+    const { width, height } = Dimensions.get('window');
+    setIsLandscape(width > height);
+
+    return () => {
+      // Lock to portrait on unmount
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      subscription?.remove();
+    };
+  }, []);
 
   // Monitor player status
   useEffect(() => {
@@ -108,7 +131,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       if (player.playing && player.duration > 0) {
         updateProgress(channel.id, player.currentTime, player.duration);
       }
-    }, 5000); // Update every 5 seconds
+    }, 5000);
 
     return () => {
       if (progressInterval.current) {
@@ -160,7 +183,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
 
     controlsTimeout.current = setTimeout(() => {
       hideControls();
-    }, 3000);
+    }, 4000); // Increased to 4 seconds
   };
 
   const hideControls = () => {
@@ -213,7 +236,6 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     } else if (hasPrevious()) {
       const prev = queuePrev();
       if (prev) {
-        // Would need to reload player with new channel
         console.log('Playing previous:', prev.name);
       }
     }
@@ -225,9 +247,22 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     } else if (hasNext()) {
       const next = queueNext();
       if (next) {
-        // Would need to reload player with new channel
         console.log('Playing next:', next.name);
       }
+    }
+  };
+
+  const handleClose = () => {
+    // Lock back to portrait
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    onClose();
+  };
+
+  const toggleOrientation = async () => {
+    if (isLandscape) {
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    } else {
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
     }
   };
 
@@ -249,13 +284,14 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   if (hasError || !player) {
     return (
       <View style={styles.container}>
+        <StatusBar hidden={isLandscape} />
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={48} color={Colors.error} />
           <Text style={styles.errorText}>Failed to load video</Text>
           <Text style={styles.errorSubtext}>
             Please check if the URL is valid and try again
           </Text>
-          <TouchableOpacity style={styles.button} onPress={onClose}>
+          <TouchableOpacity style={styles.button} onPress={handleClose}>
             <Text style={styles.buttonText}>Close</Text>
           </TouchableOpacity>
         </View>
@@ -265,7 +301,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
 
   return (
     <View style={styles.container}>
-      <StatusBar hidden />
+      <StatusBar hidden={isLandscape} />
 
       {/* Video view */}
       <TouchableOpacity
@@ -294,8 +330,8 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       {showControls && (
         <Animated.View style={[styles.controlsContainer, { opacity: controlsOpacity }]}>
           {/* Top bar */}
-          <View style={styles.topBar}>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <View style={[styles.topBar, { paddingTop: isLandscape ? Spacing.md : insets.top + Spacing.md }]}>
+            <TouchableOpacity style={styles.iconButton} onPress={handleClose}>
               <Ionicons name="close" size={28} color={Colors.text} />
             </TouchableOpacity>
 
@@ -303,13 +339,21 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               <Text style={styles.channelName} numberOfLines={1}>
                 {channel.name}
               </Text>
-              {channel.group && (
+              {channel.group && !isLandscape && (
                 <Text style={styles.channelGroup}>{channel.group}</Text>
               )}
             </View>
 
+            <TouchableOpacity style={styles.iconButton} onPress={toggleOrientation}>
+              <Ionicons
+                name={isLandscape ? 'contract' : 'expand'}
+                size={24}
+                color={Colors.text}
+              />
+            </TouchableOpacity>
+
             <TouchableOpacity
-              style={styles.moreButton}
+              style={styles.iconButton}
               onPress={() => setShowMoreMenu(true)}
             >
               <Ionicons name="ellipsis-vertical" size={24} color={Colors.text} />
@@ -325,8 +369,8 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
             >
               <Ionicons
                 name="play-skip-back"
-                size={40}
-                color={!onPrevious && !hasPrevious() ? Colors.textSecondary : Colors.text}
+                size={isLandscape ? 36 : 40}
+                color={!onPrevious && !hasPrevious() ? Colors.textTertiary : Colors.text}
               />
             </TouchableOpacity>
 
@@ -336,7 +380,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
             >
               <Ionicons
                 name={isPlaying ? 'pause' : 'play'}
-                size={50}
+                size={isLandscape ? 44 : 50}
                 color={Colors.text}
               />
             </TouchableOpacity>
@@ -348,14 +392,14 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
             >
               <Ionicons
                 name="play-skip-forward"
-                size={40}
-                color={!onNext && !hasNext() ? Colors.textSecondary : Colors.text}
+                size={isLandscape ? 36 : 40}
+                color={!onNext && !hasNext() ? Colors.textTertiary : Colors.text}
               />
             </TouchableOpacity>
           </View>
 
           {/* Bottom bar */}
-          <View style={styles.bottomBar}>
+          <View style={[styles.bottomBar, { paddingBottom: isLandscape ? Spacing.md : insets.bottom + Spacing.md }]}>
             {/* Progress bar */}
             <View style={styles.progressContainer}>
               <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
@@ -366,7 +410,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 value={currentTime}
                 onValueChange={handleSeek}
                 minimumTrackTintColor={Colors.primary}
-                maximumTrackTintColor={Colors.textSecondary}
+                maximumTrackTintColor="rgba(255, 255, 255, 0.3)"
                 thumbTintColor={Colors.primary}
               />
               <Text style={styles.timeText}>{formatTime(duration)}</Text>
@@ -375,7 +419,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
             {/* Bottom controls */}
             <View style={styles.bottomControls}>
               <TouchableOpacity
-                style={styles.bottomButton}
+                style={styles.speedButton}
                 onPress={() => setShowSpeedMenu(true)}
               >
                 <Text style={styles.speedText}>{playbackSpeed}x</Text>
@@ -404,21 +448,21 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           activeOpacity={1}
           onPress={() => setShowSpeedMenu(false)}
         >
-          <View style={styles.menuContainer}>
+          <View style={styles.speedMenu}>
             <Text style={styles.menuTitle}>Playback Speed</Text>
             {speedOptions.map((speed) => (
               <TouchableOpacity
                 key={speed}
                 style={[
-                  styles.menuItem,
-                  playbackSpeed === speed && styles.menuItemActive,
+                  styles.speedOption,
+                  playbackSpeed === speed && styles.speedOptionActive,
                 ]}
                 onPress={() => handleSpeedChange(speed)}
               >
                 <Text
                   style={[
-                    styles.menuItemText,
-                    playbackSpeed === speed && styles.menuItemTextActive,
+                    styles.speedOptionText,
+                    playbackSpeed === speed && styles.speedOptionTextActive,
                   ]}
                 >
                   {speed}x
@@ -444,7 +488,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           activeOpacity={1}
           onPress={() => setShowMoreMenu(false)}
         >
-          <View style={styles.menuContainer}>
+          <View style={styles.moreMenu}>
             <Text style={styles.menuTitle}>Options</Text>
 
             <TouchableOpacity style={styles.menuItem}>
@@ -498,6 +542,36 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: '600',
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  errorText: {
+    fontSize: FontSizes.xl,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginTop: Spacing.lg,
+  },
+  errorSubtext: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+  },
+  button: {
+    marginTop: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+  },
+  buttonText: {
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: Colors.text,
+  },
   controlsContainer: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
@@ -507,17 +581,19 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
-    paddingTop: 50,
+    paddingHorizontal: Spacing.md,
   },
-  closeButton: {
-    padding: Spacing.sm,
-    backgroundColor: Colors.overlay,
+  iconButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 20,
   },
   topInfo: {
     flex: 1,
-    marginLeft: Spacing.md,
+    marginHorizontal: Spacing.md,
   },
   channelName: {
     fontSize: FontSizes.md,
@@ -529,144 +605,130 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 2,
   },
-  moreButton: {
-    padding: Spacing.sm,
-    backgroundColor: Colors.overlay,
-    borderRadius: 20,
-  },
   centerControls: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 40,
+    gap: 30,
   },
   controlButton: {
-    padding: Spacing.md,
-    backgroundColor: Colors.overlay,
-    borderRadius: 40,
+    width: 56,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 28,
   },
   playButton: {
-    padding: Spacing.lg,
-    backgroundColor: Colors.primary,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(99, 102, 241, 0.9)',
   },
   bottomBar: {
-    padding: Spacing.md,
-    paddingBottom: 30,
+    paddingHorizontal: Spacing.md,
   },
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  progressBar: {
-    flex: 1,
-    marginHorizontal: Spacing.sm,
+    gap: Spacing.sm,
   },
   timeText: {
     fontSize: FontSizes.sm,
     color: Colors.text,
-    minWidth: 50,
+    fontWeight: '600',
+    minWidth: 45,
     textAlign: 'center',
+  },
+  progressBar: {
+    flex: 1,
+    height: 40,
   },
   bottomControls: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    marginTop: Spacing.sm,
   },
-  bottomButton: {
-    padding: Spacing.sm,
-    backgroundColor: Colors.overlay,
-    borderRadius: 8,
-    minWidth: 60,
-    alignItems: 'center',
+  speedButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 6,
   },
   speedText: {
     fontSize: FontSizes.sm,
-    color: Colors.text,
     fontWeight: '600',
+    color: Colors.text,
   },
   sleepTimerIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.overlay,
+    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderRadius: 8,
-    gap: Spacing.xs,
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    borderRadius: 6,
   },
   sleepTimerText: {
     fontSize: FontSizes.sm,
-    color: Colors.primary,
     fontWeight: '600',
+    color: Colors.primary,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  menuContainer: {
-    backgroundColor: Colors.surface,
+  speedMenu: {
+    width: '70%',
+    maxWidth: 300,
+    backgroundColor: Colors.backgroundCard,
     borderRadius: 12,
     padding: Spacing.lg,
-    minWidth: SCREEN_WIDTH * 0.7,
-    maxHeight: '80%',
   },
   menuTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: Colors.text,
     marginBottom: Spacing.md,
+  },
+  speedOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 8,
+    marginBottom: Spacing.xs,
+  },
+  speedOptionActive: {
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+  },
+  speedOptionText: {
+    fontSize: FontSizes.md,
+    color: Colors.text,
+  },
+  speedOptionTextActive: {
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  moreMenu: {
+    width: '80%',
+    maxWidth: 350,
+    backgroundColor: Colors.backgroundCard,
+    borderRadius: 12,
+    padding: Spacing.lg,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: 8,
-    marginBottom: Spacing.xs,
+    paddingVertical: Spacing.md,
     gap: Spacing.md,
   },
-  menuItemActive: {
-    backgroundColor: Colors.overlay,
-  },
   menuItemText: {
-    flex: 1,
     fontSize: FontSizes.md,
     color: Colors.text,
-  },
-  menuItemTextActive: {
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.xl,
-  },
-  errorText: {
-    marginTop: Spacing.md,
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
-    color: Colors.text,
-    textAlign: 'center',
-  },
-  errorSubtext: {
-    marginTop: Spacing.sm,
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  button: {
-    marginTop: Spacing.xl,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderRadius: 8,
-  },
-  buttonText: {
-    fontSize: FontSizes.md,
-    color: Colors.text,
-    fontWeight: '600',
   },
 });
