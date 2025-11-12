@@ -9,6 +9,7 @@ import {
   Image,
   Alert,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes } from '../constants/theme';
 import { useQueue, useCurrentPlayback } from '../contexts/QueueContext';
@@ -16,6 +17,7 @@ import { QueueItem } from '../types';
 import { useTranslation } from '../i18n/useTranslation';
 
 export const QueueScreen = () => {
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const {
     queue,
@@ -223,7 +225,7 @@ export const QueueScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <FlatList
         data={queue}
         renderItem={renderQueueItem}
@@ -233,7 +235,7 @@ export const QueueScreen = () => {
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -244,7 +246,7 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: 60,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
   },
   statsRow: {
