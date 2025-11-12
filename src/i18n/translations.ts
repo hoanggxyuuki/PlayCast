@@ -7,6 +7,8 @@ export const translations = {
     favorites: 'Favorites',
     history: 'History',
     queue: 'Queue',
+    search: 'Search',
+    statistics: 'Statistics',
     settings: 'Settings',
 
     // Common
@@ -181,6 +183,8 @@ export const translations = {
     favorites: 'Yêu Thích',
     history: 'Lịch Sử',
     queue: 'Hàng Đợi',
+    search: 'Tìm Kiếm',
+    statistics: 'Thống Kê',
     settings: 'Cài Đặt',
 
     // Common
@@ -355,6 +359,8 @@ export const translations = {
     favorites: '收藏',
     history: '历史',
     queue: '队列',
+    search: '搜索',
+    statistics: '统计',
     settings: '设置',
 
     // Common
@@ -460,6 +466,8 @@ export const translations = {
     favorites: 'お気に入り',
     history: '履歴',
     queue: 'キュー',
+    search: '検索',
+    statistics: '統計',
     settings: '設定',
 
     // Common
@@ -565,6 +573,8 @@ export const translations = {
     favorites: '즐겨찾기',
     history: '기록',
     queue: '대기열',
+    search: '검색',
+    statistics: '통계',
     settings: '설정',
 
     // Common
