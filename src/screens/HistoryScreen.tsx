@@ -10,6 +10,7 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes } from '../constants/theme';
 import { useHistory, useWatchStats, useContinueWatching } from '../contexts/HistoryContext';
@@ -17,6 +18,7 @@ import { WatchHistory } from '../types';
 import { useTranslation } from '../i18n/useTranslation';
 
 export const HistoryScreen = () => {
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const {
     history,
@@ -201,9 +203,9 @@ export const HistoryScreen = () => {
   const displayHistory = selectedTab === 'continue' ? continueWatching : history;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Spacing.md }]}>
         <Text style={styles.headerTitle}>{t('watchHistory')}</Text>
         {history.length > 0 && (
           <TouchableOpacity onPress={handleClearHistory}>
@@ -266,7 +268,7 @@ export const HistoryScreen = () => {
         }
         showsVerticalScrollIndicator={false}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -280,7 +282,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: 60,
     paddingBottom: Spacing.md,
   },
   headerTitle: {
