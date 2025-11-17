@@ -72,10 +72,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="local-network"
+        options={{
+          title: t('localNetwork'),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="globe" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: t('settings'),
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size}) => (
             <Ionicons name="settings" size={size} color={color} />
           ),
         }}

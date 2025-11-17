@@ -9,6 +9,7 @@ export const translations = {
     queue: 'Queue',
     search: 'Search',
     statistics: 'Statistics',
+    localNetwork: 'Network',
     settings: 'Settings',
 
     // Common
@@ -185,6 +186,7 @@ export const translations = {
     queue: 'Hàng Đợi',
     search: 'Tìm Kiếm',
     statistics: 'Thống Kê',
+    localNetwork: 'Mạng',
     settings: 'Cài Đặt',
 
     // Common
@@ -361,6 +363,7 @@ export const translations = {
     queue: '队列',
     search: '搜索',
     statistics: '统计',
+    localNetwork: '网络',
     settings: '设置',
 
     // Common
@@ -468,6 +471,7 @@ export const translations = {
     queue: 'キュー',
     search: '検索',
     statistics: '統計',
+    localNetwork: 'ネットワーク',
     settings: '設定',
 
     // Common
@@ -575,6 +579,7 @@ export const translations = {
     queue: '대기열',
     search: '검색',
     statistics: '통계',
+    localNetwork: '네트워크',
     settings: '설정',
 
     // Common
