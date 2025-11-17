@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { LocalNetworkService } from '../services/LocalNetworkService';
+import { HTTPServerService } from '../services/HTTPServerService';
 import { PlaylistService } from '../services/playlistService';
 import { usePlaylist } from '../contexts/PlaylistContext';
 import { useTranslation } from '../i18n/useTranslation';
@@ -26,10 +27,20 @@ export const LocalNetworkScreen = () => {
   const [networkState, setNetworkState] = useState<any>(null);
   const [urlInput, setUrlInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [serverRunning, setServerRunning] = useState(false);
+  const [serverURL, setServerURL] = useState('');
+  const [serverPort] = useState(8080);
 
   useEffect(() => {
     loadNetworkInfo();
+    checkServerStatus();
   }, []);
+
+  const checkServerStatus = async () => {
+    const status = await HTTPServerService.getStatus();
+    setServerRunning(status.isRunning);
+    setServerURL(status.url);
+  };
 
   const loadNetworkInfo = async () => {
     const ip = await LocalNetworkService.getLocalIP();
@@ -123,6 +134,54 @@ export const LocalNetworkScreen = () => {
     }
   };
 
+  const handleStartServer = async () => {
+    try {
+      setIsLoading(true);
+      const result = await HTTPServerService.startServer(serverPort);
+
+      if (result.success) {
+        setServerRunning(true);
+        setServerURL(result.url);
+        Alert.alert(
+          'Server Started',
+          `Server đang chạy tại:\n${result.url}\n\nTruy cập URL này từ máy tính để upload M3U file.`
+        );
+      } else {
+        Alert.alert(t('error'), result.message);
+      }
+      setIsLoading(false);
+    } catch (error: any) {
+      Alert.alert(t('error'), error.message);
+      setIsLoading(false);
+    }
+  };
+
+  const handleStopServer = async () => {
+    try {
+      setIsLoading(true);
+      const result = await HTTPServerService.stopServer();
+
+      if (result.success) {
+        setServerRunning(false);
+        setServerURL('');
+        Alert.alert('Server Stopped', 'HTTP Server đã dừng');
+      } else {
+        Alert.alert(t('error'), result.message);
+      }
+      setIsLoading(false);
+    } catch (error: any) {
+      Alert.alert(t('error'), error.message);
+      setIsLoading(false);
+    }
+  };
+
+  const copyServerURL = () => {
+    if (serverURL) {
+      Clipboard.setString(serverURL);
+      Alert.alert(t('done'), 'Server URL copied to clipboard');
+    }
+  };
+
   const getNetworkTypeName = () => {
     if (!networkState) return 'Unknown';
     switch (networkState.type) {
@@ -177,6 +236,68 @@ export const LocalNetworkScreen = () => {
               )}
             </View>
           </View>
+        </View>
+
+        {/* HTTP Server Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="server-outline" size={24} color={Colors.primary} />
+            <Text style={styles.cardTitle}>HTTP Server</Text>
+          </View>
+
+          <Text style={styles.cardDescription}>
+            {HTTPServerService.isNativeModuleAvailable()
+              ? 'Start HTTP server to receive M3U uploads from other devices'
+              : '⚠️ HTTP Server chưa được cài đặt. Xem file SETUP_HTTP_SERVER.md để hướng dẫn cài đặt native module.'}
+          </Text>
+
+          {serverRunning && serverURL && (
+            <View style={styles.serverInfoBox}>
+              <Text style={styles.serverInfoLabel}>Server URL:</Text>
+              <View style={styles.urlContainer}>
+                <Text style={styles.serverURL} numberOfLines={2}>{serverURL}</Text>
+                <TouchableOpacity onPress={copyServerURL} style={styles.copyButton}>
+                  <Ionicons name="copy-outline" size={20} color={Colors.primary} />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.serverHint}>
+                Truy cập URL này từ máy tính để upload file M3U
+              </Text>
+            </View>
+          )}
+
+          {HTTPServerService.isNativeModuleAvailable() ? (
+            <TouchableOpacity
+              style={[
+                styles.button,
+                serverRunning && { backgroundColor: Colors.error },
+              ]}
+              onPress={serverRunning ? handleStopServer : handleStartServer}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={Colors.text} />
+              ) : (
+                <>
+                  <Ionicons
+                    name={serverRunning ? 'stop-circle-outline' : 'play-circle-outline'}
+                    size={24}
+                    color={Colors.text}
+                  />
+                  <Text style={styles.buttonText}>
+                    {serverRunning ? 'Stop Server' : 'Start Server'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.warningBox}>
+              <Ionicons name="warning-outline" size={24} color={Colors.warning} />
+              <Text style={styles.warningText}>
+                Cần eject Expo và cài native module để dùng HTTP Server. Xem SETUP_HTTP_SERVER.md
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Import from Device */}
@@ -422,5 +543,52 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSizes.sm,
     color: Colors.warning,
+  },
+  serverInfoBox: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginVertical: Spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.success,
+  },
+  serverInfoLabel: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+  },
+  urlContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  serverURL: {
+    flex: 1,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: Colors.success,
+    fontFamily: 'monospace',
+  },
+  serverHint: {
+    fontSize: FontSizes.xs,
+    color: Colors.textTertiary,
+    fontStyle: 'italic',
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: Colors.warning,
+    lineHeight: 20,
   },
 });
