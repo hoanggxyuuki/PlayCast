@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 import { LocalNetworkService } from '../services/LocalNetworkService';
 import { HTTPServerService } from '../services/HTTPServerService';
-import { PlaylistService } from '../services/playlistService';
+import { M3UParser } from '../services/m3uParser';
 import { usePlaylist } from '../contexts/PlaylistContext';
 import { useTranslation } from '../i18n/useTranslation';
 
@@ -69,8 +69,21 @@ export const LocalNetworkScreen = () => {
         return;
       }
 
-      // Parse playlist
-      const playlist = await PlaylistService.parseM3U(file.content, file.name);
+      // Parse M3U to channels
+      const channels = await M3UParser.parseM3U(file.content);
+
+      // Create playlist object
+      const playlist = {
+        id: `local-${Date.now()}`,
+        name: file.name.replace(/\.(m3u|m3u8)$/i, ''),
+        url: file.uri,
+        type: 'm3u' as const,
+        channels,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        description: 'Imported from device',
+      };
+
       await addPlaylist(playlist);
 
       Alert.alert(
@@ -107,8 +120,21 @@ export const LocalNetworkScreen = () => {
         return;
       }
 
-      // Parse playlist
-      const playlist = await PlaylistService.parseM3U(content, name);
+      // Parse M3U to channels
+      const channels = await M3UParser.parseM3U(content);
+
+      // Create playlist object
+      const playlist = {
+        id: `network-${Date.now()}`,
+        name: name.replace(/\.(m3u|m3u8)$/i, ''),
+        url: urlInput.trim(),
+        type: 'm3u' as const,
+        channels,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        description: 'Imported from network',
+      };
+
       await addPlaylist(playlist);
 
       Alert.alert(
