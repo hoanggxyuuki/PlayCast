@@ -1,4 +1,4 @@
-package com.playcast;
+package com.anonymous.playcast;
 
 import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.NativeModule;

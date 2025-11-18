@@ -28,12 +28,20 @@ fi
 
 echo -e "${GREEN}✓ Found android/ directory${NC}"
 
-# Create target directory if it doesn't exist
-TARGET_DIR="android/app/src/main/java/com/playcast"
-if [ ! -d "$TARGET_DIR" ]; then
-    echo -e "${YELLOW}Creating directory: $TARGET_DIR${NC}"
-    mkdir -p "$TARGET_DIR"
+# Find the correct package directory
+TARGET_DIR=$(find android/app/src/main -type d -path "*/java/com/*/playcast" 2>/dev/null | head -1)
+
+if [ -z "$TARGET_DIR" ]; then
+    # Try to find any package directory
+    TARGET_DIR=$(find android/app/src/main/java -mindepth 1 -maxdepth 3 -type d 2>/dev/null | head -1)
+    if [ -z "$TARGET_DIR" ]; then
+        echo -e "${RED}Error: Cannot find package directory${NC}"
+        echo "Please check your android/app/src/main/java/ structure"
+        exit 1
+    fi
 fi
+
+echo "Target directory: $TARGET_DIR"
 
 # Copy Java files
 echo ""
@@ -84,8 +92,8 @@ fi
 echo ""
 echo "Checking MainApplication..."
 
-MAIN_APP_JAVA="android/app/src/main/java/com/playcast/MainApplication.java"
-MAIN_APP_KT="android/app/src/main/java/com/playcast/MainApplication.kt"
+MAIN_APP_JAVA=$(find android/app/src/main -name "MainApplication.java" 2>/dev/null | head -1)
+MAIN_APP_KT=$(find android/app/src/main -name "MainApplication.kt" 2>/dev/null | head -1)
 
 if [ -f "$MAIN_APP_JAVA" ]; then
     MAIN_APP="$MAIN_APP_JAVA"
@@ -112,15 +120,18 @@ else
     echo "Add this to your MainApplication file:"
     echo ""
 
+    # Get package name from MainApplication file
+    PKG_NAME=$(grep -m1 "^package " "$MAIN_APP" | sed 's/package //;s/;//' | tr -d '[:space:]')
+
     if [ "$LANG" = "java" ]; then
         echo "1. Add import:"
-        echo "   import com.playcast.HTTPServerPackage;"
+        echo "   import ${PKG_NAME}.HTTPServerPackage;"
         echo ""
         echo "2. In getPackages() method, add:"
         echo "   packages.add(new HTTPServerPackage());"
     else
         echo "1. Add import:"
-        echo "   import com.playcast.HTTPServerPackage"
+        echo "   import ${PKG_NAME}.HTTPServerPackage"
         echo ""
         echo "2. In getPackages() method, add:"
         echo "   packages.add(HTTPServerPackage())"
