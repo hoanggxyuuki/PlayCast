@@ -12,6 +12,8 @@ import {
   ScrollView,
   Animated,
   Platform,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +26,7 @@ import { useHistory } from '../../contexts/HistoryContext';
 import { useQueue } from '../../contexts/QueueContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { SleepTimerService } from '../../services/sleepTimerService';
+import { PictureInPicture } from '../../modules/PictureInPicture';
 
 export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   channel,
@@ -46,6 +49,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const [sleepTimerRemaining, setSleepTimerRemaining] = useState('');
   const [isLandscape, setIsLandscape] = useState(false);
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
+  const [isInPiPMode, setIsInPiPMode] = useState(false);
 
   // Contexts
   const { addToHistory, updateProgress } = useHistory();
@@ -266,6 +270,13 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
+  const handlePiP = async () => {
+    const success = await PictureInPicture.enterPiP();
+    if (!success) {
+      console.error('Failed to enter Picture-in-Picture mode');
+    }
+  };
+
   const formatTime = (seconds: number): string => {
     if (isNaN(seconds) || seconds < 0) return '0:00';
 
@@ -314,7 +325,8 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           style={styles.video}
           nativeControls={false}
           contentFit="contain"
-          allowsPictureInPicture={settings.pictureInPicture}
+          allowsPictureInPicture={true}
+          allowsFullscreen={true}
         />
       </TouchableOpacity>
 
@@ -343,6 +355,14 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 <Text style={styles.channelGroup}>{channel.group}</Text>
               )}
             </View>
+
+            <TouchableOpacity style={styles.iconButton} onPress={handlePiP}>
+              <Ionicons
+                name="albums-outline"
+                size={24}
+                color={Colors.text}
+              />
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.iconButton} onPress={toggleOrientation}>
               <Ionicons

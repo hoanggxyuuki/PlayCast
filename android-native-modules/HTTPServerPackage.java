@@ -1,4 +1,4 @@
-package com.playcast;
+package com.anonymous.playcast;
 
 import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.NativeModule;
@@ -14,6 +14,7 @@ public class HTTPServerPackage implements ReactPackage {
     public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
         List<NativeModule> modules = new ArrayList<>();
         modules.add(new HTTPServerModule(reactContext));
+        modules.add(new PictureInPictureModule(reactContext));
         return modules;
     }
 
