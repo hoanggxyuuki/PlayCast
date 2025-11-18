@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   Clipboard,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +36,81 @@ export const LocalNetworkScreen = () => {
     loadNetworkInfo();
     checkServerStatus();
   }, []);
+
+  // Listen for file uploads from HTTP server
+  useEffect(() => {
+    if (!serverRunning) return;
+
+    const subscription = DeviceEventEmitter.addListener(
+      'onFileUploaded',
+      async (payloadString: string) => {
+        try {
+          const payload = JSON.parse(payloadString);
+          const { content, type, filename } = payload;
+
+          console.log(`Received ${type} file: ${filename}`);
+
+          if (type === 'm3u') {
+            // Handle M3U/M3U8 playlist files
+            if (!LocalNetworkService.isValidM3U(content)) {
+              Alert.alert('Error', 'Invalid M3U file format received');
+              return;
+            }
+
+            const channels = await M3UParser.parseM3U(content);
+            if (channels.length === 0) {
+              Alert.alert('Error', 'No channels found in uploaded file');
+              return;
+            }
+
+            const playlist = {
+              name: filename.replace(/\.(m3u|m3u8)$/i, ''),
+              url: 'local://http-upload',
+              type: 'm3u' as const,
+              channels,
+              description: 'Uploaded via HTTP Server',
+            };
+
+            await addPlaylist(playlist);
+            Alert.alert('Upload Successful', `Imported playlist with ${channels.length} channels`);
+
+          } else if (type === 'video' || type === 'audio') {
+            // Handle single video/audio files - create a single-item playlist
+            const { filepath } = payload;
+
+            const channel = {
+              id: `upload-${Date.now()}`,
+              name: filename.replace(/\.(mp4|mkv|avi|mov|flv|wmv|webm|ts|mp3|aac|wav|flac|ogg|m4a|wma)$/i, ''),
+              url: `file://${filepath}`, // Local file path
+              logo: '',
+              group: type === 'video' ? 'Uploaded Videos' : 'Uploaded Audio',
+            };
+
+            const playlist = {
+              name: filename,
+              url: 'local://http-upload',
+              type: 'm3u' as const,
+              channels: [channel],
+              description: `Uploaded ${type} file via HTTP Server`,
+            };
+
+            await addPlaylist(playlist);
+            Alert.alert('Upload Successful', `Imported ${type} file: ${filename}`);
+
+          } else {
+            Alert.alert('Error', `Unsupported file type: ${type}`);
+          }
+        } catch (error: any) {
+          console.error('Error processing uploaded file:', error);
+          Alert.alert('Error', error.message || 'Failed to import uploaded file');
+        }
+      }
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [serverRunning, addPlaylist]);
 
   const checkServerStatus = async () => {
     const status = await HTTPServerService.getStatus();

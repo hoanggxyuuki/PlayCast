@@ -15,13 +15,13 @@ Sau khi eject, copy 3 file Java từ thư mục `android-native-modules/` vào t
 
 ```bash
 # Copy HTTPServerModule.java
-cp android-native-modules/HTTPServerModule.java android/app/src/main/java/com/playcast/
+cp android-native-modules/HTTPServerModule.java android/app/src/main/java/com/anonymous/playcast/
 
 # Copy SimpleHTTPServer.java
-cp android-native-modules/SimpleHTTPServer.java android/app/src/main/java/com/playcast/
+cp android-native-modules/SimpleHTTPServer.java android/app/src/main/java/com/anonymous/playcast/
 
 # Copy HTTPServerPackage.java
-cp android-native-modules/HTTPServerPackage.java android/app/src/main/java/com/playcast/
+cp android-native-modules/HTTPServerPackage.java android/app/src/main/java/com/anonymous/playcast/
 ```
 
 ## Bước 3: Thêm NanoHTTPD dependency
@@ -37,13 +37,13 @@ dependencies {
 
 ## Bước 4: Register HTTPServerPackage
 
-Mở file `android/app/src/main/java/com/playcast/MainApplication.java` (hoặc `MainApplication.kt` nếu dùng Kotlin):
+Mở file `android/app/src/main/java/com/anonymous/playcast/MainApplication.java` (hoặc `MainApplication.kt` nếu dùng Kotlin):
 
 ### Nếu dùng Java:
 
 ```java
 // Thêm import ở đầu file
-import com.playcast.HTTPServerPackage;
+import com.anonymous.playcast.HTTPServerPackage;
 
 // Trong method getPackages(), thêm:
 @Override
@@ -60,7 +60,7 @@ protected List<ReactPackage> getPackages() {
 
 ```kotlin
 // Thêm import ở đầu file
-import com.playcast.HTTPServerPackage
+import com.anonymous.playcast.HTTPServerPackage
 
 // Trong method getPackages(), thêm:
 override fun getPackages(): List<ReactPackage> {
@@ -97,7 +97,7 @@ npx expo run:android
 ## Troubleshooting
 
 ### Lỗi: "Cannot find symbol: class HTTPServerPackage"
-→ Kiểm tra lại đã copy đúng 3 file Java vào thư mục `android/app/src/main/java/com/playcast/`
+→ Kiểm tra lại đã copy đúng 3 file Java vào thư mục `android/app/src/main/java/com/anonymous/playcast/`
 
 ### Lỗi: "Could not resolve org.nanohttpd:nanohttpd:2.3.1"
 → Kiểm tra kết nối Internet, sync Gradle lại:
@@ -123,9 +123,9 @@ cd android
 
 ```bash
 # Xóa 3 file Java
-rm android/app/src/main/java/com/playcast/HTTPServerModule.java
-rm android/app/src/main/java/com/playcast/SimpleHTTPServer.java
-rm android/app/src/main/java/com/playcast/HTTPServerPackage.java
+rm android/app/src/main/java/com/anonymous/playcast/HTTPServerModule.java
+rm android/app/src/main/java/com/anonymous/playcast/SimpleHTTPServer.java
+rm android/app/src/main/java/com/anonymous/playcast/HTTPServerPackage.java
 
 # Xóa dòng "packages.add(new HTTPServerPackage());" trong MainApplication.java
 
