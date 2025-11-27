@@ -236,17 +236,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.backgroundLight,
   },
   backButton: {
     padding: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
   },
   headerInfo: {
     flex: 1,
-    marginLeft: Spacing.sm,
+    marginLeft: Spacing.md,
   },
   title: {
     fontSize: FontSizes.xl,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: Colors.text,
   },
   subtitle: {
@@ -259,9 +264,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.backgroundCard,
     marginHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
+    marginVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   searchInput: {
     flex: 1,

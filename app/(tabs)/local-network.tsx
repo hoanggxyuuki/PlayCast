@@ -1,6 +1,6 @@
 import React from 'react';
-import { LocalNetworkScreen } from '@/src/screens/LocalNetworkScreen';
+import { OnlineSearchScreen } from '@/src/screens/OnlineSearchScreen';
 
 export default function LocalNetworkTab() {
-  return <LocalNetworkScreen />;
+  return <OnlineSearchScreen />;
 }

@@ -78,7 +78,9 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.xs,
     backgroundColor: Colors.backgroundCard,
     borderRadius: BorderRadius.lg,
-    ...Shadows.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadows.sm,
   },
   content: {
     flexDirection: 'row',
@@ -103,11 +105,11 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: '600',
     color: Colors.text,
+    marginBottom: 4,
   },
   group: {
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
-    marginTop: 4,
   },
   favoriteButton: {
     padding: Spacing.sm,
