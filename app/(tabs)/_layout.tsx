@@ -9,12 +9,20 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#6366f1',
-        tabBarInactiveTintColor: '#94a3b8',
+        tabBarActiveTintColor: '#3b82f6',
+        tabBarInactiveTintColor: '#71717a',
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#1e293b',
-          borderTopColor: '#334155',
+          backgroundColor: '#121212',
+          borderTopWidth: 1,
+          borderTopColor: '#27272a',
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 65,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
         },
       }}>
       <Tabs.Screen
@@ -63,20 +71,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="statistics"
-        options={{
-          title: t('statistics'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="stats-chart" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="local-network"
         options={{
-          title: t('localNetwork'),
+          title: 'Online Search',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="globe" size={size} color={color} />
+            <Ionicons name="globe-outline" size={size} color={color} />
           ),
         }}
       />

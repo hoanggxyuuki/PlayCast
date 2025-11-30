@@ -11,6 +11,7 @@ interface PlaylistContextType {
   error: string | null;
 
   // Playlist operations
+  addPlaylist: (playlist: Omit<Playlist, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   addPlaylistFromUrl: (url: string, name: string, type: 'm3u' | 'json') => Promise<void>;
   deletePlaylist: (id: string) => Promise<void>;
   refreshPlaylist: (id: string) => Promise<void>;
@@ -63,6 +64,25 @@ export const PlaylistProvider: React.FC<PlaylistProviderProps> = ({ children }) 
     } catch (err) {
       setError('Failed to load data');
       console.error('Error loading data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addPlaylist = async (playlist: Omit<Playlist, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      if (playlist.channels.length === 0) {
+        throw new Error('Playlist has no channels');
+      }
+
+      const newPlaylist = await StorageService.addPlaylist(playlist);
+      setPlaylists(prev => [...prev, newPlaylist]);
+    } catch (err: any) {
+      setError(err.message || 'Failed to add playlist');
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -180,6 +200,7 @@ export const PlaylistProvider: React.FC<PlaylistProviderProps> = ({ children }) 
     favorites,
     isLoading,
     error,
+    addPlaylist,
     addPlaylistFromUrl,
     deletePlaylist,
     refreshPlaylist,

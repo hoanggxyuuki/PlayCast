@@ -1,9 +1,10 @@
 // Channel List Item Component
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Channel } from '../../types';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/theme';
+import { Card, Button } from '../ui';
 
 interface ChannelItemProps {
   channel: Channel;
@@ -19,7 +20,12 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
   onToggleFavorite,
 }) => {
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
+    <Card
+      variant="default"
+      padding="medium"
+      margin="small"
+      onPress={onPress}
+    >
       <View style={styles.content}>
         {/* Channel Logo */}
         {channel.logo ? (
@@ -48,19 +54,17 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
 
         {/* Favorite Button */}
         {onToggleFavorite && (
-          <TouchableOpacity
-            style={styles.favoriteButton}
+          <Button
+            title=""
+            variant="ghost"
+            size="small"
+            icon={isFavorite ? 'heart' : 'heart-outline'}
             onPress={(e) => {
-              e.stopPropagation();
+              e?.stopPropagation();
               onToggleFavorite();
             }}
-          >
-            <Ionicons
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={24}
-              color={isFavorite ? Colors.error : Colors.textSecondary}
-            />
-          </TouchableOpacity>
+            style={styles.favoriteButton}
+          />
         )}
 
         {/* Play Icon */}
@@ -68,17 +72,13 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
           <Ionicons name="play-circle" size={28} color={Colors.primary} />
         </View>
       </View>
-    </TouchableOpacity>
+    </Card>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: Spacing.md,
-    marginVertical: Spacing.xs,
-    backgroundColor: Colors.backgroundCard,
-    borderRadius: BorderRadius.lg,
-    ...Shadows.md,
+    // Removed as handled by Card component
   },
   content: {
     flexDirection: 'row',
@@ -103,15 +103,14 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: '600',
     color: Colors.text,
+    marginBottom: 4,
   },
   group: {
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
-    marginTop: 4,
   },
   favoriteButton: {
-    padding: Spacing.sm,
-    marginRight: Spacing.sm,
+    padding: Spacing.xs,
   },
   playIcon: {
     padding: Spacing.xs,

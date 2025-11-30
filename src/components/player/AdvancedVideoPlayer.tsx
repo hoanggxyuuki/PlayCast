@@ -12,6 +12,8 @@ import {
   ScrollView,
   Animated,
   Platform,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +26,7 @@ import { useHistory } from '../../contexts/HistoryContext';
 import { useQueue } from '../../contexts/QueueContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { SleepTimerService } from '../../services/sleepTimerService';
+import { PictureInPicture } from '../../modules/PictureInPicture';
 
 export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   channel,
@@ -46,6 +49,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const [sleepTimerRemaining, setSleepTimerRemaining] = useState('');
   const [isLandscape, setIsLandscape] = useState(false);
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
+  const [isInPiPMode, setIsInPiPMode] = useState(false);
 
   // Contexts
   const { addToHistory, updateProgress } = useHistory();
@@ -266,6 +270,13 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
+  const handlePiP = async () => {
+    const success = await PictureInPicture.enterPiP();
+    if (!success) {
+      console.error('Failed to enter Picture-in-Picture mode');
+    }
+  };
+
   const formatTime = (seconds: number): string => {
     if (isNaN(seconds) || seconds < 0) return '0:00';
 
@@ -314,7 +325,8 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           style={styles.video}
           nativeControls={false}
           contentFit="contain"
-          allowsPictureInPicture={settings.pictureInPicture}
+          allowsPictureInPicture={true}
+          allowsFullscreen={true}
         />
       </TouchableOpacity>
 
@@ -343,6 +355,14 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 <Text style={styles.channelGroup}>{channel.group}</Text>
               )}
             </View>
+
+            <TouchableOpacity style={styles.iconButton} onPress={handlePiP}>
+              <Ionicons
+                name="albums-outline"
+                size={24}
+                color={Colors.text}
+              />
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.iconButton} onPress={toggleOrientation}>
               <Ionicons
@@ -603,20 +623,22 @@ const styles = StyleSheet.create({
   controlsContainer: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     zIndex: 10,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    backgroundColor: 'rgba(18, 18, 18, 0.95)',
   },
   iconButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(36, 36, 36, 0.8)',
     borderRadius: 20,
   },
   topInfo: {
@@ -644,17 +666,19 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(36, 36, 36, 0.8)',
     borderRadius: 28,
   },
   playButton: {
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: 'rgba(99, 102, 241, 0.9)',
+    backgroundColor: 'rgba(59, 130, 246, 0.9)',
   },
   bottomBar: {
     paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    backgroundColor: 'rgba(18, 18, 18, 0.95)',
   },
   progressContainer: {
     flexDirection: 'row',
@@ -681,7 +705,7 @@ const styles = StyleSheet.create({
   speedButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(36, 36, 36, 0.8)',
     borderRadius: 6,
   },
   speedText: {
@@ -695,7 +719,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
     borderRadius: 6,
   },
   sleepTimerText: {
@@ -705,58 +729,98 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(10, 10, 15, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   speedMenu: {
-    width: '70%',
-    maxWidth: 300,
+    width: '80%',
+    maxWidth: 320,
     backgroundColor: Colors.backgroundCard,
-    borderRadius: 12,
-    padding: Spacing.lg,
+    borderRadius: 2,
+    padding: Spacing.xl,
+    borderWidth: 3,
+    borderColor: Colors.primary,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    elevation: 15,
   },
   menuTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: Spacing.md,
+    fontSize: FontSizes.xl,
+    fontWeight: '900',
+    color: Colors.primary,
+    marginBottom: Spacing.lg,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    textShadowColor: Colors.primaryGlow,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
   speedOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderRadius: 8,
-    marginBottom: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: 2,
+    marginBottom: Spacing.sm,
+    borderWidth: 2,
+    borderColor: Colors.border,
   },
   speedOptionActive: {
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    backgroundColor: 'rgba(0, 240, 255, 0.15)',
+    borderColor: Colors.secondary,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 4,
   },
   speedOptionText: {
     fontSize: FontSizes.md,
-    color: Colors.text,
+    color: Colors.textSecondary,
+    fontWeight: '700',
   },
   speedOptionTextActive: {
-    fontWeight: '600',
-    color: Colors.primary,
+    fontWeight: '900',
+    color: Colors.secondary,
+    letterSpacing: 0.5,
+    textShadowColor: Colors.secondaryGlow,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
   },
   moreMenu: {
-    width: '80%',
-    maxWidth: 350,
+    width: '85%',
+    maxWidth: 380,
     backgroundColor: Colors.backgroundCard,
-    borderRadius: 12,
-    padding: Spacing.lg,
+    borderRadius: 2,
+    padding: Spacing.xl,
+    borderWidth: 3,
+    borderColor: Colors.secondary,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    elevation: 15,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.lg,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    borderRadius: 2,
+    marginBottom: Spacing.sm,
+    backgroundColor: 'rgba(26, 26, 46, 0.5)',
   },
   menuItemText: {
     fontSize: FontSizes.md,
     color: Colors.text,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

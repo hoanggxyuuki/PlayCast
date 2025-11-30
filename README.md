@@ -86,28 +86,66 @@ PlayCast/
 └── README.md
 ```
 
-## Installation
+## 🚀 Quick Start
 
-1. **Clone the repository**
+### Prerequisites
+
+- **Node.js** >= 18.x
+- **npm** or **yarn**
+- **For Android:**
+  - Android Studio
+  - Android SDK (API 34+)
+  - Java JDK 17+
+- **For iOS (macOS only):**
+  - Xcode 15+
+  - CocoaPods
+
+### Installation
+
+1. **Clone the repository:**
    ```bash
    git clone <repository-url>
    cd PlayCast
    ```
 
-2. **Install dependencies**
+2. **Install dependencies:**
    ```bash
    npm install
    ```
 
-3. **Start the development server**
-   ```bash
-   npx expo start
+3. **Build the app:**
+
+   **For Windows:**
+   ```cmd
+   build-native.bat
    ```
 
-4. **Run on device/simulator**
-   - Press `i` for iOS simulator
-   - Press `a` for Android emulator
-   - Scan QR code with Expo Go app on your phone
+   **For Linux/macOS:**
+   ```bash
+   chmod +x build-native.sh
+   ./build-native.sh
+   ```
+
+4. **Select platform:**
+   - Option 1: Build for Android
+   - Option 2: Build for iOS (macOS only)
+   - Option 3: Reinstall native modules only
+   - Option 4: Eject Expo project only
+
+The build script will automatically:
+- ✅ Eject Expo project (if needed)
+- ✅ Copy native modules (HTTP Server, PiP)
+- ✅ Add required dependencies (NanoHTTPD)
+- ✅ Register native packages
+- ✅ Build and install the app on your device/emulator
+
+### Development Mode (Without Build Script)
+
+```bash
+npx expo start
+```
+
+Then press `a` for Android or `i` for iOS. **Note:** Native features (HTTP Server, PiP) will not work in Expo Go.
 
 ## Usage
 
@@ -268,6 +306,52 @@ http://example.com/stream1.m3u8
 - ✅ **Pull to Refresh**: Update content with pull gesture
 - ✅ **Professional Animations**: Smooth transitions throughout
 
+## 📡 LAN File Sharing (HTTP Server)
+
+Upload media files from your PC to phone over WiFi!
+
+### How to Use:
+
+1. **On Phone:**
+   - Open app → Go to **"Network"** or **"Local Network"** tab
+   - Tap **"Start Server"**
+   - Note the URL displayed (e.g., `http://192.168.1.40:8080`)
+
+2. **On PC (same WiFi network):**
+   - Open web browser
+   - Go to the URL from step 1
+   - Select and upload files
+
+3. **Supported Formats:**
+   - 📋 **Playlists:** M3U, M3U8
+   - 🎥 **Video:** MP4, MKV, AVI, MOV, FLV, WMV, WebM, TS
+   - 🎵 **Audio:** MP3, AAC, WAV, FLAC, OGG, M4A, WMA
+
+Files are automatically imported and saved to permanent storage!
+
+### Technical Details:
+- Uses **NanoHTTPD** embedded HTTP server
+- Runs on port **8080**
+- Files copied to: `/storage/emulated/0/Android/data/com.anonymous.playcast/files/Movies/PlayCast/`
+- Automatic file type detection
+- Real-time import via React Native Event Emitter
+
+## 🎬 Picture-in-Picture Mode (Android 8.0+)
+
+Watch videos while using other apps!
+
+### Usage:
+1. **Automatic:** Press **Home** button while video is playing → Auto-enters PiP
+2. **Manual:** Tap the **PiP button** (4 squares icon) in video player controls
+3. **Exit:** Tap PiP window or press X button
+
+### Features:
+- 16:9 aspect ratio window
+- Draggable and resizable
+- Video continues playing seamlessly
+- Native Android PiP implementation
+- No black screen (hardware acceleration enabled)
+
 ## Future Enhancements
 
 - [ ] EPG (Electronic Program Guide) support
@@ -275,9 +359,10 @@ http://example.com/stream1.m3u8
 - [ ] Channel recording
 - [ ] Parental controls
 - [ ] Cloud sync
-- [ ] Download Manager (offline viewing)
-- [ ] Mini Player (floating window)
+- [x] **Download Manager** - LAN file upload implemented!
+- [x] **Picture-in-Picture** - Native PiP support added!
 - [ ] Subtitle support
+- [ ] iOS HTTP Server support
 
 ## Development
 
