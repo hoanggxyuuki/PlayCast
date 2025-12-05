@@ -1,7 +1,11 @@
+// New Tab Layout - 4 Tabs: Home, Discover, Library, Settings
+import { Colors, Layout } from '@/src/constants/theme';
+import { useTranslation } from '@/src/i18n/useTranslation';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from '@/src/i18n/useTranslation';
+import { StyleSheet, View } from 'react-native';
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -9,85 +13,155 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#3b82f6',
-        tabBarInactiveTintColor: '#71717a',
         headerShown: false,
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: '#121212',
-          borderTopWidth: 1,
-          borderTopColor: '#27272a',
+          backgroundColor: Colors.background,
+          borderTopWidth: 0,
           paddingBottom: 8,
-          paddingTop: 8,
-          height: 65,
+          paddingTop: 12,
+          height: Layout.tabBarHeight,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
+          marginTop: 4,
         },
-      }}>
+        tabBarBackground: () => (
+          <View style={StyleSheet.absoluteFill}>
+            <LinearGradient
+              colors={['transparent', Colors.background]}
+              style={styles.tabBarGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 0.3 }}
+            />
+            <View style={styles.tabBarBackground} />
+          </View>
+        ),
+      }}
+    >
+      {/* HOME TAB */}
       <Tabs.Screen
         name="index"
         options={{
-          title: t('playlists'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="list" size={size} color={color} />
+          title: 'Home',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconContainer : undefined}>
+              <Ionicons
+                name={focused ? 'home' : 'home-outline'}
+                size={24}
+                color={color}
+              />
+            </View>
           ),
         }}
       />
+
+      {/* DISCOVER TAB */}
+      <Tabs.Screen
+        name="discover"
+        options={{
+          title: 'Discover',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconContainer : undefined}>
+              <Ionicons
+                name={focused ? 'compass' : 'compass-outline'}
+                size={24}
+                color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+
+      {/* LIBRARY TAB */}
+      <Tabs.Screen
+        name="library"
+        options={{
+          title: 'Library',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconContainer : undefined}>
+              <Ionicons
+                name={focused ? 'library' : 'library-outline'}
+                size={24}
+                color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+
+      {/* SETTINGS TAB */}
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: t('settings'),
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconContainer : undefined}>
+              <Ionicons
+                name={focused ? 'settings' : 'settings-outline'}
+                size={24}
+                color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+
+      {/* HIDDEN TABS - Keep for routing but hide from tab bar */}
       <Tabs.Screen
         name="explore"
         options={{
-          title: t('favorites'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="heart" size={size} color={color} />
-          ),
+          href: null, // Hide from tab bar
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
-          title: t('history'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="time" size={size} color={color} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
         name="queue"
         options={{
-          title: t('queue'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="musical-notes" size={size} color={color} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
-          title: t('search'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search" size={size} color={color} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
         name="local-network"
         options={{
-          title: 'Online Search',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="globe-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: t('settings'),
-          tabBarIcon: ({ color, size}) => (
-            <Ionicons name="settings" size={size} color={color} />
-          ),
+          href: null,
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBarBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.background,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  tabBarGradient: {
+    ...StyleSheet.absoluteFillObject,
+    height: 20,
+    top: -20,
+  },
+  activeIconContainer: {
+    backgroundColor: 'rgba(118, 75, 162, 0.15)',
+    borderRadius: 12,
+    padding: 6,
+    marginBottom: -4,
+  },
+});

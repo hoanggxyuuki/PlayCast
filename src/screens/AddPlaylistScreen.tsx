@@ -1,22 +1,20 @@
 // Add Playlist Screen
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Button, Card, Input } from '../components/ui';
+import { Colors, FontSizes, Spacing } from '../constants/theme';
 import { usePlaylist } from '../contexts/PlaylistContext';
 import { useTranslation } from '../i18n/useTranslation';
-import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
 
 interface AddPlaylistScreenProps {
   onBack: () => void;
@@ -100,9 +98,13 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={onBack}>
-              <Ionicons name="arrow-back" size={24} color={Colors.text} />
-            </TouchableOpacity>
+            <Button
+              title=""
+              variant="ghost"
+              size="medium"
+              icon="arrow-back"
+              onPress={onBack}
+            />
             <Text style={styles.title}>{t('addPlaylist')}</Text>
             <View style={{ width: 40 }} />
           </View>
@@ -110,82 +112,58 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
           {/* Form */}
           <View style={styles.form}>
             {/* Playlist Name */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('playlistName')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('enterPlaylistName')}
-                placeholderTextColor={Colors.textTertiary}
-                value={name}
-                onChangeText={setName}
-                editable={!isLoading}
-              />
-            </View>
+            <Input
+              label={t('playlistName')}
+              value={name}
+              onChangeText={setName}
+              editable={!isLoading}
+              placeholder={t('enterPlaylistName')}
+            />
 
             {/* Playlist URL */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('playlistUrl')}</Text>
-              <TextInput
-                style={[styles.input, styles.urlInput]}
-                placeholder={t('enterPlaylistUrl')}
-                placeholderTextColor={Colors.textTertiary}
-                value={url}
-                onChangeText={setUrl}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="url"
-                editable={!isLoading}
-                multiline
-              />
-            </View>
+            <Input
+              label={t('playlistUrl')}
+              value={url}
+              onChangeText={setUrl}
+              editable={!isLoading}
+              placeholder={t('enterPlaylistUrl')}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              multiline
+              inputStyle={styles.urlInput}
+            />
 
             {/* Info Box */}
-            <View style={styles.infoBox}>
-              <Ionicons name="information-circle" size={20} color={Colors.primary} />
-              <Text style={styles.infoText}>
-                {t('supportedFormatsInfo')}
-              </Text>
-            </View>
+            <Card variant="outlined" margin="small">
+              <View style={styles.infoBox}>
+                <Ionicons name="information-circle" size={20} color={Colors.primary} />
+                <Text style={styles.infoText}>
+                  {t('supportedFormatsInfo')}
+                </Text>
+              </View>
+            </Card>
 
             {/* Playlist Type */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('type')}</Text>
               <View style={styles.typeSelector}>
-                <TouchableOpacity
-                  style={[
-                    styles.typeButton,
-                    type === 'm3u' && styles.typeButtonActive,
-                  ]}
+                <Button
+                  title={t('m3uDirectUrl')}
+                  variant={type === 'm3u' ? 'primary' : 'outline'}
+                  size="medium"
                   onPress={() => setType('m3u')}
                   disabled={isLoading}
-                >
-                  <Text
-                    style={[
-                      styles.typeButtonText,
-                      type === 'm3u' && styles.typeButtonTextActive,
-                    ]}
-                  >
-                    {t('m3uDirectUrl')}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.typeButton,
-                    type === 'json' && styles.typeButtonActive,
-                  ]}
+                  style={styles.typeButton}
+                />
+                <Button
+                  title={t('json')}
+                  variant={type === 'json' ? 'primary' : 'outline'}
+                  size="medium"
                   onPress={() => setType('json')}
                   disabled={isLoading}
-                >
-                  <Text
-                    style={[
-                      styles.typeButtonText,
-                      type === 'json' && styles.typeButtonTextActive,
-                    ]}
-                  >
-                    {t('json')}
-                  </Text>
-                </TouchableOpacity>
+                  style={styles.typeButton}
+                />
               </View>
             </View>
 
@@ -193,9 +171,11 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
             <View style={styles.examplesSection}>
               <Text style={styles.sectionTitle}>{t('examples')}</Text>
               {exampleUrls.map((example, index) => (
-                <TouchableOpacity
+                <Card
                   key={index}
-                  style={styles.exampleCard}
+                  variant="default"
+                  padding="medium"
+                  margin="small"
                   onPress={() => loadExample(example)}
                   disabled={isLoading}
                 >
@@ -210,25 +190,21 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
                     size={20}
                     color={Colors.textTertiary}
                   />
-                </TouchableOpacity>
+                </Card>
               ))}
             </View>
 
             {/* Add Button */}
-            <TouchableOpacity
-              style={[styles.addButton, isLoading && styles.addButtonDisabled]}
+            <Button
+              title={t('addPlaylist')}
+              variant="primary"
+              size="large"
+              icon="add-circle"
               onPress={handleAddPlaylist}
               disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color={Colors.text} />
-              ) : (
-                <>
-                  <Ionicons name="add-circle" size={24} color={Colors.text} />
-                  <Text style={styles.addButtonText}>{t('addPlaylist')}</Text>
-                </>
-              )}
-            </TouchableOpacity>
+              loading={isLoading}
+              style={styles.addButton}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -255,7 +231,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   backButton: {
-    padding: Spacing.sm,
+    // Removed as handled by Button component
   },
   title: {
     fontSize: FontSizes.xxl,
@@ -275,13 +251,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   input: {
-    backgroundColor: Colors.backgroundCard,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    fontSize: FontSizes.md,
-    color: Colors.text,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    // Removed as we're using Input component
   },
   urlInput: {
     minHeight: 60,
@@ -290,10 +260,6 @@ const styles = StyleSheet.create({
   infoBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
     gap: Spacing.sm,
   },
   infoText: {
@@ -308,24 +274,16 @@ const styles = StyleSheet.create({
   },
   typeButton: {
     flex: 1,
-    padding: Spacing.md,
-    backgroundColor: Colors.backgroundCard,
-    borderRadius: BorderRadius.md,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    alignItems: 'center',
+    marginHorizontal: Spacing.xs,
   },
   typeButtonActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary,
+    // Removed as handled by Button component
   },
   typeButtonText: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    color: Colors.textSecondary,
+    // Removed as handled by Button component
   },
   typeButtonTextActive: {
-    color: Colors.text,
+    // Removed as handled by Button component
   },
   examplesSection: {
     marginTop: Spacing.lg,
@@ -339,11 +297,7 @@ const styles = StyleSheet.create({
   exampleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.backgroundCard,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    ...Shadows.sm,
+    // Removed as handled by Card component
   },
   exampleInfo: {
     flex: 1,
@@ -359,22 +313,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
     marginTop: Spacing.xl,
-    ...Shadows.md,
   },
   addButtonDisabled: {
-    opacity: 0.6,
+    // Removed as handled by Button component
   },
   addButtonText: {
-    marginLeft: Spacing.sm,
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
-    color: Colors.text,
+    // Removed as handled by Button component
   },
 });

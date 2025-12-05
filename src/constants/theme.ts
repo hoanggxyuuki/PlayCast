@@ -1,66 +1,81 @@
-// 🎨 DARK PROFESSIONAL THEME
+// 🎨 PLAYCAST THEME - Purple Gradient Edition
+// Modern, premium design inspired by Spotify
+
+// Main gradient colors
+export const Gradients = {
+  primary: ['#667eea', '#764ba2'],
+  secondary: ['#f093fb', '#f5576c'],
+  accent: ['#4facfe', '#00f2fe'],
+  dark: ['#0f0f23', '#1a1a2e'],
+  card: ['rgba(102, 126, 234, 0.1)', 'rgba(118, 75, 162, 0.1)'],
+  glass: ['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)'],
+};
+
 export const Colors = {
-  // Professional Blue Accent
-  primary: '#3b82f6', // Clean Blue
-  primaryDark: '#2563eb',
-  primaryLight: '#60a5fa',
-  primaryGlow: 'rgba(59, 130, 246, 0.15)',
+  // Primary Purple
+  primary: '#764ba2',
+  primaryLight: '#9b6dbd',
+  primaryDark: '#5a3680',
+  primaryGlow: 'rgba(118, 75, 162, 0.3)',
 
-  // Subtle Purple Accent
-  secondary: '#8b5cf6', // Soft Purple
-  secondaryDark: '#7c3aed',
-  secondaryLight: '#a78bfa',
-  secondaryGlow: 'rgba(139, 92, 246, 0.15)',
+  // Secondary Pink
+  secondary: '#f093fb',
+  secondaryLight: '#f5b0fc',
+  secondaryDark: '#d070e0',
+  secondaryGlow: 'rgba(240, 147, 251, 0.3)',
 
-  // Muted Gold Accent
-  accent: '#f59e0b', // Amber
-  accentDark: '#d97706',
-  accentLight: '#fbbf24',
-  accentGlow: 'rgba(245, 158, 11, 0.15)',
+  // Accent Cyan
+  accent: '#4facfe',
+  accentLight: '#7fc4ff',
+  accentDark: '#2090e0',
+  accentGlow: 'rgba(79, 172, 254, 0.3)',
 
-  // Elegant Purple
-  purple: '#a855f7',
-  purpleGlow: 'rgba(168, 85, 247, 0.15)',
+  // Vibrant highlights
+  pink: '#ec4899',
+  orange: '#f97316',
+  green: '#10b981',
+  yellow: '#fbbf24',
+  red: '#ef4444',
+  cyan: '#22d3ee',
 
-  // Dark Professional Backgrounds
-  background: '#0a0a0a', // Pure dark
-  backgroundLight: '#121212',
-  backgroundCard: '#1a1a1a',
-  backgroundElevated: '#1f1f1f',
+  // Dark Backgrounds
+  background: '#0f0f23',
+  backgroundLight: '#16162a',
+  backgroundCard: '#1e1e3a',
+  backgroundElevated: '#252545',
 
-  // Subtle Surfaces
-  surface: '#242424',
-  surfaceLight: '#2a2a2a',
-  surfaceGlow: 'rgba(255, 255, 255, 0.02)',
+  // Glassmorphism Surfaces
+  surface: 'rgba(255, 255, 255, 0.05)',
+  surfaceLight: 'rgba(255, 255, 255, 0.08)',
+  surfaceActive: 'rgba(255, 255, 255, 0.12)',
+  surfaceGlow: 'rgba(118, 75, 162, 0.1)',
 
-  // Clean Text
+  // Text
   text: '#ffffff',
-  textSecondary: '#a1a1aa',
-  textTertiary: '#71717a',
-  textGlow: 'rgba(255, 255, 255, 0.05)',
+  textSecondary: '#a1a1c7',
+  textTertiary: '#6b6b8a',
+  textMuted: '#4a4a6a',
 
-  // Professional Status Colors
-  error: '#ef4444',
+  // Status
   success: '#10b981',
-  warning: '#f59e0b',
-  info: '#3b82f6',
+  warning: '#fbbf24',
+  error: '#ef4444',
+  info: '#4facfe',
 
-  // Minimal Borders
-  border: '#27272a',
-  borderLight: '#3f3f46',
-  borderGlow: 'rgba(255, 255, 255, 0.05)',
+  // Borders
+  border: 'rgba(255, 255, 255, 0.1)',
+  borderLight: 'rgba(255, 255, 255, 0.15)',
+  borderActive: 'rgba(118, 75, 162, 0.5)',
 
   // Overlays
-  overlay: 'rgba(0, 0, 0, 0.9)',
-  overlayLight: 'rgba(0, 0, 0, 0.7)',
-  overlayGlow: 'rgba(255, 255, 255, 0.02)',
+  overlay: 'rgba(15, 15, 35, 0.95)',
+  overlayLight: 'rgba(15, 15, 35, 0.8)',
+  overlayDark: 'rgba(0, 0, 0, 0.9)',
 
-  // Gradients
-  gradientStart: '#3b82f6',
-  gradientEnd: '#8b5cf6',
-  gradientPink: '#a855f7',
-
+  // Transparent
   transparent: 'transparent',
+  white: '#ffffff',
+  black: '#000000',
 };
 
 export const Spacing = {
@@ -69,99 +84,131 @@ export const Spacing = {
   md: 16,
   lg: 24,
   xl: 32,
-  xxl: 40,
+  xxl: 48,
+  xxxl: 64,
 };
 
 export const BorderRadius = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
   full: 9999,
 };
 
 export const FontSizes = {
-  xs: 12,
-  sm: 14,
-  md: 16,
-  lg: 18,
+  xs: 11,
+  sm: 13,
+  md: 15,
+  lg: 17,
   xl: 20,
   xxl: 24,
   xxxl: 32,
+  hero: 40,
 };
 
 export const FontWeights = {
+  light: '300' as const,
   regular: '400' as const,
   medium: '500' as const,
   semibold: '600' as const,
   bold: '700' as const,
+  black: '900' as const,
 };
 
-// Subtle professional shadows
+// Modern shadows with glow effect
 export const Shadows = {
   sm: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    elevation: 1,
+    shadowColor: '#764ba2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
   md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 3,
+    shadowColor: '#764ba2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.30,
-    shadowRadius: 5.46,
-    elevation: 6,
+    shadowColor: '#764ba2',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
   },
   xl: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 7.49,
+    shadowColor: '#764ba2',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  glow: {
+    shadowColor: '#764ba2',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
     elevation: 10,
   },
-  // Subtle accent shadows (keeping names for compatibility)
-  neonCyan: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 3,
+  glowPink: {
+    shadowColor: '#f093fb',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  neonMagenta: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 3,
-  },
-  neonPurple: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 3,
-  },
-  neonGold: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 3,
+  glowCyan: {
+    shadowColor: '#4facfe',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
   },
 };
 
-export const Layout = {
-  window: {
-    width: 0, // Will be set dynamically
-    height: 0, // Will be set dynamically
+// Glassmorphism styles
+export const Glass = {
+  light: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  isSmallDevice: false, // Will be set dynamically
+  medium: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  dark: {
+    backgroundColor: 'rgba(15, 15, 35, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  purple: {
+    backgroundColor: 'rgba(118, 75, 162, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(118, 75, 162, 0.3)',
+  },
+};
+
+// Animation durations
+export const Animation = {
+  fast: 150,
+  normal: 300,
+  slow: 500,
+  verySlow: 800,
+};
+
+// Layout helpers
+export const Layout = {
+  screenPadding: Spacing.lg,
+  cardPadding: Spacing.md,
+  listItemHeight: 72,
+  tabBarHeight: 80,
+  headerHeight: 60,
+  heroHeight: 200,
 };

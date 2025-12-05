@@ -1,22 +1,18 @@
 // Home Screen - Main screen showing playlists
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
   Alert,
-  RefreshControl,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Button, Card, EmptyState, List } from '../components/ui';
+import { BorderRadius, Colors, FontSizes, Spacing } from '../constants/theme';
 import { usePlaylist } from '../contexts/PlaylistContext';
-import { EmptyState } from '../components/common/EmptyState';
-import { LoadingOverlay } from '../components/common/LoadingOverlay';
-import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/theme';
-import { Playlist } from '../types';
 import { useTranslation } from '../i18n/useTranslation';
+import { Playlist } from '../types';
 
 interface HomeScreenProps {
   onNavigateToAddPlaylist: () => void;
@@ -68,10 +64,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   };
 
   const renderPlaylistItem = ({ item }: { item: Playlist }) => (
-    <TouchableOpacity
-      style={styles.playlistCard}
+    <Card
+      variant="elevated"
+      padding="medium"
+      margin="small"
       onPress={() => onNavigateToChannels(item.id)}
-      activeOpacity={0.7}
     >
       <View style={styles.playlistHeader}>
         <View style={styles.playlistIcon}>
@@ -91,47 +88,48 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </View>
 
       <View style={styles.playlistActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
+        <Button
+          title=""
+          variant="ghost"
+          size="small"
+          icon="refresh"
           onPress={(e) => {
-            e.stopPropagation();
+            e?.stopPropagation();
             handleRefreshPlaylist(item);
           }}
-        >
-          <Ionicons name="refresh" size={20} color={Colors.primary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
+        />
+        
+        <Button
+          title=""
+          variant="ghost"
+          size="small"
+          icon="trash-outline"
           onPress={(e) => {
-            e.stopPropagation();
+            e?.stopPropagation();
             handleDeletePlaylist(item);
           }}
-        >
-          <Ionicons name="trash-outline" size={20} color={Colors.error} />
-        </TouchableOpacity>
-
+        />
+        
         <View style={styles.arrowIcon}>
           <Ionicons name="chevron-forward" size={20} color={Colors.textTertiary} />
         </View>
       </View>
-    </TouchableOpacity>
+    </Card>
   );
 
-  if (isLoading && playlists.length === 0) {
-    return <LoadingOverlay message={t('loading')} />;
-  }
+  // Loading state is now handled by List component
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>PlayCast IPTV</Text>
-        <TouchableOpacity
-          style={styles.addButton}
+        <Button
+          title=""
+          variant="primary"
+          size="large"
+          icon="add-circle"
           onPress={onNavigateToAddPlaylist}
-        >
-          <Ionicons name="add-circle" size={32} color={Colors.primary} />
-        </TouchableOpacity>
+        />
       </View>
 
       {playlists.length === 0 ? (
@@ -141,18 +139,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           description={t('addFirstPlaylist')}
         />
       ) : (
-        <FlatList
+        <List
           data={playlists}
           renderItem={renderPlaylistItem}
           keyExtractor={(item) => item.id}
+          loading={isLoading && playlists.length === 0}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          emptyState={{
+            icon: 'list-outline',
+            title: t('noPlaylists'),
+            description: t('addFirstPlaylist'),
+            action: {
+              title: t('addPlaylist'),
+              onPress: onNavigateToAddPlaylist,
+            },
+          }}
           contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={Colors.primary}
-            />
-          }
         />
       )}
     </SafeAreaView>
@@ -181,21 +184,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   addButton: {
-    padding: Spacing.md,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
+    // Removed as we're using Button component
   },
   listContent: {
     padding: Spacing.md,
   },
   playlistCard: {
-    backgroundColor: Colors.backgroundCard,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    ...Shadows.md,
+    // Removed as we're using Card component
   },
   playlistHeader: {
     flexDirection: 'row',
@@ -238,10 +233,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   actionButton: {
-    padding: Spacing.sm,
-    marginRight: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
+    // Removed as we're using Button component
   },
   arrowIcon: {
     marginLeft: 'auto',

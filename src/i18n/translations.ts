@@ -176,6 +176,23 @@ export const translations = {
     // Footer
     madeWithLove: 'Made with ❤️ for Final Project',
     appTagline: 'PlayCast IPTV - Professional IPTV Player',
+
+    // Online Search
+    onlineSearch: 'Online Search',
+    searchOnline: 'Search online...',
+    youtube: 'YouTube',
+    soundcloud: 'SoundCloud',
+    spotify: 'Spotify',
+    noResults: 'No results found',
+    playNow: 'Play now',
+    addToQueue: 'Add to queue',
+    loadingStream: 'Loading stream...',
+    searchingPlatform: 'Searching',
+    recentSearches: 'Recent Searches',
+    howToUse: 'How to Use',
+    selectPlatform: 'Select platform',
+    enterKeywords: 'Enter keywords',
+    tapToPlay: 'Tap to play',
   },
 
   vi: {
@@ -353,6 +370,23 @@ export const translations = {
     // Footer
     madeWithLove: 'Làm với ❤️ cho Đồ Án Cuối Kì',
     appTagline: 'PlayCast IPTV - Trình Phát IPTV Chuyên Nghiệp',
+
+    // Online Search
+    onlineSearch: 'Tìm Kiếm Online',
+    searchOnline: 'Tìm kiếm online...',
+    youtube: 'YouTube',
+    soundcloud: 'SoundCloud',
+    spotify: 'Spotify',
+    noResults: 'Không tìm thấy kết quả',
+    playNow: 'Phát ngay',
+    addToQueue: 'Thêm vào hàng đợi',
+    loadingStream: 'Đang tải stream...',
+    searchingPlatform: 'Đang tìm kiếm',
+    recentSearches: 'Tìm Kiếm Gần Đây',
+    howToUse: 'Hướng Dẫn Sử Dụng',
+    selectPlatform: 'Chọn nền tảng',
+    enterKeywords: 'Nhập từ khóa',
+    tapToPlay: 'Nhấn để phát',
   },
 
   zh: {

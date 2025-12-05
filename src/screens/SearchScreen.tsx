@@ -1,22 +1,17 @@
 // Advanced Search Screen with Filters
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  FlatList,
-  TouchableOpacity,
   ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { ChannelItem } from '../components/channel/ChannelItem';
+import { Chip, EmptyState, Input, List } from '../components/ui';
+import { Colors, FontSizes, Spacing } from '../constants/theme';
 import { usePlaylist } from '../contexts/PlaylistContext';
 import { useTranslation } from '../i18n/useTranslation';
-import { ChannelItem } from '../components/channel/ChannelItem';
-import { EmptyState } from '../components/common/EmptyState';
-import { Channel } from '../types';
-import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 
 type FilterType = 'all' | 'favorites' | 'recent';
 type SortType = 'name' | 'recent' | 'popular';
@@ -96,22 +91,16 @@ export const SearchScreen = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Search Bar */}
       <View style={styles.searchSection}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color={Colors.textTertiary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('searchChannels')}
-            placeholderTextColor={Colors.textTertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoFocus
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={Colors.textTertiary} />
-            </TouchableOpacity>
-          )}
-        </View>
+        <Input
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder={t('searchChannels')}
+          leftIcon="search"
+          rightIcon={searchQuery.length > 0 ? "close-circle" : undefined}
+          onRightIconPress={searchQuery.length > 0 ? () => setSearchQuery('') : undefined}
+          autoFocus
+          containerStyle={styles.searchBar}
+        />
 
         {/* Filter Chips */}
         <ScrollView
@@ -119,51 +108,29 @@ export const SearchScreen = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterChips}
         >
-          <TouchableOpacity
-            style={[styles.chip, activeFilter === 'all' && styles.chipActive]}
+          <Chip
+            title={t('all')}
+            selected={activeFilter === 'all'}
             onPress={() => setActiveFilter('all')}
-          >
-            <Text
-              style={[styles.chipText, activeFilter === 'all' && styles.chipTextActive]}
-            >
-              {t('all')}
-            </Text>
-          </TouchableOpacity>
+            variant="filter"
+          />
 
-          <TouchableOpacity
-            style={[styles.chip, activeFilter === 'favorites' && styles.chipActive]}
+          <Chip
+            title={t('favorites')}
+            selected={activeFilter === 'favorites'}
             onPress={() => setActiveFilter('favorites')}
-          >
-            <Ionicons
-              name="heart"
-              size={16}
-              color={activeFilter === 'favorites' ? Colors.text : Colors.textSecondary}
-            />
-            <Text
-              style={[
-                styles.chipText,
-                activeFilter === 'favorites' && styles.chipTextActive,
-              ]}
-            >
-              {t('favorites')}
-            </Text>
-          </TouchableOpacity>
+            variant="filter"
+            icon="heart"
+          />
 
           {allGroups.map(group => (
-            <TouchableOpacity
+            <Chip
               key={group}
-              style={[styles.chip, selectedGroups.includes(group) && styles.chipActive]}
+              title={group}
+              selected={selectedGroups.includes(group)}
               onPress={() => toggleGroup(group)}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  selectedGroups.includes(group) && styles.chipTextActive,
-                ]}
-              >
-                {group}
-              </Text>
-            </TouchableOpacity>
+              variant="category"
+            />
           ))}
         </ScrollView>
 
@@ -173,9 +140,12 @@ export const SearchScreen = () => {
             {filteredChannels.length} {t('channels')}
           </Text>
           {(selectedGroups.length > 0 || activeFilter !== 'all' || searchQuery) && (
-            <TouchableOpacity onPress={clearFilters}>
-              <Text style={styles.clearText}>{t('clear')}</Text>
-            </TouchableOpacity>
+            <Chip
+              title={t('clear')}
+              onPress={clearFilters}
+              variant="ghost"
+              size="small"
+            />
           )}
         </View>
       </View>
@@ -188,20 +158,27 @@ export const SearchScreen = () => {
           description={t('tryDifferentSearch')}
         />
       ) : (
-        <FlatList
+        <List
           data={filteredChannels}
           renderItem={({ item }) => (
             <ChannelItem
               channel={item}
               onPress={() => {
-                // Handle channel play
+                // TODO: Navigate to player with this channel
+                console.log('Play channel:', item.name);
               }}
               isFavorite={isFavorite(item.id)}
               onToggleFavorite={() => toggleFavorite(item.id)}
             />
           )}
           keyExtractor={item => item.id}
+          emptyState={{
+            icon: 'search-outline',
+            title: t('noChannelsFound'),
+            description: t('tryDifferentSearch'),
+          }}
           contentContainerStyle={styles.list}
+          estimatedItemSize={80} // Approximate height for ChannelItem
         />
       )}
     </SafeAreaView>
@@ -219,17 +196,10 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.backgroundCard,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   searchInput: {
-    flex: 1,
-    fontSize: FontSizes.md,
-    color: Colors.text,
+    // Removed as handled by Input component
   },
   filterChips: {
     flexDirection: 'row',
@@ -237,27 +207,16 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.backgroundCard,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    // Removed as handled by Chip component
   },
   chipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    // Removed as handled by Chip component
   },
   chipText: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    fontWeight: '600',
+    // Removed as handled by Chip component
   },
   chipTextActive: {
-    color: Colors.text,
+    // Removed as handled by Chip component
   },
   resultsBar: {
     flexDirection: 'row',
@@ -270,9 +229,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   clearText: {
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    fontWeight: '600',
+    // Removed as handled by Chip component
   },
   list: {
     padding: Spacing.md,
