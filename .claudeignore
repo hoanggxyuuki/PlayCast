@@ -1,0 +1,50 @@
+# Claude CLI Ignore Patterns for /mnt/shared
+# Ngăn memory leak khi index large projects
+
+# Dependencies
+node_modules/
+vendor/
+venv/
+__pycache__/
+
+# Build outputs
+dist/
+build/
+.next/
+.cache/
+out/
+
+# Android/iOS builds
+android/.cxx/
+android/build/
+android/.gradle/
+ios/build/
+ios/Pods/
+
+# Logs
+*.log
+*.sqlite
+*.db
+
+# Large binary files
+*.zip
+*.tar.gz
+*.mp4
+*.avi
+*.mkv
+*.iso
+
+# VCS
+.git/
+.svn/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+$RECYCLE.BIN/

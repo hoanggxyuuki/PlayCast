@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(npx expo prebuild:*)",
-      "Skill(frontend-design)"
+      "Skill(frontend-design)",
+      "Bash(npx expo start:*)",
+      "Bash(./gradlew:*)",
+      "Bash(rm:*)",
+      "Bash(npm run android-clean:*)",
+      "Bash(npm run:*)"
     ],
     "deny": [],
     "ask": []

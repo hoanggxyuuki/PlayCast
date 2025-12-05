@@ -23,3 +23,9 @@ export type { EmptyStateProps } from './EmptyState';
 export { List } from './List';
 export type { ListProps } from './List';
 
+export { PlatformTabs } from './PlatformTabs';
+export type { PlatformTabsProps } from './PlatformTabs';
+
+export { GlassCard, GradientGlassCard } from './GlassCard';
+export { GradientBackground } from './GradientBackground';
+

@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChannelItem } from '../components/channel/ChannelItem';
-import { Chip, EmptyState, Input } from '../components/ui';
+import { Chip, EmptyState, Input, List } from '../components/ui';
 import { Colors, FontSizes, Spacing } from '../constants/theme';
 import { usePlaylist } from '../contexts/PlaylistContext';
 import { useTranslation } from '../i18n/useTranslation';
