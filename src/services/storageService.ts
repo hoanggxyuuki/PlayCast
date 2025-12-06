@@ -1,13 +1,12 @@
 // Enhanced Storage Service - Complete Implementation
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  Playlist,
-  WatchHistory,
-  Download,
   AppSettings,
-  UserStats,
-  QueueItem,
   Channel,
+  Playlist,
+  QueueItem,
+  UserStats,
+  WatchHistory
 } from '../types';
 
 const STORAGE_KEYS = {
@@ -227,6 +226,16 @@ export class StorageService {
       await AsyncStorage.removeItem(STORAGE_KEYS.WATCH_HISTORY);
     } catch (error) {
       console.error('Error clearing watch history:', error);
+    }
+  }
+
+  static async removeFromWatchHistory(channelId: string): Promise<void> {
+    try {
+      const history = await this.loadWatchHistory();
+      const filtered = history.filter(h => h.channelId !== channelId);
+      await this.saveWatchHistory(filtered);
+    } catch (error) {
+      console.error('Error removing from watch history:', error);
     }
   }
 

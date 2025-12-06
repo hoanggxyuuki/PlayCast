@@ -1,16 +1,16 @@
 // Simplified Video Player with loading state
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-  StatusBar,
-  ActivityIndicator,
-} from 'react-native';
-import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSizes } from '../../constants/theme';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Colors, FontSizes, Spacing } from '../../constants/theme';
 import { VideoPlayerProps } from '../../types';
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onError }) => {
@@ -20,11 +20,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
 
   console.log('VideoPlayer mounting with channel:', channel.name, channel.url);
 
-  // Simple player initialization
+  // Simple player initialization with PiP and background audio support
   let player;
   try {
     player = useVideoPlayer(channel.url, (p) => {
       console.log('Player initialized');
+      // Ensure audio is enabled
+      p.volume = 1;
+      p.muted = false;
+      // Enable background playback and Now Playing notification
+      p.showNowPlayingNotification = true;
+      p.staysActiveInBackground = true;
       p.play();
     });
   } catch (err) {
@@ -102,13 +108,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
         )}
       </View>
 
-      {/* Video view */}
+      {/* Video view with PiP enabled */}
       <VideoView
         player={player}
         style={styles.video}
         nativeControls={true}
         contentFit="contain"
-        allowsPictureInPicture={false}
+        allowsPictureInPicture={true}
       />
 
       {/* Loading overlay */}

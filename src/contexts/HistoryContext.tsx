@@ -1,7 +1,7 @@
 // History Context for Watch History Management
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { WatchHistory, Channel, UserStats } from '../types';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { StorageService } from '../services/storageService';
+import { UserStats, WatchHistory } from '../types';
 
 interface HistoryContextType {
   history: WatchHistory[];
@@ -147,7 +147,11 @@ export const HistoryProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const getRecentlyWatched = (limit: number = 10): WatchHistory[] => {
     return [...history]
-      .sort((a, b) => b.lastWatchedAt.getTime() - a.lastWatchedAt.getTime())
+      .sort((a, b) => {
+        const dateA = a.lastWatchedAt instanceof Date ? a.lastWatchedAt : new Date(a.lastWatchedAt);
+        const dateB = b.lastWatchedAt instanceof Date ? b.lastWatchedAt : new Date(b.lastWatchedAt);
+        return dateB.getTime() - dateA.getTime();
+      })
       .slice(0, limit);
   };
 
@@ -155,7 +159,11 @@ export const HistoryProvider: React.FC<{ children: ReactNode }> = ({ children })
     // Return videos that are partially watched (between 5% and 95% progress)
     return [...history]
       .filter((h) => h.progress > 0.05 && h.progress < 0.95)
-      .sort((a, b) => b.lastWatchedAt.getTime() - a.lastWatchedAt.getTime())
+      .sort((a, b) => {
+        const dateA = a.lastWatchedAt instanceof Date ? a.lastWatchedAt : new Date(a.lastWatchedAt);
+        const dateB = b.lastWatchedAt instanceof Date ? b.lastWatchedAt : new Date(b.lastWatchedAt);
+        return dateB.getTime() - dateA.getTime();
+      })
       .slice(0, 10);
   };
 
