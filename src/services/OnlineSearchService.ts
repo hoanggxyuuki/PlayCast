@@ -55,6 +55,17 @@ export interface OnlineSearchResult {
     viewCount?: number;
 }
 
+export interface VideoQualityOption {
+    itag: number;
+    quality: string; // e.g., "360p", "720p", "1080p"
+    mimeType: string;
+    bitrate: number;
+    url: string;
+    hasAudio: boolean;
+    hasVideo: boolean;
+    qualityLabel?: string;
+}
+
 // ============= YOUTUBE INNERTUBE CONFIG (from yt-dlp _base.py) =============
 
 // Innertube clients (from yt-dlp INNERTUBE_CLIENTS)
@@ -416,6 +427,83 @@ class OnlineSearchServiceClass {
         }
 
         return null;
+    }
+
+    /**
+     * Get all available quality options for a YouTube video
+     */
+    static async getYouTubeQualityOptions(videoId: string): Promise<VideoQualityOption[]> {
+        const instance = new OnlineSearchService();
+        const options: VideoQualityOption[] = [];
+
+        for (const clientKey of INNERTUBE_CLIENT_ORDER) {
+            try {
+                const client = INNERTUBE_CLIENTS[clientKey];
+                const requestBody: InnertubeRequestBody = {
+                    context: {
+                        client: {
+                            clientName: client.clientId,
+                            clientVersion: client.clientVersion,
+                            ...(client.androidSdkVersion && { androidSdkVersion: client.androidSdkVersion }),
+                            ...(client.deviceMake && { deviceMake: client.deviceMake }),
+                            ...(client.deviceModel && { deviceModel: client.deviceModel }),
+                            ...(client.platform && { platform: client.platform }),
+                        },
+                    },
+                    videoId: videoId,
+                    contentCheckOk: true,
+                    racyCheckOk: true,
+                };
+
+                const apiUrl = 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false';
+                const response = await instance.fetchWithTimeout(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': (client as any).userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                    },
+                    body: JSON.stringify(requestBody),
+                }, 15000);
+
+                if (!response.ok) continue;
+
+                const data = await response.json();
+                const playabilityStatus = data?.playabilityStatus;
+                if (playabilityStatus?.status !== 'OK') continue;
+
+                const streamingData = data?.streamingData;
+                if (!streamingData) continue;
+
+                // Get combined formats (video+audio)
+                const formats = [...(streamingData.formats || [])];
+
+                for (const f of formats) {
+                    if (!f.url || f.signatureCipher) continue;
+
+                    options.push({
+                        itag: f.itag,
+                        quality: f.qualityLabel || f.quality || 'unknown',
+                        qualityLabel: f.qualityLabel,
+                        mimeType: f.mimeType || '',
+                        bitrate: f.bitrate || 0,
+                        url: f.url,
+                        hasAudio: !!f.audioQuality,
+                        hasVideo: f.mimeType?.includes('video/') || false,
+                    });
+                }
+
+                if (options.length > 0) {
+                    // Sort by quality (higher first)
+                    options.sort((a, b) => b.bitrate - a.bitrate);
+                    console.log(`[YouTube] Found ${options.length} quality options`);
+                    return options;
+                }
+            } catch (error) {
+                continue;
+            }
+        }
+
+        return options;
     }
 
     // ============= SOUNDCLOUD (yt-dlp method) =============

@@ -1,4 +1,4 @@
-// LIBRARY SCREEN - Playlists, Favorites, History, Queue
+// LIBRARY SCREEN - Playlists, Favorites, History, Queue, Online Favorites
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
@@ -18,11 +18,13 @@ import { AdvancedVideoPlayer } from '../components/player/AdvancedVideoPlayer';
 import { EmptyState } from '../components/ui';
 import { BorderRadius, Colors, FontSizes, Layout, Spacing } from '../constants/theme';
 import { useHistory } from '../contexts/HistoryContext';
+import { OnlineFavorite, useOnlineFavorites } from '../contexts/OnlineFavoritesContext';
 import { usePlaylist } from '../contexts/PlaylistContext';
 import { useQueue } from '../contexts/QueueContext';
+import { OnlineSearchService } from '../services/OnlineSearchService';
 import { Channel } from '../types';
 
-type LibraryTab = 'playlists' | 'favorites' | 'history' | 'queue';
+type LibraryTab = 'playlists' | 'favorites' | 'online' | 'history' | 'queue';
 
 interface TabConfig {
     id: LibraryTab;
@@ -33,6 +35,7 @@ interface TabConfig {
 const TABS: TabConfig[] = [
     { id: 'playlists', title: 'Playlists', icon: 'list' },
     { id: 'favorites', title: 'Favorites', icon: 'heart' },
+    { id: 'online', title: 'Online', icon: 'globe' },
     { id: 'history', title: 'History', icon: 'time' },
     { id: 'queue', title: 'Queue', icon: 'musical-notes' },
 ];
@@ -45,6 +48,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
     const { playlists, deletePlaylist, getFavoriteChannels } = usePlaylist();
     const { history, clearHistory, removeFromHistory } = useHistory();
     const { queue, currentItem, removeFromQueue, clearQueue, playFromQueue } = useQueue();
+    const { favorites: onlineFavorites, youtubeFavorites, soundcloudFavorites, removeFavorite } = useOnlineFavorites();
 
     const [activeTab, setActiveTab] = useState<LibraryTab>('playlists');
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
@@ -138,6 +142,65 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
                             <Text style={styles.channelName} numberOfLines={1}>{item.name}</Text>
                             {item.group && <Text style={styles.channelGroup} numberOfLines={1}>{item.group}</Text>}
                         </View>
+                        <Ionicons name="play-circle" size={32} color={Colors.primary} />
+                    </TouchableOpacity>
+                )}
+            />
+        );
+    };
+
+    const handlePlayOnlineFavorite = async (item: OnlineFavorite) => {
+        try {
+            let streamUrl: string | null = null;
+            if (item.platform === 'youtube' && item.videoId) {
+                streamUrl = await OnlineSearchService.getYouTubeStreamUrl(item.videoId);
+            } else if (item.platform === 'soundcloud') {
+                streamUrl = await OnlineSearchService.getSoundCloudStreamUrl(item.id);
+            }
+
+            if (streamUrl) {
+                const channel: Channel = {
+                    id: item.id,
+                    name: item.title,
+                    url: streamUrl,
+                    group: item.artist,
+                    logo: item.thumbnail,
+                };
+                handlePlayChannel(channel);
+            } else {
+                Alert.alert('Error', 'Could not get stream URL');
+            }
+        } catch (error) {
+            console.error('Error playing online favorite:', error);
+            Alert.alert('Error', 'Failed to play this item');
+        }
+    };
+
+    const renderOnlineFavorites = () => {
+        if (onlineFavorites.length === 0) {
+            return <EmptyState icon="globe-outline" title="No Online Favorites" description="Add favorites from YouTube or SoundCloud in the Discover tab" />;
+        }
+
+        return (
+            <FlatList
+                data={onlineFavorites}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.channelItem} onPress={() => handlePlayOnlineFavorite(item)}>
+                        <Image source={{ uri: item.thumbnail }} style={styles.channelThumb} />
+                        <View style={styles.channelInfo}>
+                            <Text style={styles.channelName} numberOfLines={1}>{item.title}</Text>
+                            <View style={styles.onlineMeta}>
+                                <View style={[styles.platformBadge, { backgroundColor: item.platform === 'youtube' ? '#FF0000' : '#FF5500' }]}>
+                                    <Ionicons name={item.platform === 'youtube' ? 'logo-youtube' : 'musical-notes'} size={10} color="#fff" />
+                                </View>
+                                <Text style={styles.channelGroup} numberOfLines={1}>{item.artist}</Text>
+                            </View>
+                        </View>
+                        <TouchableOpacity onPress={() => removeFavorite(item.id)} style={styles.removeButton}>
+                            <Ionicons name="heart-dislike" size={22} color="#FF4B6E" />
+                        </TouchableOpacity>
                         <Ionicons name="play-circle" size={32} color={Colors.primary} />
                     </TouchableOpacity>
                 )}
@@ -261,6 +324,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
                 <View style={styles.content}>
                     {activeTab === 'playlists' && renderPlaylists()}
                     {activeTab === 'favorites' && renderFavorites()}
+                    {activeTab === 'online' && renderOnlineFavorites()}
                     {activeTab === 'history' && renderHistory()}
                     {activeTab === 'queue' && renderQueue()}
                 </View>
@@ -321,6 +385,8 @@ const styles = StyleSheet.create({
     historyName: { fontSize: FontSizes.md, fontWeight: '500', color: Colors.text, marginBottom: Spacing.xs },
     historyProgress: { height: 3, backgroundColor: Colors.border, borderRadius: 2 },
     historyProgressFill: { height: '100%', backgroundColor: Colors.primary, borderRadius: 2 },
+    onlineMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: 2 },
+    platformBadge: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
     removeButton: { padding: Spacing.sm },
     queueHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Layout.screenPadding, marginBottom: Spacing.md },
     queueCount: { fontSize: FontSizes.sm, color: Colors.textSecondary },

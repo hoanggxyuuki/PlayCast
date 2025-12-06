@@ -1,32 +1,28 @@
-// Advanced Video Player with Landscape Support and Fixed UI
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-  StatusBar,
-  ActivityIndicator,
-  Dimensions,
-  Modal,
-  ScrollView,
-  Animated,
-  Platform,
-  AppState,
-  AppStateStatus,
-} from 'react-native';
-import { VideoView, useVideoPlayer } from 'expo-video';
+// Advanced Video Player with react-native-video for better PiP support
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Modal,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Spacing, FontSizes } from '../../constants/theme';
-import { VideoPlayerProps } from '../../types';
+import Video, { OnBufferData, OnLoadData, OnProgressData, VideoRef } from 'react-native-video';
+import { Colors, FontSizes, Spacing } from '../../constants/theme';
 import { useHistory } from '../../contexts/HistoryContext';
 import { useQueue } from '../../contexts/QueueContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { SleepTimerService } from '../../services/sleepTimerService';
-import { PictureInPicture } from '../../modules/PictureInPicture';
+import { VideoPlayerProps } from '../../types';
+import { SleepTimerModal } from './SleepTimerModal';
 
 export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   channel,
@@ -39,17 +35,17 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   // State
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showSleepTimer, setShowSleepTimer] = useState(false);
   const [sleepTimerRemaining, setSleepTimerRemaining] = useState('');
   const [isLandscape, setIsLandscape] = useState(false);
-  const [dimensions, setDimensions] = useState(Dimensions.get('window'));
-  const [isInPiPMode, setIsInPiPMode] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
 
   // Contexts
   const { addToHistory, updateProgress } = useHistory();
@@ -58,82 +54,36 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const insets = useSafeAreaInsets();
 
   // Refs
+  const videoRef = useRef<VideoRef>(null);
   const controlsTimeout = useRef<NodeJS.Timeout>();
   const progressInterval = useRef<NodeJS.Timeout>();
   const controlsOpacity = useRef(new Animated.Value(1)).current;
 
-  // Player initialization
-  let player;
-  try {
-    player = useVideoPlayer(channel.url, (p) => {
-      // Resume from last position if enabled
-      if (settings.continueWatching && startPosition > 0) {
-        p.currentTime = startPosition;
-      }
-      p.play();
-    });
-  } catch (err) {
-    console.error('Failed to create player:', err);
-    setHasError(true);
-  }
-
   // Handle orientation changes
   useEffect(() => {
-    // Allow all orientations
     ScreenOrientation.unlockAsync();
 
-    // Listen for orientation changes
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      setDimensions(window);
       const isLandscapeMode = window.width > window.height;
       setIsLandscape(isLandscapeMode);
     });
 
-    // Check initial orientation
     const { width, height } = Dimensions.get('window');
     setIsLandscape(width > height);
 
     return () => {
-      // Lock to portrait on unmount
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       subscription?.remove();
     };
   }, []);
 
-  // Monitor player status
-  useEffect(() => {
-    if (!player) return;
-
-    const interval = setInterval(() => {
-      try {
-        if (player.status === 'readyToPlay' || player.status === 'idle') {
-          setIsLoading(false);
-        }
-
-        if (player.status === 'error') {
-          setIsLoading(false);
-          setHasError(true);
-          onError?.('Failed to load video');
-        }
-
-        setIsPlaying(player.playing);
-        setCurrentTime(player.currentTime);
-        setDuration(player.duration);
-      } catch (err) {
-        console.error('Error checking player status:', err);
-      }
-    }, 500);
-
-    return () => clearInterval(interval);
-  }, [player]);
-
   // Track progress for history
   useEffect(() => {
-    if (!player || !channel) return;
+    if (!channel) return;
 
     progressInterval.current = setInterval(() => {
-      if (player.playing && player.duration > 0) {
-        updateProgress(channel.id, player.currentTime, player.duration);
+      if (isPlaying && duration > 0) {
+        updateProgress(channel.id, currentTime, duration);
       }
     }, 5000);
 
@@ -142,7 +92,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         clearInterval(progressInterval.current);
       }
     };
-  }, [player, channel]);
+  }, [channel, isPlaying, currentTime, duration]);
 
   // Add to history on mount
   useEffect(() => {
@@ -180,6 +130,43 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  // Video callbacks
+  const onVideoLoad = (data: OnLoadData) => {
+    console.log('Video loaded:', data.duration);
+    setIsLoading(false);
+    setDuration(data.duration);
+
+    // Resume from last position
+    if (settings.continueWatching && startPosition > 0) {
+      videoRef.current?.seek(startPosition);
+    }
+  };
+
+  const onVideoProgress = (data: OnProgressData) => {
+    setCurrentTime(data.currentTime);
+  };
+
+  const onVideoBuffer = (data: OnBufferData) => {
+    setIsBuffering(data.isBuffering);
+  };
+
+  const onVideoError = (error: any) => {
+    console.error('Video error:', error);
+    setIsLoading(false);
+    setHasError(true);
+    onError?.('Failed to load video');
+  };
+
+  const onVideoEnd = () => {
+    // Auto play next if available
+    if (hasNext()) {
+      const next = queueNext();
+      if (next) {
+        console.log('Auto-playing next:', next.name);
+      }
+    }
+  };
+
   const resetControlsTimeout = () => {
     if (controlsTimeout.current) {
       clearTimeout(controlsTimeout.current);
@@ -187,7 +174,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
 
     controlsTimeout.current = setTimeout(() => {
       hideControls();
-    }, 4000); // Increased to 4 seconds
+    }, 4000);
   };
 
   const hideControls = () => {
@@ -209,26 +196,17 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const togglePlayPause = () => {
-    if (!player) return;
-
-    if (player.playing) {
-      player.pause();
-    } else {
-      player.play();
-    }
+    setIsPlaying(!isPlaying);
     showControlsAnimated();
   };
 
   const handleSeek = (value: number) => {
-    if (!player) return;
-    player.currentTime = value;
+    videoRef.current?.seek(value);
     setCurrentTime(value);
     showControlsAnimated();
   };
 
   const handleSpeedChange = (speed: number) => {
-    if (!player) return;
-    player.playbackRate = speed;
     setPlaybackSpeed(speed);
     setShowSpeedMenu(false);
     showControlsAnimated();
@@ -257,7 +235,6 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleClose = () => {
-    // Lock back to portrait
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
     onClose();
   };
@@ -267,13 +244,6 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
     } else {
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-    }
-  };
-
-  const handlePiP = async () => {
-    const success = await PictureInPicture.enterPiP();
-    if (!success) {
-      console.error('Failed to enter Picture-in-Picture mode');
     }
   };
 
@@ -292,7 +262,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
-  if (hasError || !player) {
+  if (hasError) {
     return (
       <View style={styles.container}>
         <StatusBar hidden={isLandscape} />
@@ -314,27 +284,50 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     <View style={styles.container}>
       <StatusBar hidden={isLandscape} />
 
-      {/* Video view */}
+      {/* Video view with react-native-video */}
       <TouchableOpacity
         style={styles.videoContainer}
         activeOpacity={1}
         onPress={() => showControlsAnimated()}
       >
-        <VideoView
-          player={player}
+        <Video
+          ref={videoRef}
+          source={{ uri: channel.url }}
           style={styles.video}
-          nativeControls={false}
-          contentFit="contain"
-          allowsPictureInPicture={true}
-          allowsFullscreen={true}
+          resizeMode="contain"
+          paused={!isPlaying}
+          rate={playbackSpeed}
+          volume={1.0}
+          muted={false}
+          repeat={false}
+          // PiP and background playback
+          pictureInPicture={true}
+          playInBackground={true}
+          playWhenInactive={true}
+          // Lock screen / notification controls
+          controls={false}
+          showNotificationControls={true}
+          metadata={{
+            title: channel.name,
+            artist: channel.group || 'PlayCast',
+            imageUri: channel.logo,
+          }}
+          // Callbacks
+          onLoad={onVideoLoad}
+          onProgress={onVideoProgress}
+          onBuffer={onVideoBuffer}
+          onError={onVideoError}
+          onEnd={onVideoEnd}
         />
       </TouchableOpacity>
 
       {/* Loading overlay */}
-      {isLoading && (
+      {(isLoading || isBuffering) && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading video...</Text>
+          <Text style={styles.loadingText}>
+            {isBuffering ? 'Buffering...' : 'Loading video...'}
+          </Text>
         </View>
       )}
 
@@ -355,14 +348,6 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 <Text style={styles.channelGroup}>{channel.group}</Text>
               )}
             </View>
-
-            <TouchableOpacity style={styles.iconButton} onPress={handlePiP}>
-              <Ionicons
-                name="albums-outline"
-                size={24}
-                color={Colors.text}
-              />
-            </TouchableOpacity>
 
             <TouchableOpacity style={styles.iconButton} onPress={toggleOrientation}>
               <Ionicons
@@ -519,7 +504,6 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               style={styles.menuItem}
               onPress={() => {
                 setShowMoreMenu(false);
-                // TODO: Implement quality selection
               }}
             >
               <Ionicons name="settings-outline" size={24} color={Colors.text} />
@@ -530,7 +514,6 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               style={styles.menuItem}
               onPress={() => {
                 setShowMoreMenu(false);
-                // TODO: Implement subtitles
               }}
             >
               <Ionicons name="text-outline" size={24} color={Colors.text} />
@@ -541,7 +524,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               style={styles.menuItem}
               onPress={() => {
                 setShowMoreMenu(false);
-                // TODO: Implement sleep timer
+                setShowSleepTimer(true);
               }}
             >
               <Ionicons name="timer-outline" size={24} color={Colors.text} />
@@ -552,7 +535,6 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               style={styles.menuItem}
               onPress={() => {
                 setShowMoreMenu(false);
-                // TODO: Implement share
               }}
             >
               <Ionicons name="share-outline" size={24} color={Colors.text} />
@@ -561,6 +543,13 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {/* Sleep Timer Modal */}
+      <SleepTimerModal
+        visible={showSleepTimer}
+        onClose={() => setShowSleepTimer(false)}
+        onTimerSet={(minutes) => console.log(`Sleep timer set for ${minutes} minutes`)}
+      />
     </View>
   );
 };
@@ -737,26 +726,17 @@ const styles = StyleSheet.create({
     width: '80%',
     maxWidth: 320,
     backgroundColor: Colors.backgroundCard,
-    borderRadius: 2,
+    borderRadius: 12,
     padding: Spacing.xl,
-    borderWidth: 3,
+    borderWidth: 1,
     borderColor: Colors.primary,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 15,
   },
   menuTitle: {
     fontSize: FontSizes.xl,
-    fontWeight: '900',
+    fontWeight: '700',
     color: Colors.primary,
     marginBottom: Spacing.lg,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    textShadowColor: Colors.primaryGlow,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    textAlign: 'center',
   },
   speedOption: {
     flexDirection: 'row',
@@ -764,63 +744,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    borderRadius: 2,
+    borderRadius: 8,
     marginBottom: Spacing.sm,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: Colors.border,
   },
   speedOptionActive: {
-    backgroundColor: 'rgba(0, 240, 255, 0.15)',
-    borderColor: Colors.secondary,
-    shadowColor: Colors.secondary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    borderColor: Colors.primary,
   },
   speedOptionText: {
     fontSize: FontSizes.md,
     color: Colors.textSecondary,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   speedOptionTextActive: {
-    fontWeight: '900',
-    color: Colors.secondary,
-    letterSpacing: 0.5,
-    textShadowColor: Colors.secondaryGlow,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
+    fontWeight: '700',
+    color: Colors.primary,
   },
   moreMenu: {
     width: '85%',
     maxWidth: 380,
     backgroundColor: Colors.backgroundCard,
-    borderRadius: 2,
+    borderRadius: 12,
     padding: Spacing.xl,
-    borderWidth: 3,
-    borderColor: Colors.secondary,
-    shadowColor: Colors.secondary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 15,
+    borderWidth: 1,
+    borderColor: Colors.primary,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.lg,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    borderRadius: 2,
-    marginBottom: Spacing.sm,
-    backgroundColor: 'rgba(26, 26, 46, 0.5)',
+    gap: Spacing.md,
   },
   menuItemText: {
     fontSize: FontSizes.md,
     color: Colors.text,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: '500',
   },
 });

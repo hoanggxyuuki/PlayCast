@@ -1,7 +1,6 @@
-// Simplified Video Player with loading state
+// Simple Video Player with react-native-video for PiP and background audio
 import { Ionicons } from '@expo/vector-icons';
-import { VideoView, useVideoPlayer } from 'expo-video';
-import React, { useEffect, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   StatusBar,
@@ -10,69 +9,36 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Video, { OnBufferData, OnLoadData, VideoRef } from 'react-native-video';
 import { Colors, FontSizes, Spacing } from '../../constants/theme';
 import { VideoPlayerProps } from '../../types';
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onError }) => {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const videoRef = useRef<VideoRef>(null);
 
   console.log('VideoPlayer mounting with channel:', channel.name, channel.url);
 
-  // Simple player initialization with PiP and background audio support
-  let player;
-  try {
-    player = useVideoPlayer(channel.url, (p) => {
-      console.log('Player initialized');
-      // Ensure audio is enabled
-      p.volume = 1;
-      p.muted = false;
-      // Enable background playback and Now Playing notification
-      p.showNowPlayingNotification = true;
-      p.staysActiveInBackground = true;
-      p.play();
-    });
-  } catch (err) {
-    console.error('Failed to create player:', err);
+  const onVideoLoad = (data: OnLoadData) => {
+    console.log('Player initialized, duration:', data.duration);
+    setIsLoading(false);
+  };
+
+  const onVideoBuffer = (data: OnBufferData) => {
+    setIsBuffering(data.isBuffering);
+  };
+
+  const onVideoError = (error: any) => {
+    console.error('Failed to load video:', error);
+    setIsLoading(false);
     setHasError(true);
-  }
+    onError?.('Failed to load video');
+  };
 
-  // Monitor player status
-  useEffect(() => {
-    if (!player) return;
-
-    const interval = setInterval(() => {
-      try {
-        // Check if video is loading or playing
-        if (player.status === 'readyToPlay' || player.status === 'idle') {
-          setIsLoading(false);
-        }
-
-        if (player.status === 'error') {
-          setIsLoading(false);
-          setHasError(true);
-          onError?.('Failed to load video');
-        }
-
-        setIsPlaying(player.playing);
-      } catch (err) {
-        console.error('Error checking player status:', err);
-      }
-    }, 500);
-
-    // Set timeout to hide loading after 5 seconds regardless
-    const timeout = setTimeout(() => {
-      setIsLoading(false);
-    }, 5000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [player]);
-
-  if (hasError || !player) {
+  if (hasError) {
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
@@ -93,10 +59,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
     <View style={styles.container}>
       <StatusBar hidden />
 
-      {/* Simple close button */}
-      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-        <Ionicons name="close" size={32} color={Colors.text} />
-      </TouchableOpacity>
+      {/* Top controls row */}
+      <View style={styles.topControls}>
+        {/* Close button */}
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <Ionicons name="close" size={32} color={Colors.text} />
+        </TouchableOpacity>
+      </View>
 
       {/* Channel info */}
       <View style={styles.header}>
@@ -108,20 +77,34 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, onClose, onEr
         )}
       </View>
 
-      {/* Video view with PiP enabled */}
-      <VideoView
-        player={player}
+      {/* Video view with react-native-video - PiP and background audio enabled */}
+      <Video
+        ref={videoRef}
+        source={{ uri: channel.url }}
         style={styles.video}
-        nativeControls={true}
-        contentFit="contain"
-        allowsPictureInPicture={true}
+        resizeMode="contain"
+        paused={!isPlaying}
+        volume={1.0}
+        muted={false}
+        // PiP and background audio
+        pictureInPicture={true}
+        playInBackground={true}
+        playWhenInactive={true}
+        // Use native controls for simple player
+        controls={true}
+        // Callbacks
+        onLoad={onVideoLoad}
+        onBuffer={onVideoBuffer}
+        onError={onVideoError}
       />
 
       {/* Loading overlay */}
-      {isLoading && (
+      {(isLoading || isBuffering) && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading video...</Text>
+          <Text style={styles.loadingText}>
+            {isBuffering ? 'Buffering...' : 'Loading video...'}
+          </Text>
           <Text style={styles.loadingSubtext}>Please wait</Text>
         </View>
       )}
@@ -138,20 +121,26 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
-  closeButton: {
+  topControls: {
     position: 'absolute',
     top: 50,
-    right: 20,
+    left: 0,
+    right: 0,
     zIndex: 100,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+  },
+  closeButton: {
     backgroundColor: Colors.overlay,
     borderRadius: 20,
     padding: 8,
   },
   header: {
     position: 'absolute',
-    top: 50,
+    top: 110,
     left: 20,
-    right: 80,
+    right: 20,
     zIndex: 100,
     backgroundColor: Colors.overlay,
     padding: 12,

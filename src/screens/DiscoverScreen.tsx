@@ -21,6 +21,8 @@ import { VideoPlayer } from '../components/player/VideoPlayer';
 import { LoadingSpinner } from '../components/ui';
 import { GlassCard } from '../components/ui/GlassCard';
 import { BorderRadius, Colors, FontSizes, Gradients, Layout, Spacing } from '../constants/theme';
+import { useHistory } from '../contexts/HistoryContext';
+import { OnlineFavorite, useOnlineFavorites } from '../contexts/OnlineFavoritesContext';
 import { usePlaylist } from '../contexts/PlaylistContext';
 import { OnlineSearchResult, OnlineSearchService, SearchPlatform } from '../services/OnlineSearchService';
 import { Channel } from '../types';
@@ -35,6 +37,8 @@ const SOURCE_OPTIONS = [
 
 export const DiscoverScreen = () => {
     const { addPlaylistFromUrl } = usePlaylist();
+    const { isFavorite, toggleFavorite } = useOnlineFavorites();
+    const { addToHistory } = useHistory();
 
     const [activeTab, setActiveTab] = useState<DiscoverTab>('local');
     const [searchQuery, setSearchQuery] = useState('');
@@ -165,6 +169,19 @@ export const DiscoverScreen = () => {
             };
 
             setSelectedChannel(channel);
+
+            // Add to history
+            addToHistory({
+                channelId: channel.id,
+                channelName: channel.name,
+                channelUrl: channel.url,
+                logo: channel.logo,
+                lastWatchedAt: new Date(),
+                progress: 0,
+                duration: result.duration || 0,
+                currentTime: 0,
+            });
+
             setShowPlayer(true);
         } catch (error: any) {
             Alert.alert('Playback Error', error.message || 'Failed to play');
@@ -286,6 +303,29 @@ export const DiscoverScreen = () => {
                                                     <Text style={styles.resultDuration}>{OnlineSearchService.formatDuration(item.duration)}</Text>
                                                 )}
                                             </View>
+                                            <TouchableOpacity
+                                                style={[styles.favoriteBtn, isFavorite(item.id) && styles.favoriteBtnActive]}
+                                                onPress={(e) => {
+                                                    e.stopPropagation();
+                                                    const favItem: Omit<OnlineFavorite, 'addedAt'> = {
+                                                        id: item.id,
+                                                        platform: item.platform as 'youtube' | 'soundcloud',
+                                                        title: item.title,
+                                                        artist: item.artist,
+                                                        thumbnail: item.thumbnail,
+                                                        duration: item.duration,
+                                                        viewCount: item.viewCount,
+                                                        videoId: item.platform === 'youtube' ? item.id : undefined,
+                                                    };
+                                                    toggleFavorite(favItem);
+                                                }}
+                                            >
+                                                <Ionicons
+                                                    name={isFavorite(item.id) ? 'heart' : 'heart-outline'}
+                                                    size={22}
+                                                    color={isFavorite(item.id) ? '#FF4B6E' : Colors.textSecondary}
+                                                />
+                                            </TouchableOpacity>
                                             <Ionicons name="play-circle" size={32} color={Colors.primary} />
                                         </TouchableOpacity>
                                     )}
@@ -392,6 +432,8 @@ const styles = StyleSheet.create({
     addButton: { marginTop: Spacing.lg, borderRadius: BorderRadius.md, overflow: 'hidden' },
     addButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md },
     addButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
+    favoriteBtn: { padding: Spacing.sm, marginRight: Spacing.xs },
+    favoriteBtnActive: { backgroundColor: 'rgba(255, 75, 110, 0.15)', borderRadius: BorderRadius.full },
 });
 
 export default DiscoverScreen;
