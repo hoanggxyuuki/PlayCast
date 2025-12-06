@@ -1,4 +1,5 @@
 // Online Result Card - Display search results from YouTube, SoundCloud, Spotify
+// With favorite toggle button
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -9,6 +10,7 @@ import {
     View,
 } from 'react-native';
 import { BorderRadius, Colors, FontSizes, Shadows, Spacing } from '../../constants/theme';
+import { OnlineFavorite, useOnlineFavorites } from '../../contexts/OnlineFavoritesContext';
 import { OnlineSearchResult, OnlineSearchService, SearchPlatform } from '../../services/OnlineSearchService';
 
 interface OnlineResultCardProps {
@@ -48,12 +50,31 @@ export const OnlineResultCard: React.FC<OnlineResultCardProps> = ({
     onPlay,
     onAddToQueue,
 }) => {
+    const { isFavorite, toggleFavorite } = useOnlineFavorites();
     const platformColor = getPlatformColor(result.platform);
     const platformIcon = getPlatformIcon(result.platform);
     const formattedDuration = OnlineSearchService.formatDuration(result.duration);
     const formattedViews = result.viewCount
         ? OnlineSearchService.formatViewCount(result.viewCount)
         : null;
+
+    const isCurrentlyFavorite = isFavorite(result.id);
+
+    const handleToggleFavorite = async () => {
+        const favoriteItem: Omit<OnlineFavorite, 'addedAt'> = {
+            id: result.id,
+            platform: result.platform as 'youtube' | 'soundcloud',
+            title: result.title,
+            artist: result.artist,
+            thumbnail: result.thumbnail,
+            duration: result.duration,
+            viewCount: result.viewCount,
+            // Platform-specific
+            videoId: result.platform === 'youtube' ? result.id : undefined,
+            permalinkUrl: result.platform === 'soundcloud' ? result.streamUrl : undefined,
+        };
+        await toggleFavorite(favoriteItem);
+    };
 
     return (
         <TouchableOpacity
@@ -116,6 +137,21 @@ export const OnlineResultCard: React.FC<OnlineResultCardProps> = ({
                     >
                         <Ionicons name="play" size={16} color="#fff" />
                         <Text style={styles.playButtonText}>Play</Text>
+                    </TouchableOpacity>
+
+                    {/* Favorite button */}
+                    <TouchableOpacity
+                        style={[
+                            styles.favoriteButton,
+                            isCurrentlyFavorite && styles.favoriteButtonActive
+                        ]}
+                        onPress={handleToggleFavorite}
+                    >
+                        <Ionicons
+                            name={isCurrentlyFavorite ? 'heart' : 'heart-outline'}
+                            size={18}
+                            color={isCurrentlyFavorite ? '#FF4B6E' : Colors.text}
+                        />
                     </TouchableOpacity>
 
                     {onAddToQueue && (
@@ -232,6 +268,17 @@ const styles = StyleSheet.create({
         fontSize: FontSizes.xs,
         fontWeight: '600',
         color: '#fff',
+    },
+    favoriteButton: {
+        width: 32,
+        height: 32,
+        borderRadius: BorderRadius.sm,
+        backgroundColor: Colors.surfaceLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    favoriteButtonActive: {
+        backgroundColor: 'rgba(255, 75, 110, 0.15)',
     },
     queueButton: {
         width: 32,

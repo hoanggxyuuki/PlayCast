@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdvancedVideoPlayer } from '../components/player/AdvancedVideoPlayer';
 import { GlassCard } from '../components/ui/GlassCard';
+import { CarouselSlide, HeroCarousel } from '../components/ui/HeroCarousel';
 import { BorderRadius, Colors, FontSizes, Gradients, Layout, Shadows, Spacing } from '../constants/theme';
 import { useHistory } from '../contexts/HistoryContext';
 import { usePlaylist } from '../contexts/PlaylistContext';
@@ -54,42 +55,57 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         setSelectedChannel(null);
     };
 
-    // Render hero section
-    const renderHero = () => (
-        <LinearGradient
-            colors={Gradients.primary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroContainer}
-        >
-            <View style={styles.heroContent}>
-                <Text style={styles.heroGreeting}>Welcome back! 👋</Text>
-                {currentItem ? (
-                    <>
-                        <Text style={styles.heroTitle}>Now Playing</Text>
-                        <Text style={styles.heroSubtitle} numberOfLines={1}>
-                            {currentItem.channel.name}
-                        </Text>
-                        <TouchableOpacity
-                            style={styles.heroPlayButton}
-                            onPress={() => handlePlayChannel(currentItem.channel)}
-                        >
-                            <Ionicons name="play" size={20} color="#fff" />
-                            <Text style={styles.heroPlayText}>Continue</Text>
-                        </TouchableOpacity>
-                    </>
-                ) : (
-                    <>
-                        <Text style={styles.heroTitle}>PlayCast</Text>
-                        <Text style={styles.heroSubtitle}>Your media, your way</Text>
-                    </>
-                )}
-            </View>
-            <View style={styles.heroDecoration}>
-                <Ionicons name="musical-notes" size={120} color="rgba(255,255,255,0.1)" />
-            </View>
-        </LinearGradient>
-    );
+    // Render hero carousel
+    const renderHero = () => {
+        // Custom slides based on current state
+        const slides: CarouselSlide[] = [
+            {
+                id: '1',
+                title: 'Welcome back! 👋',
+                subtitle: 'Your media, your way',
+                gradient: ['#667eea', '#764ba2'],
+                icon: 'play-circle',
+            },
+            {
+                id: '2',
+                title: 'YouTube & SoundCloud',
+                subtitle: 'Stream from your favorite platforms',
+                gradient: ['#f093fb', '#f5576c'],
+                icon: 'logo-youtube',
+            },
+            {
+                id: '3',
+                title: 'IPTV Support',
+                subtitle: 'M3U playlists and live TV',
+                gradient: ['#4facfe', '#00f2fe'],
+                icon: 'tv',
+            },
+            {
+                id: '4',
+                title: 'Background Play',
+                subtitle: 'Listen while multitasking',
+                gradient: ['#43e97b', '#38f9d7'],
+                icon: 'headset',
+            },
+        ];
+
+        // Add now playing slide if something is playing
+        if (currentItem) {
+            slides.unshift({
+                id: 'now-playing',
+                title: 'Now Playing',
+                subtitle: currentItem.channel.name,
+                gradient: ['#764ba2', '#667eea'],
+                icon: 'musical-notes',
+                action: {
+                    label: 'Continue',
+                    onPress: () => handlePlayChannel(currentItem.channel),
+                },
+            });
+        }
+
+        return <HeroCarousel slides={slides} autoPlayInterval={5000} />;
+    };
 
     // Render continue watching section
     const renderContinueWatching = () => {

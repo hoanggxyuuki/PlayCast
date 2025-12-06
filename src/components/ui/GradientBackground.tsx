@@ -38,7 +38,7 @@ export const GradientBackground: React.FC<GradientBackgroundProps> = ({
 
     return (
         <LinearGradient
-            colors={getColors()}
+            colors={getColors() as [string, string, ...string[]]}
             start={start}
             end={end}
             style={[styles.container, style]}

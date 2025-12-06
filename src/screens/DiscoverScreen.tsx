@@ -6,6 +6,7 @@ import React, { useCallback, useState } from 'react';
 import {
     Alert,
     FlatList,
+    Image,
     Keyboard,
     Modal,
     ScrollView,
@@ -19,51 +20,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { VideoPlayer } from '../components/player/VideoPlayer';
 import { LoadingSpinner } from '../components/ui';
 import { GlassCard } from '../components/ui/GlassCard';
-import { BorderRadius, Colors, FontSizes, Gradients, Layout, Shadows, Spacing } from '../constants/theme';
+import { BorderRadius, Colors, FontSizes, Gradients, Layout, Spacing } from '../constants/theme';
+import { useHistory } from '../contexts/HistoryContext';
+import { OnlineFavorite, useOnlineFavorites } from '../contexts/OnlineFavoritesContext';
 import { usePlaylist } from '../contexts/PlaylistContext';
-import {
-    OnlineSearchResult,
-    OnlineSearchService,
-    SearchPlatform,
-} from '../services/OnlineSearchService';
+import { OnlineSearchResult, OnlineSearchService, SearchPlatform } from '../services/OnlineSearchService';
 import { Channel } from '../types';
 
 type DiscoverTab = 'local' | 'online' | 'link';
 
-interface SourceOption {
-    id: DiscoverTab;
-    title: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    color: string;
-    description: string;
-}
-
-const SOURCE_OPTIONS: SourceOption[] = [
-    {
-        id: 'local',
-        title: 'Local Files',
-        icon: 'folder-open',
-        color: '#4facfe',
-        description: 'Play from device',
-    },
-    {
-        id: 'online',
-        title: 'Online',
-        icon: 'globe',
-        color: '#f093fb',
-        description: 'YouTube, SoundCloud',
-    },
-    {
-        id: 'link',
-        title: 'Add Link',
-        icon: 'link',
-        color: '#43e97b',
-        description: 'Paste URL',
-    },
+const SOURCE_OPTIONS = [
+    { id: 'local' as DiscoverTab, title: 'Local Files', icon: 'folder-open' as const, color: '#4facfe', description: 'Play from device' },
+    { id: 'online' as DiscoverTab, title: 'Online', icon: 'globe' as const, color: '#f093fb', description: 'YouTube, SoundCloud' },
+    { id: 'link' as DiscoverTab, title: 'Add Link', icon: 'link' as const, color: '#43e97b', description: 'Paste URL' },
 ];
 
 export const DiscoverScreen = () => {
     const { addPlaylistFromUrl } = usePlaylist();
+    const { isFavorite, toggleFavorite } = useOnlineFavorites();
+    const { addToHistory } = useHistory();
 
     const [activeTab, setActiveTab] = useState<DiscoverTab>('local');
     const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +48,6 @@ export const DiscoverScreen = () => {
     const [linkUrl, setLinkUrl] = useState('');
     const [linkName, setLinkName] = useState('');
     const [isAddingLink, setIsAddingLink] = useState(false);
-
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
     const [showPlayer, setShowPlayer] = useState(false);
 
@@ -107,6 +81,7 @@ export const DiscoverScreen = () => {
 
         Keyboard.dismiss();
         setIsSearching(true);
+        setSearchResults([]);
 
         try {
             let results: OnlineSearchResult[] = [];
@@ -130,7 +105,7 @@ export const DiscoverScreen = () => {
                     title: r.title,
                     artist: r.artist,
                     thumbnail: r.thumbnail,
-                    duration: r.duration,
+                    duration: r.duration / 1000,
                     viewCount: r.playbackCount,
                 }));
             } else if (selectedPlatform === 'spotify') {
@@ -141,14 +116,13 @@ export const DiscoverScreen = () => {
                     title: r.title,
                     artist: r.artist,
                     thumbnail: r.thumbnail,
-                    duration: r.duration,
+                    duration: r.duration / 1000,
                     streamUrl: r.previewUrl,
                 }));
             }
 
             setSearchResults(results);
         } catch (error: any) {
-            console.error('Search error:', error);
             Alert.alert('Search Error', error.message || 'Failed to search');
         } finally {
             setIsSearching(false);
@@ -160,16 +134,13 @@ export const DiscoverScreen = () => {
             Alert.alert('Error', 'Please enter a URL');
             return;
         }
-
         setIsAddingLink(true);
-
         try {
             await addPlaylistFromUrl(linkUrl, linkName || 'New Playlist', 'm3u');
             Alert.alert('Success', 'Playlist added!');
             setLinkUrl('');
             setLinkName('');
         } catch (error: any) {
-            console.error('Add link error:', error);
             Alert.alert('Error', error.message || 'Failed to add link');
         } finally {
             setIsAddingLink(false);
@@ -178,28 +149,44 @@ export const DiscoverScreen = () => {
 
     const handlePlayResult = async (result: OnlineSearchResult) => {
         try {
+            setIsSearching(true);
             let streamUrl = result.streamUrl;
 
             if (result.platform === 'youtube' && !streamUrl) {
                 streamUrl = await OnlineSearchService.getYouTubeStreamUrl(result.id);
+            } else if (result.platform === 'soundcloud' && !streamUrl) {
+                streamUrl = await OnlineSearchService.getSoundCloudStreamUrl(result.id);
             }
 
-            if (!streamUrl) {
-                throw new Error('Could not get stream URL');
-            }
+            if (!streamUrl) throw new Error('Could not get stream URL');
 
             const channel: Channel = {
                 id: `${result.platform}-${result.id}`,
                 name: result.title,
                 url: streamUrl,
                 logo: result.thumbnail,
-                group: result.platform,
+                group: result.platform.charAt(0).toUpperCase() + result.platform.slice(1),
             };
 
             setSelectedChannel(channel);
+
+            // Add to history
+            addToHistory({
+                channelId: channel.id,
+                channelName: channel.name,
+                channelUrl: channel.url,
+                logo: channel.logo,
+                lastWatchedAt: new Date(),
+                progress: 0,
+                duration: result.duration || 0,
+                currentTime: 0,
+            });
+
             setShowPlayer(true);
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to play');
+            Alert.alert('Playback Error', error.message || 'Failed to play');
+        } finally {
+            setIsSearching(false);
         }
     };
 
@@ -212,7 +199,6 @@ export const DiscoverScreen = () => {
                 </View>
 
                 <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                    {/* Source tabs */}
                     <View style={styles.sourceCards}>
                         {SOURCE_OPTIONS.map((source) => (
                             <TouchableOpacity
@@ -229,36 +215,33 @@ export const DiscoverScreen = () => {
                         ))}
                     </View>
 
-                    {/* Local files tab */}
                     {activeTab === 'local' && (
                         <View style={styles.tabContent}>
                             <GlassCard variant="purple" padding="large" style={styles.centerCard}>
                                 <Ionicons name="folder-open" size={64} color={Colors.accent} />
                                 <Text style={styles.cardTitle}>Browse Local Files</Text>
-                                <Text style={styles.cardDesc}>Select video or audio files from your device</Text>
+                                <Text style={styles.cardDesc}>Select video or audio files</Text>
                                 <TouchableOpacity style={styles.actionButton} onPress={handlePickLocalFile}>
-                                    <LinearGradient colors={Gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionButtonGradient}>
+                                    <LinearGradient colors={Gradients.accent as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionButtonGradient}>
                                         <Ionicons name="folder-open-outline" size={20} color="#fff" />
                                         <Text style={styles.actionButtonText}>Browse Files</Text>
                                     </LinearGradient>
                                 </TouchableOpacity>
                             </GlassCard>
-                            <Text style={styles.supportText}>Supported: MP4, MKV, AVI, MOV, MP3, AAC, FLAC</Text>
                         </View>
                     )}
 
-                    {/* Online search tab */}
                     {activeTab === 'online' && (
                         <View style={styles.tabContent}>
                             <View style={styles.platformSelector}>
-                                {(['youtube', 'soundcloud', 'spotify'] as SearchPlatform[]).map((p) => (
+                                {(['youtube', 'soundcloud'] as SearchPlatform[]).map((p) => (
                                     <TouchableOpacity
                                         key={p}
                                         style={[styles.platformChip, selectedPlatform === p && styles.platformChipActive]}
-                                        onPress={() => setSelectedPlatform(p)}
+                                        onPress={() => { setSelectedPlatform(p); setSearchResults([]); }}
                                     >
                                         <Ionicons
-                                            name={p === 'youtube' ? 'logo-youtube' : 'musical-notes'}
+                                            name={p === 'youtube' ? 'logo-youtube' : 'cloudy'}
                                             size={16}
                                             color={selectedPlatform === p ? '#fff' : Colors.textSecondary}
                                         />
@@ -273,7 +256,7 @@ export const DiscoverScreen = () => {
                                 <Ionicons name="search" size={20} color={Colors.textTertiary} />
                                 <TextInput
                                     style={styles.searchInput}
-                                    placeholder="Search..."
+                                    placeholder={`Search ${selectedPlatform}...`}
                                     placeholderTextColor={Colors.textTertiary}
                                     value={searchQuery}
                                     onChangeText={setSearchQuery}
@@ -287,8 +270,8 @@ export const DiscoverScreen = () => {
                                 )}
                             </View>
 
-                            <TouchableOpacity style={styles.searchButton} onPress={handleOnlineSearch}>
-                                <LinearGradient colors={Gradients.secondary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.searchButtonGradient}>
+                            <TouchableOpacity style={styles.searchButton} onPress={handleOnlineSearch} disabled={isSearching}>
+                                <LinearGradient colors={Gradients.secondary as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.searchButtonGradient}>
                                     <Ionicons name="search" size={20} color="#fff" />
                                     <Text style={styles.searchButtonText}>Search</Text>
                                 </LinearGradient>
@@ -306,14 +289,44 @@ export const DiscoverScreen = () => {
                                     scrollEnabled={false}
                                     renderItem={({ item }) => (
                                         <TouchableOpacity style={styles.resultCard} onPress={() => handlePlayResult(item)}>
-                                            <View style={styles.resultThumb}>
-                                                <Ionicons name="play" size={24} color="#fff" />
-                                            </View>
+                                            {item.thumbnail ? (
+                                                <Image source={{ uri: item.thumbnail }} style={styles.resultThumb} />
+                                            ) : (
+                                                <View style={[styles.resultThumb, styles.resultThumbPlaceholder]}>
+                                                    <Ionicons name="play" size={24} color="#fff" />
+                                                </View>
+                                            )}
                                             <View style={styles.resultInfo}>
                                                 <Text style={styles.resultTitle} numberOfLines={2}>{item.title}</Text>
                                                 <Text style={styles.resultArtist} numberOfLines={1}>{item.artist}</Text>
+                                                {item.duration > 0 && (
+                                                    <Text style={styles.resultDuration}>{OnlineSearchService.formatDuration(item.duration)}</Text>
+                                                )}
                                             </View>
-                                            <Ionicons name="chevron-forward" size={20} color={Colors.textTertiary} />
+                                            <TouchableOpacity
+                                                style={[styles.favoriteBtn, isFavorite(item.id) && styles.favoriteBtnActive]}
+                                                onPress={(e) => {
+                                                    e.stopPropagation();
+                                                    const favItem: Omit<OnlineFavorite, 'addedAt'> = {
+                                                        id: item.id,
+                                                        platform: item.platform as 'youtube' | 'soundcloud',
+                                                        title: item.title,
+                                                        artist: item.artist,
+                                                        thumbnail: item.thumbnail,
+                                                        duration: item.duration,
+                                                        viewCount: item.viewCount,
+                                                        videoId: item.platform === 'youtube' ? item.id : undefined,
+                                                    };
+                                                    toggleFavorite(favItem);
+                                                }}
+                                            >
+                                                <Ionicons
+                                                    name={isFavorite(item.id) ? 'heart' : 'heart-outline'}
+                                                    size={22}
+                                                    color={isFavorite(item.id) ? '#FF4B6E' : Colors.textSecondary}
+                                                />
+                                            </TouchableOpacity>
+                                            <Ionicons name="play-circle" size={32} color={Colors.primary} />
                                         </TouchableOpacity>
                                     )}
                                 />
@@ -321,13 +334,11 @@ export const DiscoverScreen = () => {
                         </View>
                     )}
 
-                    {/* Add link tab */}
                     {activeTab === 'link' && (
                         <View style={styles.tabContent}>
                             <GlassCard variant="purple" padding="large">
-                                <Text style={styles.cardTitle}>Add Playlist or Media Link</Text>
-                                <Text style={styles.cardDesc}>Paste an M3U playlist URL or direct video link</Text>
-
+                                <Text style={styles.cardTitle}>Add Playlist Link</Text>
+                                <Text style={styles.cardDesc}>Paste M3U playlist URL</Text>
                                 <View style={styles.inputGroup}>
                                     <Text style={styles.inputLabel}>URL *</Text>
                                     <TextInput
@@ -337,12 +348,10 @@ export const DiscoverScreen = () => {
                                         value={linkUrl}
                                         onChangeText={setLinkUrl}
                                         autoCapitalize="none"
-                                        autoCorrect={false}
                                     />
                                 </View>
-
                                 <View style={styles.inputGroup}>
-                                    <Text style={styles.inputLabel}>Name (optional)</Text>
+                                    <Text style={styles.inputLabel}>Name</Text>
                                     <TextInput
                                         style={styles.textInput}
                                         placeholder="My Playlist"
@@ -351,12 +360,9 @@ export const DiscoverScreen = () => {
                                         onChangeText={setLinkName}
                                     />
                                 </View>
-
                                 <TouchableOpacity style={styles.addButton} onPress={handleAddLink} disabled={isAddingLink}>
-                                    <LinearGradient colors={Gradients.primary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addButtonGradient}>
-                                        {isAddingLink ? (
-                                            <LoadingSpinner size="small" />
-                                        ) : (
+                                    <LinearGradient colors={Gradients.primary as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addButtonGradient}>
+                                        {isAddingLink ? <LoadingSpinner size="small" /> : (
                                             <>
                                                 <Ionicons name="add-circle-outline" size={20} color="#fff" />
                                                 <Text style={styles.addButtonText}>Add Playlist</Text>
@@ -374,13 +380,7 @@ export const DiscoverScreen = () => {
 
             {selectedChannel && (
                 <Modal visible={showPlayer} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowPlayer(false)}>
-                    <VideoPlayer
-                        channel={selectedChannel}
-                        onClose={() => {
-                            setShowPlayer(false);
-                            setSelectedChannel(null);
-                        }}
-                    />
+                    <VideoPlayer channel={selectedChannel} onClose={() => { setShowPlayer(false); setSelectedChannel(null); }} />
                 </Modal>
             )}
         </View>
@@ -401,36 +401,39 @@ const styles = StyleSheet.create({
     sourceTitle: { fontSize: FontSizes.sm, fontWeight: '600', color: Colors.text, textAlign: 'center' },
     sourceDesc: { fontSize: FontSizes.xs, color: Colors.textTertiary, textAlign: 'center', marginTop: 2 },
     tabContent: { paddingHorizontal: Layout.screenPadding },
-    centerCard: { alignItems: 'center' },
-    cardTitle: { fontSize: FontSizes.xl, fontWeight: '700', color: Colors.text, marginTop: Spacing.lg, marginBottom: Spacing.sm, textAlign: 'center' },
-    cardDesc: { fontSize: FontSizes.md, color: Colors.textSecondary, textAlign: 'center', marginBottom: Spacing.lg },
-    actionButton: { borderRadius: BorderRadius.full, overflow: 'hidden', ...Shadows.md },
+    centerCard: { alignItems: 'center', gap: Spacing.md },
+    cardTitle: { fontSize: FontSizes.lg, fontWeight: '600', color: Colors.text, textAlign: 'center' },
+    cardDesc: { fontSize: FontSizes.sm, color: Colors.textSecondary, textAlign: 'center' },
+    actionButton: { marginTop: Spacing.md, borderRadius: BorderRadius.full, overflow: 'hidden' },
     actionButtonGradient: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md },
-    actionButtonText: { fontSize: FontSizes.md, fontWeight: '600', color: '#fff' },
-    supportText: { fontSize: FontSizes.sm, color: Colors.textTertiary, textAlign: 'center', marginTop: Spacing.lg },
+    actionButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
     platformSelector: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
-    platformChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, backgroundColor: Colors.backgroundCard, borderWidth: 1, borderColor: Colors.border },
+    platformChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: BorderRadius.full, backgroundColor: Colors.backgroundCard, borderWidth: 1, borderColor: Colors.border },
     platformChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-    platformText: { fontSize: FontSizes.xs, fontWeight: '600', color: Colors.textSecondary },
+    platformText: { fontSize: FontSizes.sm, fontWeight: '500', color: Colors.textSecondary },
     platformTextActive: { color: '#fff' },
-    searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.backgroundCard, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, borderWidth: 1, borderColor: Colors.border, marginBottom: Spacing.md },
-    searchInput: { flex: 1, paddingVertical: Spacing.md, paddingHorizontal: Spacing.sm, fontSize: FontSizes.md, color: Colors.text },
+    searchContainer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.backgroundCard, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginBottom: Spacing.md },
+    searchInput: { flex: 1, fontSize: FontSizes.md, color: Colors.text, paddingVertical: Spacing.sm },
     searchButton: { borderRadius: BorderRadius.md, overflow: 'hidden', marginBottom: Spacing.lg },
     searchButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md },
-    searchButtonText: { fontSize: FontSizes.md, fontWeight: '600', color: '#fff' },
+    searchButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
     loadingContainer: { paddingVertical: Spacing.xxl, alignItems: 'center' },
-    resultsList: { marginBottom: Spacing.md },
-    resultCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.backgroundCard, borderRadius: BorderRadius.md, padding: Spacing.md, gap: Spacing.md, marginBottom: Spacing.sm },
-    resultThumb: { width: 48, height: 48, borderRadius: BorderRadius.sm, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
+    resultsList: { marginTop: Spacing.sm },
+    resultCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.backgroundCard, borderRadius: BorderRadius.md, padding: Spacing.md, marginBottom: Spacing.sm, gap: Spacing.md },
+    resultThumb: { width: 80, height: 60, borderRadius: BorderRadius.sm, backgroundColor: Colors.surface },
+    resultThumbPlaceholder: { alignItems: 'center', justifyContent: 'center' },
     resultInfo: { flex: 1 },
-    resultTitle: { fontSize: FontSizes.md, fontWeight: '600', color: Colors.text },
-    resultArtist: { fontSize: FontSizes.sm, color: Colors.textSecondary, marginTop: 2 },
-    inputGroup: { marginBottom: Spacing.md },
-    inputLabel: { fontSize: FontSizes.sm, fontWeight: '600', color: Colors.text, marginBottom: Spacing.sm },
-    textInput: { backgroundColor: Colors.backgroundCard, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, fontSize: FontSizes.md, color: Colors.text, borderWidth: 1, borderColor: Colors.border },
-    addButton: { borderRadius: BorderRadius.md, overflow: 'hidden', marginTop: Spacing.md },
+    resultTitle: { fontSize: FontSizes.md, fontWeight: '600', color: Colors.text, marginBottom: 2 },
+    resultArtist: { fontSize: FontSizes.sm, color: Colors.textSecondary },
+    resultDuration: { fontSize: FontSizes.xs, color: Colors.textTertiary, marginTop: 2 },
+    inputGroup: { width: '100%', marginTop: Spacing.md },
+    inputLabel: { fontSize: FontSizes.sm, fontWeight: '500', color: Colors.textSecondary, marginBottom: Spacing.xs },
+    textInput: { backgroundColor: Colors.surface, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, fontSize: FontSizes.md, color: Colors.text, borderWidth: 1, borderColor: Colors.border },
+    addButton: { marginTop: Spacing.lg, borderRadius: BorderRadius.md, overflow: 'hidden' },
     addButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md },
-    addButtonText: { fontSize: FontSizes.md, fontWeight: '600', color: '#fff' },
+    addButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
+    favoriteBtn: { padding: Spacing.sm, marginRight: Spacing.xs },
+    favoriteBtnActive: { backgroundColor: 'rgba(255, 75, 110, 0.15)', borderRadius: BorderRadius.full },
 });
 
 export default DiscoverScreen;

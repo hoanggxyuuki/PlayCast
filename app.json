@@ -40,7 +40,6 @@
           }
         }
       ],
-      "expo-video",
       "expo-web-browser"
     ],
     "experiments": {
