@@ -43,7 +43,7 @@ Mở file `android/app/src/main/java/com/anonymous/playcast/MainApplication.java
 
 ```java
 // Thêm import ở đầu file
-import com.anonymous.playcast.HTTPServerPackage;
+import com.bidev.playcast.HTTPServerPackage;
 
 // Trong method getPackages(), thêm:
 @Override
@@ -60,7 +60,7 @@ protected List<ReactPackage> getPackages() {
 
 ```kotlin
 // Thêm import ở đầu file
-import com.anonymous.playcast.HTTPServerPackage
+import com.bidev.playcast.HTTPServerPackage
 
 // Trong method getPackages(), thêm:
 override fun getPackages(): List<ReactPackage> {

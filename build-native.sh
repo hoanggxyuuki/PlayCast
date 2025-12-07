@@ -110,7 +110,7 @@ install_android_module() {
             print_info "Thêm HTTPServerPackage vào MainApplication.kt..."
             # Add import
             sed -i '/import expo.modules.ReactNativeHostWrapper/a\
-import com.anonymous.playcast.HTTPServerPackage' "$MAIN_APP_FILE"
+import com.bidev.playcast.HTTPServerPackage' "$MAIN_APP_FILE"
 
             # Add package registration
             sed -i '/add(MyReactNativePackage())/a\
@@ -127,7 +127,7 @@ import com.anonymous.playcast.HTTPServerPackage' "$MAIN_APP_FILE"
                 print_info "Thêm HTTPServerPackage vào MainApplication.java..."
                 # Add import
                 sed -i '/import com.facebook.react.defaults.DefaultReactNativeHost;/a\
-import com.anonymous.playcast.HTTPServerPackage;' "$MAIN_APP_FILE"
+import com.bidev.playcast.HTTPServerPackage;' "$MAIN_APP_FILE"
 
                 # Add package registration
                 sed -i '/packages.add(new MyReactNativePackage());/a\

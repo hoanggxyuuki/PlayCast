@@ -332,7 +332,7 @@ Files are automatically imported and saved to permanent storage!
 ### Technical Details:
 - Uses **NanoHTTPD** embedded HTTP server
 - Runs on port **8080**
-- Files copied to: `/storage/emulated/0/Android/data/com.anonymous.playcast/files/Movies/PlayCast/`
+- Files copied to: `/storage/emulated/0/Android/data/com.bidev.playcast/files/Movies/PlayCast/`
 - Automatic file type detection
 - Real-time import via React Native Event Emitter
 

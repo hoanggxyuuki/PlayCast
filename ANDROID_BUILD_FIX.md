@@ -81,7 +81,7 @@ android {
     buildToolsVersion "34.0.0"
     
     defaultConfig {
-        applicationId "com.anonymous.playcast"
+        applicationId "com.bidev.playcast"
         minSdkVersion 24
         targetSdkVersion 34
         versionCode 1
