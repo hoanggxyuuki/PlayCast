@@ -193,7 +193,7 @@ if exist "%MAIN_APP_KT%" (
         echo %WARNING% Ban can them vao %MAIN_APP_KT% thu cong:
         echo.
         echo 1. Them import:
-        echo    import com.anonymous.playcast.HTTPServerPackage
+        echo    import com.bidev.playcast.HTTPServerPackage
         echo.
         echo 2. Them vao getPackages:
         echo    add(HTTPServerPackage())
@@ -207,7 +207,7 @@ if exist "%MAIN_APP_KT%" (
         echo %WARNING% Ban can them vao %MAIN_APP_JAVA% thu cong:
         echo.
         echo 1. Them import:
-        echo    import com.anonymous.playcast.HTTPServerPackage;
+        echo    import com.bidev.playcast.HTTPServerPackage;
         echo.
         echo 2. Them vao getPackages:
         echo    packages.add(new HTTPServerPackage());

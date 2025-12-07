@@ -1,4 +1,4 @@
-package com.anonymous.playcast;
+package com.bidev.playcast;
 
 import android.app.PictureInPictureParams;
 import android.os.Build;

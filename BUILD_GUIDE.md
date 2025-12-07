@@ -104,7 +104,7 @@ chmod +x build-native.sh
 
 4. **Register package trong `android/app/src/main/java/com/anonymous/playcast/MainApplication.kt`:**
    ```kotlin
-   import com.anonymous.playcast.HTTPServerPackage
+   import com.bidev.playcast.HTTPServerPackage
 
    override fun getPackages(): List<ReactPackage> =
        PackageList(this).packages.apply {
