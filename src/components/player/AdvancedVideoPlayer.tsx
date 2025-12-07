@@ -5,9 +5,12 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
+  Image,
   Modal,
+  Share,
   StatusBar,
   StyleSheet,
   Text,
@@ -20,6 +23,7 @@ import { Colors, FontSizes, Spacing } from '../../constants/theme';
 import { useHistory } from '../../contexts/HistoryContext';
 import { useQueue } from '../../contexts/QueueContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { DownloadService } from '../../services/downloadService';
 import { SleepTimerService } from '../../services/sleepTimerService';
 import { VideoPlayerProps } from '../../types';
 import { SleepTimerModal } from './SleepTimerModal';
@@ -31,6 +35,11 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   onNext,
   onPrevious,
   startPosition = 0,
+  loopMode = 'none',
+  shuffleMode = false,
+  onLoopModeChange,
+  onShuffleModeChange,
+  playlistInfo,
 }) => {
   // State
   const [hasError, setHasError] = useState(false);
@@ -46,6 +55,9 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const [sleepTimerRemaining, setSleepTimerRemaining] = useState('');
   const [isLandscape, setIsLandscape] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
 
   // Contexts
   const { addToHistory, updateProgress } = useHistory();
@@ -158,8 +170,19 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const onVideoEnd = () => {
+    // Handle loop modes
+    if (loopMode === 'one') {
+      // Loop current track - seek back to start
+      videoRef.current?.seek(0);
+      setIsPlaying(true);
+      return;
+    }
+
     // Auto play next if available
-    if (hasNext()) {
+    if (onNext) {
+      // Use the provided onNext callback (supports shuffle/loop from parent)
+      onNext();
+    } else if (hasNext()) {
       const next = queueNext();
       if (next) {
         console.log('Auto-playing next:', next.name);
@@ -186,12 +209,9 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const showControlsAnimated = () => {
+    // Reset opacity to 1 immediately when showing (fixes re-show issue)
+    controlsOpacity.setValue(1);
     setShowControls(true);
-    Animated.timing(controlsOpacity, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
     resetControlsTimeout();
   };
 
@@ -285,11 +305,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       <StatusBar hidden={isLandscape} />
 
       {/* Video view with react-native-video */}
-      <TouchableOpacity
-        style={styles.videoContainer}
-        activeOpacity={1}
-        onPress={() => showControlsAnimated()}
-      >
+      <View style={styles.videoContainer}>
         <Video
           ref={videoRef}
           source={{ uri: channel.url }}
@@ -300,6 +316,10 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           volume={1.0}
           muted={false}
           repeat={false}
+          // For audio-only content, this prevents black screen
+          audioOnly={channel.url.includes('soundcloud') || channel.group?.toLowerCase() === 'soundcloud'}
+          poster={channel.logo}
+          posterResizeMode="contain"
           // PiP and background playback
           pictureInPicture={true}
           playInBackground={true}
@@ -319,127 +339,203 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           onError={onVideoError}
           onEnd={onVideoEnd}
         />
-      </TouchableOpacity>
+
+        {/* Audio artwork overlay (for SoundCloud/audio content - renders ON TOP of video) */}
+        {channel.logo && (channel.url.includes('soundcloud') || channel.group?.toLowerCase() === 'soundcloud') && (
+          <View style={styles.audioArtworkContainer}>
+            <Image
+              source={{ uri: channel.logo }}
+              style={styles.audioArtwork}
+              blurRadius={20}
+            />
+            <View style={styles.audioArtworkOverlay} />
+            <Image
+              source={{ uri: channel.logo }}
+              style={styles.audioArtworkMain}
+              resizeMode="contain"
+            />
+          </View>
+        )}
+      </View>
+
+      {/* Touch overlay to capture taps (on top of video but below controls) */}
+      <TouchableOpacity
+        style={styles.touchOverlay}
+        activeOpacity={1}
+        onPress={() => {
+          console.log('[Controls] Tap detected, showControls:', showControls);
+          if (showControls) {
+            console.log('[Controls] Hiding controls...');
+            hideControls();
+          } else {
+            console.log('[Controls] Showing controls...');
+            showControlsAnimated();
+          }
+        }}
+      />
 
       {/* Loading overlay */}
-      {(isLoading || isBuffering) && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>
-            {isBuffering ? 'Buffering...' : 'Loading video...'}
-          </Text>
-        </View>
-      )}
+      {
+        (isLoading || isBuffering) && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>
+              {isBuffering ? 'Buffering...' : 'Loading video...'}
+            </Text>
+          </View>
+        )
+      }
 
       {/* Controls overlay */}
-      {showControls && (
-        <Animated.View style={[styles.controlsContainer, { opacity: controlsOpacity }]}>
-          {/* Top bar */}
-          <View style={[styles.topBar, { paddingTop: isLandscape ? Spacing.md : insets.top + Spacing.md }]}>
-            <TouchableOpacity style={styles.iconButton} onPress={handleClose}>
-              <Ionicons name="close" size={28} color={Colors.text} />
-            </TouchableOpacity>
-
-            <View style={styles.topInfo}>
-              <Text style={styles.channelName} numberOfLines={1}>
-                {channel.name}
-              </Text>
-              {channel.group && !isLandscape && (
-                <Text style={styles.channelGroup}>{channel.group}</Text>
-              )}
-            </View>
-
-            <TouchableOpacity style={styles.iconButton} onPress={toggleOrientation}>
-              <Ionicons
-                name={isLandscape ? 'contract' : 'expand'}
-                size={24}
-                color={Colors.text}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => setShowMoreMenu(true)}
-            >
-              <Ionicons name="ellipsis-vertical" size={24} color={Colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Center controls */}
-          <View style={styles.centerControls}>
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={handlePrevious}
-              disabled={!onPrevious && !hasPrevious()}
-            >
-              <Ionicons
-                name="play-skip-back"
-                size={isLandscape ? 36 : 40}
-                color={!onPrevious && !hasPrevious() ? Colors.textTertiary : Colors.text}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.controlButton, styles.playButton]}
-              onPress={togglePlayPause}
-            >
-              <Ionicons
-                name={isPlaying ? 'pause' : 'play'}
-                size={isLandscape ? 44 : 50}
-                color={Colors.text}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={handleNext}
-              disabled={!onNext && !hasNext()}
-            >
-              <Ionicons
-                name="play-skip-forward"
-                size={isLandscape ? 36 : 40}
-                color={!onNext && !hasNext() ? Colors.textTertiary : Colors.text}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Bottom bar */}
-          <View style={[styles.bottomBar, { paddingBottom: isLandscape ? Spacing.md : insets.bottom + Spacing.md }]}>
-            {/* Progress bar */}
-            <View style={styles.progressContainer}>
-              <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-              <Slider
-                style={styles.progressBar}
-                minimumValue={0}
-                maximumValue={duration || 100}
-                value={currentTime}
-                onValueChange={handleSeek}
-                minimumTrackTintColor={Colors.primary}
-                maximumTrackTintColor="rgba(255, 255, 255, 0.3)"
-                thumbTintColor={Colors.primary}
-              />
-              <Text style={styles.timeText}>{formatTime(duration)}</Text>
-            </View>
-
-            {/* Bottom controls */}
-            <View style={styles.bottomControls}>
-              <TouchableOpacity
-                style={styles.speedButton}
-                onPress={() => setShowSpeedMenu(true)}
-              >
-                <Text style={styles.speedText}>{playbackSpeed}x</Text>
+      {
+        showControls && (
+          <Animated.View style={[styles.controlsContainer, { opacity: controlsOpacity }]}>
+            {/* Top bar */}
+            <View style={[styles.topBar, { paddingTop: isLandscape ? Spacing.md : insets.top + Spacing.md }]}>
+              <TouchableOpacity style={styles.iconButton} onPress={handleClose}>
+                <Ionicons name="close" size={28} color={Colors.text} />
               </TouchableOpacity>
 
-              {sleepTimerRemaining && (
-                <View style={styles.sleepTimerIndicator}>
-                  <Ionicons name="moon" size={16} color={Colors.primary} />
-                  <Text style={styles.sleepTimerText}>{sleepTimerRemaining}</Text>
-                </View>
-              )}
+              <View style={styles.topInfo}>
+                <Text style={styles.channelName} numberOfLines={1}>
+                  {channel.name}
+                </Text>
+                {channel.group && !isLandscape && (
+                  <Text style={styles.channelGroup}>{channel.group}</Text>
+                )}
+              </View>
+
+              <TouchableOpacity style={styles.iconButton} onPress={toggleOrientation}>
+                <Ionicons
+                  name={isLandscape ? 'contract' : 'expand'}
+                  size={24}
+                  color={Colors.text}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setShowMoreMenu(true)}
+              >
+                <Ionicons name="ellipsis-vertical" size={24} color={Colors.text} />
+              </TouchableOpacity>
             </View>
-          </View>
-        </Animated.View>
-      )}
+
+            {/* Center controls */}
+            <View style={styles.centerControls}>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={handlePrevious}
+                disabled={!onPrevious && !hasPrevious()}
+              >
+                <Ionicons
+                  name="play-skip-back"
+                  size={isLandscape ? 36 : 40}
+                  color={!onPrevious && !hasPrevious() ? Colors.textTertiary : Colors.text}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.controlButton, styles.playButton]}
+                onPress={togglePlayPause}
+              >
+                <Ionicons
+                  name={isPlaying ? 'pause' : 'play'}
+                  size={isLandscape ? 44 : 50}
+                  color={Colors.text}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={handleNext}
+                disabled={!onNext && !hasNext()}
+              >
+                <Ionicons
+                  name="play-skip-forward"
+                  size={isLandscape ? 36 : 40}
+                  color={!onNext && !hasNext() ? Colors.textTertiary : Colors.text}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Bottom bar */}
+            <View style={[styles.bottomBar, { paddingBottom: isLandscape ? Spacing.md : insets.bottom + Spacing.md }]}>
+              {/* Progress bar */}
+              <View style={styles.progressContainer}>
+                <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+                <Slider
+                  style={styles.progressBar}
+                  minimumValue={0}
+                  maximumValue={duration || 100}
+                  value={currentTime}
+                  onValueChange={handleSeek}
+                  minimumTrackTintColor={Colors.primary}
+                  maximumTrackTintColor="rgba(255, 255, 255, 0.3)"
+                  thumbTintColor={Colors.primary}
+                />
+                <Text style={styles.timeText}>{formatTime(duration)}</Text>
+              </View>
+
+              {/* Bottom controls */}
+              <View style={styles.bottomControls}>
+                {/* Shuffle Button */}
+                {onShuffleModeChange && (
+                  <TouchableOpacity
+                    style={styles.modeButton}
+                    onPress={() => onShuffleModeChange(!shuffleMode)}
+                  >
+                    <Ionicons
+                      name="shuffle"
+                      size={22}
+                      color={shuffleMode ? Colors.primary : Colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                )}
+
+                {/* Playlist Info */}
+                {playlistInfo && playlistInfo.total > 1 && (
+                  <View style={styles.playlistInfoContainer}>
+                    <Text style={styles.playlistInfoText}>
+                      {playlistInfo.current} / {playlistInfo.total}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Loop Button */}
+                {onLoopModeChange && (
+                  <TouchableOpacity
+                    style={styles.modeButton}
+                    onPress={() => {
+                      const modes: Array<'none' | 'one' | 'all'> = ['none', 'one', 'all'];
+                      const currentIndex = modes.indexOf(loopMode);
+                      const nextMode = modes[(currentIndex + 1) % modes.length];
+                      onLoopModeChange(nextMode);
+                    }}
+                  >
+                    <Ionicons
+                      name={loopMode === 'one' ? 'repeat-outline' : 'repeat'}
+                      size={22}
+                      color={loopMode !== 'none' ? Colors.primary : Colors.textSecondary}
+                    />
+                    {loopMode === 'one' && (
+                      <Text style={styles.loopOneIndicator}>1</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+
+                {/* Sleep Timer Indicator */}
+                {sleepTimerRemaining && (
+                  <View style={styles.sleepTimerIndicator}>
+                    <Ionicons name="moon" size={16} color={Colors.primary} />
+                    <Text style={styles.sleepTimerText}>{sleepTimerRemaining}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </Animated.View>
+        )
+      }
 
       {/* Speed selection menu */}
       <Modal
@@ -504,20 +600,11 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               style={styles.menuItem}
               onPress={() => {
                 setShowMoreMenu(false);
+                setShowQualityMenu(true);
               }}
             >
-              <Ionicons name="settings-outline" size={24} color={Colors.text} />
-              <Text style={styles.menuItemText}>Quality</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowMoreMenu(false);
-              }}
-            >
-              <Ionicons name="text-outline" size={24} color={Colors.text} />
-              <Text style={styles.menuItemText}>Subtitles</Text>
+              <Ionicons name="speedometer-outline" size={24} color={Colors.text} />
+              <Text style={styles.menuItemText}>Speed ({playbackSpeed}x)</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -533,12 +620,86 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
 
             <TouchableOpacity
               style={styles.menuItem}
-              onPress={() => {
+              onPress={async () => {
                 setShowMoreMenu(false);
+                try {
+                  await Share.share({
+                    message: `Check out "${channel.name}" on PlayCast!\n${channel.url}`,
+                    title: channel.name,
+                  });
+                } catch (error) {
+                  console.error('Share error:', error);
+                }
               }}
             >
               <Ionicons name="share-outline" size={24} color={Colors.text} />
               <Text style={styles.menuItemText}>Share</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={async () => {
+                setShowMoreMenu(false);
+
+                // Check if URL is HLS stream (cannot be downloaded directly)
+                const isHLSStream = channel.url.includes('.m3u8') ||
+                  channel.url.includes('/hls/') ||
+                  channel.url.includes('m3u8');
+
+                if (isHLSStream && !isDownloading) {
+                  Alert.alert(
+                    'Download Not Supported',
+                    'This is a live stream (HLS) and cannot be downloaded. Only direct video files (MP4, MP3, etc.) can be downloaded.',
+                    [{ text: 'OK' }]
+                  );
+                  return;
+                }
+
+                if (isDownloading) {
+                  await DownloadService.cancelDownload(channel.id);
+                  setIsDownloading(false);
+                  setDownloadProgress(0);
+                } else {
+                  setIsDownloading(true);
+                  const unsubscribe = DownloadService.onProgress(channel.id, (progress) => {
+                    setDownloadProgress(progress.progress);
+                    if (progress.status === 'completed') {
+                      setIsDownloading(false);
+                      setDownloadProgress(0);
+                      Alert.alert('Download Complete', `"${channel.name}" has been downloaded successfully!`);
+                    } else if (progress.status === 'failed') {
+                      setIsDownloading(false);
+                      setDownloadProgress(0);
+                      Alert.alert('Download Failed', 'Could not download this video. The stream format may not be supported.');
+                    }
+                  });
+                  try {
+                    await DownloadService.startDownload(
+                      channel.id,
+                      channel.name,
+                      channel.group || 'Unknown',
+                      channel.logo || '',
+                      duration,
+                      'local',
+                      channel.url,
+                      'video/mp4'
+                    );
+                  } catch (error) {
+                    console.error('Download failed:', error);
+                    setIsDownloading(false);
+                    Alert.alert('Download Failed', 'Could not download this video.');
+                  }
+                }
+              }}
+            >
+              <Ionicons
+                name={isDownloading ? "close-circle-outline" : "download-outline"}
+                size={24}
+                color={isDownloading ? Colors.error : Colors.text}
+              />
+              <Text style={[styles.menuItemText, isDownloading && { color: Colors.error }]}>
+                {isDownloading ? `Cancel (${Math.round(downloadProgress * 100)}%)` : 'Download'}
+              </Text>
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -550,7 +711,48 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         onClose={() => setShowSleepTimer(false)}
         onTimerSet={(minutes) => console.log(`Sleep timer set for ${minutes} minutes`)}
       />
-    </View>
+
+      {/* Quality Menu Modal */}
+      <Modal
+        visible={showQualityMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowQualityMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowQualityMenu(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={styles.moreMenu}
+          >
+            <Text style={styles.menuTitle}>Playback Speed</Text>
+            {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
+              <TouchableOpacity
+                key={speed}
+                style={[styles.menuItem, playbackSpeed === speed && { backgroundColor: 'rgba(118, 75, 162, 0.3)' }]}
+                onPress={() => {
+                  setPlaybackSpeed(speed);
+                  setShowQualityMenu(false);
+                }}
+              >
+                <Ionicons
+                  name={playbackSpeed === speed ? "checkmark-circle" : "speedometer-outline"}
+                  size={24}
+                  color={playbackSpeed === speed ? Colors.primary : Colors.text}
+                />
+                <Text style={[styles.menuItemText, playbackSpeed === speed && { color: Colors.primary }]}>
+                  {speed === 1.0 ? 'Normal' : `${speed}x`}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+    </View >
   );
 };
 
@@ -565,6 +767,30 @@ const styles = StyleSheet.create({
   video: {
     flex: 1,
     width: '100%',
+  },
+  touchOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 5,
+  },
+  audioArtworkContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+  audioArtwork: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  audioArtworkOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  audioArtworkMain: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
   },
   loadingContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -701,6 +927,29 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     fontWeight: '600',
     color: Colors.text,
+  },
+  modeButton: {
+    padding: Spacing.sm,
+    position: 'relative',
+  },
+  playlistInfoContainer: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+  },
+  playlistInfoText: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  loopOneIndicator: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.primary,
   },
   sleepTimerIndicator: {
     flexDirection: 'row',

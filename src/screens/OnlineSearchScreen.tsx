@@ -1,6 +1,6 @@
 // Online Search Screen - Search YouTube, SoundCloud, Spotify
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OnlineResultCard } from '../components/channel/OnlineResultCard';
-import { VideoPlayer } from '../components/player/VideoPlayer';
+import { AdvancedVideoPlayer } from '../components/player/AdvancedVideoPlayer';
 import { Button, EmptyState, Input, LoadingSpinner } from '../components/ui';
 import { PlatformTabs } from '../components/ui/PlatformTabs';
 import { BorderRadius, Colors, FontSizes, Shadows, Spacing } from '../constants/theme';
@@ -420,7 +420,7 @@ export const OnlineSearchScreen = () => {
         onRequestClose={handleClosePlayer}
       >
         {selectedChannel && (
-          <VideoPlayer
+          <AdvancedVideoPlayer
             channel={selectedChannel}
             onClose={handleClosePlayer}
             onError={(error) => {

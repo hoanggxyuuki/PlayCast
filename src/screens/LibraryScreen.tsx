@@ -1,7 +1,7 @@
-// LIBRARY SCREEN - Playlists, Favorites, History, Queue, Online Favorites
+// LIBRARY SCREEN - Playlists, Favorites, History, Queue, Online Favorites, Downloads
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Alert,
     FlatList,
@@ -21,24 +21,19 @@ import { useHistory } from '../contexts/HistoryContext';
 import { OnlineFavorite, useOnlineFavorites } from '../contexts/OnlineFavoritesContext';
 import { usePlaylist } from '../contexts/PlaylistContext';
 import { useQueue } from '../contexts/QueueContext';
+import { useCustomTheme } from '../contexts/ThemeContext';
+import { useTranslation } from '../i18n/useTranslation';
+import { DownloadItem, DownloadService } from '../services/downloadService';
 import { OnlineSearchService } from '../services/OnlineSearchService';
 import { Channel } from '../types';
 
-type LibraryTab = 'playlists' | 'favorites' | 'online' | 'history' | 'queue';
+type LibraryTab = 'playlists' | 'favorites' | 'online' | 'history' | 'queue' | 'downloads';
 
 interface TabConfig {
     id: LibraryTab;
     title: string;
     icon: keyof typeof Ionicons.glyphMap;
 }
-
-const TABS: TabConfig[] = [
-    { id: 'playlists', title: 'Playlists', icon: 'list' },
-    { id: 'favorites', title: 'Favorites', icon: 'heart' },
-    { id: 'online', title: 'Online', icon: 'globe' },
-    { id: 'history', title: 'History', icon: 'time' },
-    { id: 'queue', title: 'Queue', icon: 'musical-notes' },
-];
 
 interface LibraryScreenProps {
     onNavigateToChannels?: (playlistId: string) => void;
@@ -49,10 +44,33 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
     const { history, clearHistory, removeFromHistory } = useHistory();
     const { queue, currentItem, removeFromQueue, clearQueue, playFromQueue } = useQueue();
     const { favorites: onlineFavorites, youtubeFavorites, soundcloudFavorites, removeFavorite } = useOnlineFavorites();
+    const { t } = useTranslation();
+    const { currentTheme } = useCustomTheme();
+    const themeColors = currentTheme.colors;
+
+    // TABS with translations
+    const TABS: TabConfig[] = [
+        { id: 'playlists', title: t('playlists'), icon: 'list' },
+        { id: 'favorites', title: t('favorites'), icon: 'heart' },
+        { id: 'online', title: t('online'), icon: 'globe' },
+        { id: 'downloads', title: t('downloads'), icon: 'download' },
+        { id: 'history', title: t('history'), icon: 'time' },
+        { id: 'queue', title: t('queue'), icon: 'musical-notes' },
+    ];
 
     const [activeTab, setActiveTab] = useState<LibraryTab>('playlists');
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
     const [showPlayer, setShowPlayer] = useState(false);
+    const [downloads, setDownloads] = useState<DownloadItem[]>([]);
+
+    // Load downloads on mount
+    useEffect(() => {
+        const loadDownloads = async () => {
+            await DownloadService.init();
+            setDownloads(DownloadService.getAllDownloads());
+        };
+        loadDownloads();
+    }, [activeTab]);
 
     const favoriteChannels = getFavoriteChannels();
 
@@ -314,17 +332,85 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
         );
     };
 
+    const renderDownloads = () => {
+        if (downloads.length === 0) {
+            return <EmptyState icon="download-outline" title="No Downloads" description="Downloaded videos and audio will appear here" />;
+        }
+
+        const handlePlayDownload = (item: DownloadItem) => {
+            const channel: Channel = {
+                id: item.id,
+                name: item.title,
+                url: item.localPath,
+                logo: item.thumbnail,
+                // group: item.artist,
+            };
+            handlePlayChannel(channel);
+        };
+
+        const handleDeleteDownload = async (item: DownloadItem) => {
+            Alert.alert(
+                'Delete Download',
+                `Are you sure you want to delete "${item.title}"?`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: async () => {
+                            await DownloadService.deleteDownload(item.id);
+                            setDownloads(DownloadService.getAllDownloads());
+                        },
+                    },
+                ]
+            );
+        };
+
+        return (
+            <FlatList
+                data={downloads}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.channelItem} onPress={() => handlePlayDownload(item)}>
+                        {item.thumbnail ? (
+                            <Image source={{ uri: item.thumbnail }} style={styles.channelThumb} />
+                        ) : (
+                            <View style={[styles.channelThumb, styles.channelThumbPlaceholder]}>
+                                <Ionicons name="download" size={24} color={Colors.primary} />
+                            </View>
+                        )}
+                        <View style={styles.channelInfo}>
+                            <Text style={styles.channelName} numberOfLines={1}>{item.title}</Text>
+                            <View style={styles.onlineMeta}>
+                                {/* <View style={[styles.platformBadge, { backgroundColor: Colors.accent }]}>
+                                    <Ionicons name="download" size={10} color="#fff" />
+                                    <Text style={styles.platformText}>{DownloadService.formatFileSize(item.fileSize)}</Text>
+                                </View> */}
+                                <Text style={styles.onlineArtist}>{item.artist}</Text>
+                            </View>
+                        </View>
+                        <TouchableOpacity style={styles.removeButton} onPress={() => handleDeleteDownload(item)}>
+                            <Ionicons name="trash-outline" size={20} color={Colors.error} />
+                        </TouchableOpacity>
+                    </TouchableOpacity>
+                )}
+            />
+        );
+    };
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: themeColors.background }]}>
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Library</Text>
+                    <Text style={[styles.headerTitle, { color: themeColors.text }]}>Library</Text>
                 </View>
                 {renderTabs()}
                 <View style={styles.content}>
                     {activeTab === 'playlists' && renderPlaylists()}
                     {activeTab === 'favorites' && renderFavorites()}
                     {activeTab === 'online' && renderOnlineFavorites()}
+                    {activeTab === 'downloads' && renderDownloads()}
                     {activeTab === 'history' && renderHistory()}
                     {activeTab === 'queue' && renderQueue()}
                 </View>

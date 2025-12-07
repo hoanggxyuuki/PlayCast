@@ -1,7 +1,9 @@
 // Discover Tab - Combines local files, online search, and add links
 import { DiscoverScreen } from '@/src/screens/DiscoverScreen';
-import React from 'react';
+import { useLocalSearchParams } from 'expo-router';
 
 export default function Discover() {
-    return <DiscoverScreen />;
+    const { tab } = useLocalSearchParams<{ tab?: string }>();
+
+    return <DiscoverScreen initialTab={tab as 'local' | 'online' | 'link' | undefined} />;
 }

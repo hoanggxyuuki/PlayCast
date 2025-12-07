@@ -2,7 +2,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Alert,
     FlatList,
@@ -17,11 +17,13 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { VideoPlayer } from '../components/player/VideoPlayer';
+import { AdvancedVideoPlayer } from '../components/player/AdvancedVideoPlayer';
 import { LoadingSpinner } from '../components/ui';
 import { GlassCard } from '../components/ui/GlassCard';
 import { BorderRadius, Colors, FontSizes, Gradients, Layout, Spacing } from '../constants/theme';
 import { useHistory } from '../contexts/HistoryContext';
+import { useTranslation } from '../i18n/useTranslation';
+
 import { OnlineFavorite, useOnlineFavorites } from '../contexts/OnlineFavoritesContext';
 import { usePlaylist } from '../contexts/PlaylistContext';
 import { OnlineSearchResult, OnlineSearchService, SearchPlatform } from '../services/OnlineSearchService';
@@ -29,18 +31,32 @@ import { Channel } from '../types';
 
 type DiscoverTab = 'local' | 'online' | 'link';
 
-const SOURCE_OPTIONS = [
-    { id: 'local' as DiscoverTab, title: 'Local Files', icon: 'folder-open' as const, color: '#4facfe', description: 'Play from device' },
-    { id: 'online' as DiscoverTab, title: 'Online', icon: 'globe' as const, color: '#f093fb', description: 'YouTube, SoundCloud' },
-    { id: 'link' as DiscoverTab, title: 'Add Link', icon: 'link' as const, color: '#43e97b', description: 'Paste URL' },
-];
 
-export const DiscoverScreen = () => {
-    const { addPlaylistFromUrl } = usePlaylist();
+
+interface DiscoverScreenProps {
+    initialTab?: 'local' | 'online' | 'link';
+}
+
+export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) => {
+    const { t } = useTranslation();
+
+    const SOURCE_OPTIONS = useMemo(() => [
+        { id: 'local' as DiscoverTab, title: t('localFiles'), icon: 'folder-open' as const, color: '#4facfe', description: t('playFromDevice') },
+        { id: 'online' as DiscoverTab, title: t('online'), icon: 'globe' as const, color: '#f093fb', description: 'YouTube, SoundCloud' },
+        { id: 'link' as DiscoverTab, title: t('addLink'), icon: 'link' as const, color: '#43e97b', description: t('pasteUrl') },
+    ], [t]);
+    const { addPlaylistFromUrl, addPlaylist } = usePlaylist();
     const { isFavorite, toggleFavorite } = useOnlineFavorites();
     const { addToHistory } = useHistory();
 
-    const [activeTab, setActiveTab] = useState<DiscoverTab>('local');
+    const [activeTab, setActiveTab] = useState<DiscoverTab>(initialTab || 'local');
+
+    // Set active tab when initialTab prop changes
+    useEffect(() => {
+        if (initialTab) {
+            setActiveTab(initialTab);
+        }
+    }, [initialTab]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedPlatform, setSelectedPlatform] = useState<SearchPlatform>('youtube');
     const [isSearching, setIsSearching] = useState(false);
@@ -51,24 +67,81 @@ export const DiscoverScreen = () => {
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
     const [showPlayer, setShowPlayer] = useState(false);
 
+
     const handlePickLocalFile = async () => {
         try {
             const result = await DocumentPicker.getDocumentAsync({
                 type: ['video/*', 'audio/*'],
                 copyToCacheDirectory: true,
-                multiple: false,
+                multiple: true,
             });
 
-            if (!result.canceled && result.assets && result.assets[0]) {
-                const file = result.assets[0];
-                const channel: Channel = {
-                    id: `local-${Date.now()}`,
-                    name: file.name || 'Local Media',
-                    url: file.uri,
-                    group: 'Local Files',
-                };
-                setSelectedChannel(channel);
-                setShowPlayer(true);
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const files = result.assets;
+
+                if (files.length === 1) {
+                    const file = files[0];
+                    const channel: Channel = {
+                        id: `local-${Date.now()}`,
+                        name: file.name || 'Local Media',
+                        url: file.uri,
+                        group: 'Local Files',
+                    };
+                    setSelectedChannel(channel);
+                    setShowPlayer(true);
+                } else {
+
+                    Alert.alert(
+                        'Create Playlist',
+                        `You selected ${files.length} files. Create a playlist?`,
+                        [
+                            { text: 'Cancel', style: 'cancel' },
+                            {
+                                text: 'Play First',
+                                onPress: () => {
+                                    const file = files[0];
+                                    const channel: Channel = {
+                                        id: `local-${Date.now()}`,
+                                        name: file.name || 'Local Media',
+                                        url: file.uri,
+                                        group: 'Local Files',
+                                    };
+                                    setSelectedChannel(channel);
+                                    setShowPlayer(true);
+                                },
+                            },
+                            {
+                                text: 'Create Playlist',
+                                onPress: async () => {
+                                    const playlistName = `My Music (${files.length} tracks)`;
+
+                                    // Convert files to channels
+                                    const channels: Channel[] = files.map((file, index) => ({
+                                        id: `local-${Date.now()}-${index}`,
+                                        name: file.name?.replace(/\.[^/.]+$/, '') || `Track ${index + 1}`,
+                                        url: file.uri,
+                                        group: 'Local Files',
+                                    }));
+
+                                    // Create playlist
+                                    const playlist = {
+                                        id: `local-playlist-${Date.now()}`,
+                                        name: playlistName,
+                                        url: 'local',
+                                        type: 'm3u' as const,
+                                        channels,
+                                        createdAt: new Date(),
+                                        updatedAt: new Date(),
+                                        description: `${files.length} local files`,
+                                    };
+
+                                    await addPlaylist(playlist);
+                                    Alert.alert('Success', `Created "${playlistName}" in Library!`);
+                                },
+                            },
+                        ]
+                    );
+                }
             }
         } catch (error) {
             console.error('Error picking file:', error);
@@ -128,6 +201,8 @@ export const DiscoverScreen = () => {
             setIsSearching(false);
         }
     }, [searchQuery, selectedPlatform]);
+
+
 
     const handleAddLink = async () => {
         if (!linkUrl.trim()) {
@@ -194,8 +269,8 @@ export const DiscoverScreen = () => {
         <View style={styles.container}>
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Discover</Text>
-                    <Text style={styles.headerSubtitle}>Find your content</Text>
+                    <Text style={styles.headerTitle}>{t('discover')}</Text>
+                    <Text style={styles.headerSubtitle}>{t('findYourContent')}</Text>
                 </View>
 
                 <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -219,12 +294,12 @@ export const DiscoverScreen = () => {
                         <View style={styles.tabContent}>
                             <GlassCard variant="purple" padding="large" style={styles.centerCard}>
                                 <Ionicons name="folder-open" size={64} color={Colors.accent} />
-                                <Text style={styles.cardTitle}>Browse Local Files</Text>
-                                <Text style={styles.cardDesc}>Select video or audio files</Text>
+                                <Text style={styles.cardTitle}>{t('browseLocalFiles')}</Text>
+                                <Text style={styles.cardDesc}>{t('selectVideoOrAudioFiles')}</Text>
                                 <TouchableOpacity style={styles.actionButton} onPress={handlePickLocalFile}>
                                     <LinearGradient colors={Gradients.accent as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionButtonGradient}>
                                         <Ionicons name="folder-open-outline" size={20} color="#fff" />
-                                        <Text style={styles.actionButtonText}>Browse Files</Text>
+                                        <Text style={styles.actionButtonText}>{t('browseFiles')}</Text>
                                     </LinearGradient>
                                 </TouchableOpacity>
                             </GlassCard>
@@ -251,6 +326,10 @@ export const DiscoverScreen = () => {
                                     </TouchableOpacity>
                                 ))}
                             </View>
+
+                            {/* Paste URL Section Removed */}
+
+                            {/* Search Section */}
 
                             <View style={styles.searchContainer}>
                                 <Ionicons name="search" size={20} color={Colors.textTertiary} />
@@ -337,10 +416,10 @@ export const DiscoverScreen = () => {
                     {activeTab === 'link' && (
                         <View style={styles.tabContent}>
                             <GlassCard variant="purple" padding="large">
-                                <Text style={styles.cardTitle}>Add Playlist Link</Text>
-                                <Text style={styles.cardDesc}>Paste M3U playlist URL</Text>
+                                <Text style={styles.cardTitle}>{t('addPlaylistLink')}</Text>
+                                <Text style={styles.cardDesc}>{t('pasteM3UPlaylistURL')}</Text>
                                 <View style={styles.inputGroup}>
-                                    <Text style={styles.inputLabel}>URL *</Text>
+                                    <Text style={styles.inputLabel}>{t('url')} *</Text>
                                     <TextInput
                                         style={styles.textInput}
                                         placeholder="https://example.com/playlist.m3u"
@@ -380,7 +459,7 @@ export const DiscoverScreen = () => {
 
             {selectedChannel && (
                 <Modal visible={showPlayer} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowPlayer(false)}>
-                    <VideoPlayer channel={selectedChannel} onClose={() => { setShowPlayer(false); setSelectedChannel(null); }} />
+                    <AdvancedVideoPlayer channel={selectedChannel} onClose={() => { setShowPlayer(false); setSelectedChannel(null); }} />
                 </Modal>
             )}
         </View>
@@ -434,6 +513,16 @@ const styles = StyleSheet.create({
     addButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
     favoriteBtn: { padding: Spacing.sm, marginRight: Spacing.xs },
     favoriteBtnActive: { backgroundColor: 'rgba(255, 75, 110, 0.15)', borderRadius: BorderRadius.full },
+    // Paste URL styles
+    pasteUrlCard: { marginBottom: Spacing.lg },
+    pasteUrlHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
+    pasteUrlTitle: { fontSize: FontSizes.md, fontWeight: '600', color: Colors.text },
+    pasteUrlInputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: Colors.border, marginBottom: Spacing.md },
+    pasteUrlInput: { flex: 1, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, fontSize: FontSizes.md, color: Colors.text },
+    clearPasteBtn: { paddingHorizontal: Spacing.sm },
+    playUrlButton: { borderRadius: BorderRadius.md, overflow: 'hidden' },
+    playUrlButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md },
+    playUrlButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
 });
 
 export default DiscoverScreen;

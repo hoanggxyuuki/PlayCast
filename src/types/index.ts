@@ -48,6 +48,11 @@ export interface VideoPlayerProps {
   onNext?: () => void;
   onPrevious?: () => void;
   startPosition?: number; // Continue watching
+  loopMode?: 'none' | 'one' | 'all';
+  shuffleMode?: boolean;
+  onLoopModeChange?: (mode: 'none' | 'one' | 'all') => void;
+  onShuffleModeChange?: (enabled: boolean) => void;
+  playlistInfo?: { current: number; total: number };
 }
 
 // Watch History
@@ -88,7 +93,7 @@ export interface SleepTimer {
 // App Settings
 export interface AppSettings {
   theme: 'dark' | 'light' | 'auto';
-  language: 'en' | 'vi' | 'zh' | 'ja' | 'ko';
+  language: 'en' | 'vi';
   autoPlayNext: boolean;
   defaultPlaybackSpeed: number;
   defaultQuality: 'auto' | '1080p' | '720p' | '480p' | '360p';
