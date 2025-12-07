@@ -1,6 +1,7 @@
-// Theme Customization Context
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { useColorScheme } from 'react-native';
+import { useSettings } from './SettingsContext';
 
 export interface CustomTheme {
   id: string;
@@ -141,9 +142,30 @@ const CUSTOM_THEMES_KEY = '@playcast_custom_themes';
 export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
   const [currentTheme, setCurrentTheme] = useState<CustomTheme>(PRESET_THEMES[0]);
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
+  const { settings } = useSettings();
+  const systemColorScheme = useColorScheme();
+
+  // Sync with Settings.theme (dark/light/auto)
+  useEffect(() => {
+    let targetThemeId: string;
+
+    if (settings.theme === 'auto') {
+      // Use system preference
+      targetThemeId = systemColorScheme === 'light' ? 'light' : 'default';
+    } else if (settings.theme === 'light') {
+      targetThemeId = 'light';
+    } else {
+      targetThemeId = 'default'; // dark
+    }
+
+    const allThemes = [...PRESET_THEMES, ...customThemes];
+    const theme = allThemes.find(t => t.id === targetThemeId);
+    if (theme && theme.id !== currentTheme.id) {
+      setCurrentTheme(theme);
+    }
+  }, [settings.theme, systemColorScheme, customThemes]);
 
   useEffect(() => {
-    loadTheme();
     loadCustomThemes();
   }, []);
 

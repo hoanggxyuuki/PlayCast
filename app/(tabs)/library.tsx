@@ -1,7 +1,13 @@
 // Library Tab - Combines playlists, favorites, history, queue
 import { LibraryScreen } from '@/src/screens/LibraryScreen';
-import React from 'react';
+import { useRouter } from 'expo-router';
 
 export default function Library() {
-    return <LibraryScreen />;
+    const router = useRouter();
+
+    return (
+        <LibraryScreen
+            onNavigateToChannels={(playlistId) => router.push(`/channels/${playlistId}`)}
+        />
+    );
 }

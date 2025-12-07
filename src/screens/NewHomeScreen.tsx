@@ -3,15 +3,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
+    Alert,
     Dimensions,
     FlatList,
     Image,
+    Keyboard,
     Modal,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdvancedVideoPlayer } from '../components/player/AdvancedVideoPlayer';
@@ -21,6 +24,9 @@ import { BorderRadius, Colors, FontSizes, Gradients, Layout, Shadows, Spacing } 
 import { useHistory } from '../contexts/HistoryContext';
 import { usePlaylist } from '../contexts/PlaylistContext';
 import { useQueue } from '../contexts/QueueContext';
+import { useCustomTheme } from '../contexts/ThemeContext';
+import { useTranslation } from '../i18n/useTranslation';
+import { OnlineSearchService } from '../services/OnlineSearchService';
 import { Channel } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -29,18 +35,31 @@ const CARD_WIDTH = SCREEN_WIDTH * 0.42;
 interface NewHomeScreenProps {
     onNavigateToAddPlaylist: () => void;
     onNavigateToChannels: (playlistId: string) => void;
+    onNavigateToLocalFiles?: () => void;
+    onNavigateToOnline?: () => void;
+    onNavigateToPremium?: () => void;
+    onNavigateToLibrary?: () => void;
 }
 
 export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     onNavigateToAddPlaylist,
     onNavigateToChannels,
+    onNavigateToLocalFiles,
+    onNavigateToOnline,
+    onNavigateToPremium,
+    onNavigateToLibrary,
 }) => {
     const { playlists } = usePlaylist();
     const { getRecentlyWatched } = useHistory();
     const { currentItem } = useQueue();
+    const { t } = useTranslation();
+    const { currentTheme } = useCustomTheme();
+    const themeColors = currentTheme.colors;
 
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
     const [showPlayer, setShowPlayer] = useState(false);
+    const [pasteUrl, setPasteUrl] = useState('');
+    const [isLoadingUrl, setIsLoadingUrl] = useState(false);
 
     const recentHistory = getRecentlyWatched(10);
     const hasContent = playlists.length > 0 || recentHistory.length > 0;
@@ -55,35 +74,113 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         setSelectedChannel(null);
     };
 
+    // Handle playing from pasted URL (YouTube or SoundCloud)
+    const handlePlayFromUrl = async () => {
+        const url = pasteUrl.trim();
+        if (!url) {
+            Alert.alert('Error', 'Please paste a URL');
+            return;
+        }
+
+        setIsLoadingUrl(true);
+        Keyboard.dismiss();
+
+        try {
+            let streamUrl: string | null = null;
+            let title = 'Playing from URL';
+            let thumbnail = '';
+            let platform: 'youtube' | 'soundcloud' = 'youtube';
+
+            // Detect YouTube URL patterns
+            const ytPatterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+                /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+            ];
+
+            let videoId: string | null = null;
+
+            // Check YouTube
+            for (const pattern of ytPatterns) {
+                const match = url.match(pattern);
+                if (match) {
+                    videoId = match[1];
+                    platform = 'youtube';
+                    break;
+                }
+            }
+
+            if (videoId) {
+                // Fetch video details for better metadata
+                try {
+                    const details = await OnlineSearchService.getYouTubeVideoDetails(videoId);
+                    title = details.title;
+                    thumbnail = details.thumbnail;
+                } catch (e) {
+                    // Fallback if details fetch fails
+                    console.warn('Failed to fetch YouTube details', e);
+                    title = 'YouTube Video';
+                    thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                }
+                streamUrl = await OnlineSearchService.getYouTubeStreamUrl(videoId);
+            } else if (url.includes('soundcloud.com')) {
+                platform = 'soundcloud';
+                const scData = await OnlineSearchService.getSoundCloudStreamUrl(url);
+                streamUrl = scData.streamUrl;
+                title = scData.title;
+                thumbnail = scData.thumbnail;
+            }
+
+            if (streamUrl) {
+                const channel: Channel = {
+                    id: `url-${Date.now()}`,
+                    name: title,
+                    url: streamUrl,
+                    logo: thumbnail,
+                    group: platform === 'youtube' ? 'YouTube' : 'SoundCloud',
+                };
+                setSelectedChannel(channel);
+                setShowPlayer(true);
+                setPasteUrl('');
+            } else {
+                Alert.alert('Error', 'Could not play this URL. Make sure it\'s a valid YouTube or SoundCloud link.');
+            }
+        } catch (error: any) {
+            console.error('Error playing from URL:', error);
+            Alert.alert('Error', error.message || 'Failed to play from URL');
+        } finally {
+            setIsLoadingUrl(false);
+        }
+    };
+
     // Render hero carousel
     const renderHero = () => {
         // Custom slides based on current state
         const slides: CarouselSlide[] = [
             {
                 id: '1',
-                title: 'Welcome back! 👋',
-                subtitle: 'Your media, your way',
+                title: `${t('welcomeBack')} 👋`,
+                subtitle: t('yourMedia'),
                 gradient: ['#667eea', '#764ba2'],
                 icon: 'play-circle',
             },
             {
                 id: '2',
-                title: 'YouTube & SoundCloud',
-                subtitle: 'Stream from your favorite platforms',
+                title: t('youtubeAndSoundcloud'),
+                subtitle: t('findYourContent'),
                 gradient: ['#f093fb', '#f5576c'],
                 icon: 'logo-youtube',
             },
             {
                 id: '3',
-                title: 'IPTV Support',
-                subtitle: 'M3U playlists and live TV',
+                title: 'IPTV',
+                subtitle: t('m3uPlaylist'),
                 gradient: ['#4facfe', '#00f2fe'],
                 icon: 'tv',
             },
             {
                 id: '4',
-                title: 'Background Play',
-                subtitle: 'Listen while multitasking',
+                title: t('backgroundPlayback'),
+                subtitle: t('backgroundDesc'),
                 gradient: ['#43e97b', '#38f9d7'],
                 icon: 'headset',
             },
@@ -93,12 +190,12 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         if (currentItem) {
             slides.unshift({
                 id: 'now-playing',
-                title: 'Now Playing',
+                title: t('nowPlaying'),
                 subtitle: currentItem.channel.name,
                 gradient: ['#764ba2', '#667eea'],
                 icon: 'musical-notes',
                 action: {
-                    label: 'Continue',
+                    label: t('continueWatching'),
                     onPress: () => handlePlayChannel(currentItem.channel),
                 },
             });
@@ -114,9 +211,9 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         return (
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Continue Watching</Text>
-                    <TouchableOpacity>
-                        <Text style={styles.seeAllText}>See all</Text>
+                    <Text style={styles.sectionTitle}>{t('continueWatching')}</Text>
+                    <TouchableOpacity onPress={onNavigateToLibrary}>
+                        <Text style={styles.seeAllText}>{t('seeAll')}</Text>
                     </TouchableOpacity>
                 </View>
                 <FlatList
@@ -165,7 +262,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         return (
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Your Playlists</Text>
+                    <Text style={styles.sectionTitle}>{t('yourPlaylists')}</Text>
                     <TouchableOpacity onPress={onNavigateToAddPlaylist}>
                         <Ionicons name="add-circle" size={28} color={Colors.primary} />
                     </TouchableOpacity>
@@ -185,7 +282,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                             >
                                 <Ionicons name="list" size={32} color="rgba(255,255,255,0.9)" />
                                 <Text style={styles.playlistName} numberOfLines={2}>{playlist.name}</Text>
-                                <Text style={styles.playlistMeta}>{playlist.channels.length} channels</Text>
+                                <Text style={styles.playlistMeta}>{playlist.channels.length} {t('channels')}</Text>
                             </LinearGradient>
                         </TouchableOpacity>
                     ))}
@@ -206,21 +303,68 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             <TouchableOpacity style={styles.quickAction} onPress={onNavigateToAddPlaylist}>
                 <GlassCard variant="purple" padding="medium" style={styles.quickActionCard}>
                     <Ionicons name="add-circle-outline" size={28} color={Colors.primary} />
-                    <Text style={styles.quickActionText}>Add Playlist</Text>
+                    <Text style={styles.quickActionText}>{t('addPlaylist')}</Text>
                 </GlassCard>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickAction}>
+            <TouchableOpacity style={styles.quickAction} onPress={onNavigateToLocalFiles}>
                 <GlassCard variant="purple" padding="medium" style={styles.quickActionCard}>
                     <Ionicons name="folder-outline" size={28} color={Colors.accent} />
-                    <Text style={styles.quickActionText}>Local Files</Text>
+                    <Text style={styles.quickActionText}>{t('localFiles')}</Text>
                 </GlassCard>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickAction}>
+            <TouchableOpacity style={styles.quickAction} onPress={onNavigateToOnline}>
                 <GlassCard variant="purple" padding="medium" style={styles.quickActionCard}>
                     <Ionicons name="globe-outline" size={28} color={Colors.secondary} />
-                    <Text style={styles.quickActionText}>Online</Text>
+                    <Text style={styles.quickActionText}>{t('online')}</Text>
                 </GlassCard>
             </TouchableOpacity>
+        </View>
+    );
+
+    // Render Play from Link section
+    const renderPlayFromLink = () => (
+        <View style={styles.playFromLinkContainer}>
+            <GlassCard variant="purple" padding="medium">
+                <View style={styles.playFromLinkHeader}>
+                    <Ionicons name="link" size={22} color={Colors.primary} />
+                    <Text style={styles.playFromLinkTitle}>{t('playFromLink') || 'Play from Link'}</Text>
+                </View>
+                <Text style={styles.playFromLinkDesc}>{t('pasteUrlPlaceholder') || 'Paste YouTube or SoundCloud URL'}</Text>
+                <View style={styles.playFromLinkInputRow}>
+                    <View style={styles.playFromLinkInputContainer}>
+                        <TextInput
+                            style={styles.playFromLinkInput}
+                            placeholder="https://youtube.com/watch?v=..."
+                            placeholderTextColor={Colors.textTertiary}
+                            value={pasteUrl}
+                            onChangeText={setPasteUrl}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        {pasteUrl.length > 0 && (
+                            <TouchableOpacity onPress={() => setPasteUrl('')} style={styles.clearUrlBtn}>
+                                <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                    <TouchableOpacity
+                        style={[styles.playUrlBtn, !pasteUrl.trim() && styles.playUrlBtnDisabled]}
+                        onPress={handlePlayFromUrl}
+                        disabled={isLoadingUrl || !pasteUrl.trim()}
+                    >
+                        <LinearGradient
+                            colors={pasteUrl.trim() ? Gradients.accent as [string, string] : ['#555', '#444']}
+                            style={styles.playUrlBtnGradient}
+                        >
+                            {isLoadingUrl ? (
+                                <Ionicons name="hourglass" size={18} color="#fff" />
+                            ) : (
+                                <Ionicons name="play" size={18} color="#fff" />
+                            )}
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </View>
+            </GlassCard>
         </View>
     );
 
@@ -255,7 +399,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     );
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: themeColors.background }]}>
             <ScrollView
                 style={styles.scrollView}
                 showsVerticalScrollIndicator={false}
@@ -263,9 +407,12 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                 <SafeAreaView edges={['top']}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <Text style={styles.logo}>PlayCast</Text>
-                        <TouchableOpacity style={styles.avatarButton}>
-                            <Ionicons name="person-circle" size={36} color={Colors.textSecondary} />
+                        <Text style={[styles.logo, { color: themeColors.text }]}>PlayCast</Text>
+                        <TouchableOpacity
+                            style={styles.avatarButton}
+                            onPress={onNavigateToPremium}
+                        >
+                            <Ionicons name="diamond" size={32} color={Colors.primary} />
                         </TouchableOpacity>
                     </View>
 
@@ -274,6 +421,9 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
 
                     {/* Quick Actions */}
                     {renderQuickActions()}
+
+                    {/* Play from Link */}
+                    {renderPlayFromLink()}
 
                     {/* Content */}
                     {hasContent ? (
@@ -418,6 +568,63 @@ const styles = StyleSheet.create({
         color: Colors.text,
         fontWeight: '500',
         textAlign: 'center',
+    },
+    // Play from Link styles
+    playFromLinkContainer: {
+        paddingHorizontal: Layout.screenPadding,
+        marginBottom: Spacing.lg,
+    },
+    playFromLinkHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        marginBottom: Spacing.xs,
+    },
+    playFromLinkTitle: {
+        fontSize: FontSizes.md,
+        fontWeight: '600',
+        color: Colors.text,
+    },
+    playFromLinkDesc: {
+        fontSize: FontSizes.sm,
+        color: Colors.textSecondary,
+        marginBottom: Spacing.md,
+    },
+    playFromLinkInputRow: {
+        flexDirection: 'row',
+        gap: Spacing.sm,
+    },
+    playFromLinkInputContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.md,
+        borderWidth: 1,
+        borderColor: Colors.border,
+    },
+    playFromLinkInput: {
+        flex: 1,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        fontSize: FontSizes.sm,
+        color: Colors.text,
+    },
+    clearUrlBtn: {
+        padding: Spacing.sm,
+    },
+    playUrlBtn: {
+        borderRadius: BorderRadius.md,
+        overflow: 'hidden',
+    },
+    playUrlBtnDisabled: {
+        opacity: 0.6,
+    },
+    playUrlBtnGradient: {
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     // Section styles
     section: {

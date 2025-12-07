@@ -118,6 +118,48 @@ class OnlineSearchServiceClass {
 
     // ============= UTILITY METHODS =============
 
+    async getYouTubeVideoDetails(videoId: string): Promise<YouTubeResult> {
+        try {
+            console.log(`[YouTube] Fetching details for video: ${videoId}`);
+            const context = this.buildInnertubeContext('web');
+            const requestBody = {
+                context,
+                videoId,
+            };
+
+            const apiUrl = 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false';
+            const response = await this.fetchWithTimeout(this.proxyUrl(apiUrl), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': INNERTUBE_CLIENTS.web.userAgent || '',
+                },
+                body: JSON.stringify(requestBody),
+            }, 10000);
+
+            if (!response.ok) throw new Error(`Player API returned ${response.status}`);
+
+            const data = await response.json();
+            const videoDetails = data.videoDetails;
+
+            if (!videoDetails) throw new Error('No videoDetails found in response');
+
+            return {
+                videoId: videoDetails.videoId,
+                title: videoDetails.title || 'Unknown Title',
+                author: videoDetails.author || 'Unknown Author',
+                authorId: videoDetails.channelId || '',
+                thumbnail: videoDetails.thumbnail?.thumbnails?.[0]?.url || '',
+                duration: parseInt(videoDetails.lengthSeconds, 10) || 0,
+                viewCount: parseInt(videoDetails.viewCount, 10) || 0,
+                publishedText: '',
+            };
+        } catch (error: any) {
+            console.error(`[YouTube] Details fetch failed: ${error.message}`);
+            throw error;
+        }
+    }
+
     private async fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 15000): Promise<Response> {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -603,7 +645,7 @@ class OnlineSearchServiceClass {
         }
     }
 
-    async getSoundCloudStreamUrl(trackIdOrUrl: string): Promise<string> {
+    async getSoundCloudStreamUrl(trackIdOrUrl: string): Promise<{ streamUrl: string; title: string; thumbnail: string; artist: string; id: string }> {
         try {
             const clientId = await this.getSoundCloudClientId();
             let trackData: any;
@@ -647,8 +689,14 @@ class OnlineSearchServiceClass {
             const streamInfo = await streamRes.json();
             if (!streamInfo.url) throw new Error('No stream URL in response');
 
-            console.log('[SoundCloud] Got stream URL');
-            return streamInfo.url;
+            console.log('[SoundCloud] Got stream URL and metadata');
+            return {
+                streamUrl: streamInfo.url,
+                title: trackData.title,
+                thumbnail: trackData.artwork_url ? trackData.artwork_url.replace('large', 't500x500') : '',
+                artist: trackData.user?.username || 'SoundCloud',
+                id: String(trackData.id)
+            };
         } catch (error: any) {
             console.error(`[SoundCloud] Stream error: ${error.message}`);
             this.soundCloudClientId = null;

@@ -1,6 +1,6 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export interface DownloadItem {
     id: string;
@@ -18,7 +18,7 @@ export interface DownloadItem {
 
 export interface DownloadProgress {
     id: string;
-    progress: number; // 0-1
+    progress: number;
     downloadedBytes: number;
     totalBytes: number;
     status: 'pending' | 'downloading' | 'completed' | 'failed' | 'cancelled';

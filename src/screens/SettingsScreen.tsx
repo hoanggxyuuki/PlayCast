@@ -1,20 +1,20 @@
 // Settings Screen
-import React, { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
   Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSizes } from '../constants/theme';
-import { useSettings, useTheme, useLanguage } from '../contexts/SettingsContext';
-import { AppSettings } from '../types';
+import { Colors, FontSizes, Spacing } from '../constants/theme';
+import { useLanguage, useSettings, useTheme } from '../contexts/SettingsContext';
 import { useTranslation } from '../i18n/useTranslation';
+import { AppSettings } from '../types';
 
 export const SettingsScreen = () => {
   const { settings, updateSettings, resetSettings } = useSettings();
@@ -26,9 +26,6 @@ export const SettingsScreen = () => {
     const names: Record<AppSettings['language'], string> = {
       en: 'English',
       vi: 'Tiếng Việt',
-      zh: '中文',
-      ja: '日本語',
-      ko: '한국어',
     };
     return names[lang];
   };
@@ -111,11 +108,11 @@ export const SettingsScreen = () => {
         {/* Appearance Section */}
         {renderSection(t('appearance'), 'color-palette-outline')}
 
+        {/* Theme selector temporarily disabled - dark mode only
         {renderSelector(
           t('theme'),
           getThemeName(theme),
           () => {
-            // Cycle through themes
             const themes: AppSettings['theme'][] = ['dark', 'light', 'auto'];
             const currentIndex = themes.indexOf(theme);
             const nextTheme = themes[(currentIndex + 1) % themes.length];
@@ -123,13 +120,14 @@ export const SettingsScreen = () => {
           },
           t('chooseTheme')
         )}
+        */}
 
         {renderSelector(
           t('language'),
           getLanguageName(language),
           () => {
-            // Cycle through languages
-            const languages: AppSettings['language'][] = ['en', 'vi', 'zh', 'ja', 'ko'];
+            // Cycle through languages (en/vi only)
+            const languages: AppSettings['language'][] = ['en', 'vi'];
             const currentIndex = languages.indexOf(language);
             const nextLanguage = languages[(currentIndex + 1) % languages.length];
             setLanguage(nextLanguage);
@@ -254,8 +252,8 @@ export const SettingsScreen = () => {
           settings.downloadQuality === 'high'
             ? t('high')
             : settings.downloadQuality === 'medium'
-            ? t('medium')
-            : t('low'),
+              ? t('medium')
+              : t('low'),
           () => {
             // Cycle through qualities
             const qualities: AppSettings['downloadQuality'][] = ['high', 'medium', 'low'];
@@ -290,7 +288,7 @@ export const SettingsScreen = () => {
             {t('appTagline')}
           </Text>
           <Text style={styles.footerSubtext}>
-            Made with ❤️ for Final Project
+            {t('madeWithLove')}
           </Text>
         </View>
       </ScrollView>

@@ -1,24 +1,24 @@
 // Channels Screen - Display all channels from a playlist
-import React, { useState, useMemo } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   FlatList,
-  TouchableOpacity,
-  TextInput,
   Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { usePlaylist } from '../contexts/PlaylistContext';
-import { useHistory } from '../contexts/HistoryContext';
-import { useTranslation } from '../i18n/useTranslation';
 import { ChannelItem } from '../components/channel/ChannelItem';
 import { EmptyState } from '../components/common/EmptyState';
 import { AdvancedVideoPlayer } from '../components/player/AdvancedVideoPlayer';
+import { BorderRadius, Colors, FontSizes, Spacing } from '../constants/theme';
+import { useHistory } from '../contexts/HistoryContext';
+import { usePlaylist } from '../contexts/PlaylistContext';
+import { useTranslation } from '../i18n/useTranslation';
 import { Channel } from '../types';
-import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/theme';
 
 interface ChannelsScreenProps {
   playlistId: string;
@@ -37,6 +37,10 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [showPlayer, setShowPlayer] = useState(false);
   const [startPosition, setStartPosition] = useState(0);
+  const [currentChannelIndex, setCurrentChannelIndex] = useState(0);
+  const [loopMode, setLoopMode] = useState<'none' | 'one' | 'all'>('none');
+  const [shuffleMode, setShuffleMode] = useState(false);
+
 
   const playlist = playlists.find(p => p.id === playlistId);
 
@@ -79,15 +83,99 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
     return channels;
   }, [playlist, searchQuery, selectedGroup, t]);
 
-  const handlePlayChannel = (channel: Channel) => {
+  const handlePlayChannel = (channel: Channel, index?: number) => {
     // Get resume position from history
     const history = getHistoryForChannel(channel.id);
     const resumeTime = history?.currentTime || 0;
 
+    // Find index if not provided
+    const channelIndex = index ?? filteredChannels.findIndex(c => c.id === channel.id);
+
     setSelectedChannel(channel);
     setStartPosition(resumeTime);
+    setCurrentChannelIndex(channelIndex >= 0 ? channelIndex : 0);
     setShowPlayer(true);
   };
+
+  const handleNext = () => {
+    if (filteredChannels.length === 0) return;
+
+    let nextIndex: number;
+
+    if (shuffleMode) {
+      // Random next (but not the same channel)
+      if (filteredChannels.length === 1) {
+        nextIndex = 0;
+      } else {
+        do {
+          nextIndex = Math.floor(Math.random() * filteredChannels.length);
+        } while (nextIndex === currentChannelIndex);
+      }
+    } else {
+      // Sequential next
+      nextIndex = currentChannelIndex + 1;
+
+      if (nextIndex >= filteredChannels.length) {
+        if (loopMode === 'all') {
+          nextIndex = 0; // Loop back to start
+        } else if (loopMode === 'one') {
+          nextIndex = currentChannelIndex; // Stay on same
+        } else {
+          return; // No loop, don't go past end
+        }
+      }
+    }
+
+    const nextChannel = filteredChannels[nextIndex];
+    if (nextChannel) {
+      const history = getHistoryForChannel(nextChannel.id);
+      setSelectedChannel(nextChannel);
+      setStartPosition(history?.currentTime || 0);
+      setCurrentChannelIndex(nextIndex);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (filteredChannels.length === 0) return;
+
+    let prevIndex: number;
+
+    if (shuffleMode) {
+      // Random previous
+      if (filteredChannels.length === 1) {
+        prevIndex = 0;
+      } else {
+        do {
+          prevIndex = Math.floor(Math.random() * filteredChannels.length);
+        } while (prevIndex === currentChannelIndex);
+      }
+    } else {
+      // Sequential previous
+      prevIndex = currentChannelIndex - 1;
+
+      if (prevIndex < 0) {
+        if (loopMode === 'all') {
+          prevIndex = filteredChannels.length - 1; // Loop to end
+        } else if (loopMode === 'one') {
+          prevIndex = currentChannelIndex; // Stay on same
+        } else {
+          return; // No loop, don't go before start
+        }
+      }
+    }
+
+    const prevChannel = filteredChannels[prevIndex];
+    if (prevChannel) {
+      const history = getHistoryForChannel(prevChannel.id);
+      setSelectedChannel(prevChannel);
+      setStartPosition(history?.currentTime || 0);
+      setCurrentChannelIndex(prevIndex);
+    }
+  };
+
+  // Check if can navigate (for enabling/disabling buttons)
+  const canGoNext = shuffleMode || loopMode !== 'none' || currentChannelIndex < filteredChannels.length - 1;
+  const canGoPrevious = shuffleMode || loopMode !== 'none' || currentChannelIndex > 0;
 
   const handleClosePlayer = () => {
     setShowPlayer(false);
@@ -153,7 +241,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
                 style={[
                   styles.groupChip,
                   (item === t('all') && !selectedGroup) ||
-                  item === selectedGroup
+                    item === selectedGroup
                     ? styles.groupChipActive
                     : null,
                 ]}
@@ -163,7 +251,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
                   style={[
                     styles.groupChipText,
                     (item === t('all') && !selectedGroup) ||
-                    item === selectedGroup
+                      item === selectedGroup
                       ? styles.groupChipTextActive
                       : null,
                   ]}
@@ -219,6 +307,16 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
             onClose={handleClosePlayer}
             onError={(error) => console.error('Player error:', error)}
             startPosition={startPosition}
+            onNext={canGoNext ? handleNext : undefined}
+            onPrevious={canGoPrevious ? handlePrevious : undefined}
+            loopMode={loopMode}
+            shuffleMode={shuffleMode}
+            onLoopModeChange={setLoopMode}
+            onShuffleModeChange={setShuffleMode}
+            playlistInfo={{
+              current: currentChannelIndex + 1,
+              total: filteredChannels.length,
+            }}
           />
         </Modal>
       )}
