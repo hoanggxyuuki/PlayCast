@@ -1,4 +1,4 @@
-// Types and Interfaces for IPTV Player App
+
 
 export interface Channel {
   id: string;
@@ -10,9 +10,9 @@ export interface Channel {
   tvgName?: string;
   tvgLogo?: string;
   groupTitle?: string;
-  duration?: number; // For tracking total duration
-  rating?: number; // User rating 1-5
-  viewCount?: number; // Track popularity
+  duration?: number; 
+  rating?: number; 
+  viewCount?: number; 
 }
 
 export interface Playlist {
@@ -36,18 +36,18 @@ export interface PlayerState {
   volume: number;
   isMuted: boolean;
   isFullscreen: boolean;
-  playbackSpeed: number; // 0.25, 0.5, 1.0, 1.5, 2.0
-  brightness: number; // 0-1
+  playbackSpeed: number; 
+  brightness: number; 
 }
 
 export interface VideoPlayerProps {
   channel: Channel;
-  playlist?: Channel[]; // For queue/autoplay
+  playlist?: Channel[]; 
   onClose: () => void;
   onError?: (error: string) => void;
   onNext?: () => void;
   onPrevious?: () => void;
-  startPosition?: number; // Continue watching
+  startPosition?: number; 
   loopMode?: 'none' | 'one' | 'all';
   shuffleMode?: boolean;
   onLoopModeChange?: (mode: 'none' | 'one' | 'all') => void;
@@ -55,42 +55,42 @@ export interface VideoPlayerProps {
   playlistInfo?: { current: number; total: number };
 }
 
-// Watch History
+
 export interface WatchHistory {
   channelId: string;
   channelName: string;
   channelUrl: string;
   logo?: string;
   lastWatchedAt: Date;
-  progress: number; // 0-1 (percentage watched)
+  progress: number; 
   duration: number;
   currentTime: number;
 }
 
-// Download
+
 export interface Download {
   id: string;
   channelId: string;
   channelName: string;
   url: string;
   localUri?: string;
-  progress: number; // 0-100
+  progress: number; 
   status: 'pending' | 'downloading' | 'completed' | 'failed' | 'paused';
-  size: number; // bytes
-  downloadedSize: number; // bytes
+  size: number; 
+  downloadedSize: number; 
   createdAt: Date;
   completedAt?: Date;
 }
 
-// Sleep Timer
+
 export interface SleepTimer {
   isActive: boolean;
-  duration: number; // minutes
+  duration: number; 
   startTime: Date;
   endTime: Date;
 }
 
-// App Settings
+
 export interface AppSettings {
   theme: 'dark' | 'light' | 'auto';
   language: 'en' | 'vi';
@@ -102,35 +102,35 @@ export interface AppSettings {
   backgroundPlayback: boolean;
   downloadQuality: 'high' | 'medium' | 'low';
   gestureControls: boolean;
-  doubleTapSeek: number; // seconds (10, 15, 30)
+  doubleTapSeek: number; 
   volumeGesture: boolean;
   brightnessGesture: boolean;
 }
 
-// Recommendations
+
 export interface Recommendation {
   channelId: string;
-  score: number; // 0-1
+  score: number; 
   reason: 'similar' | 'popular' | 'category' | 'history';
 }
 
-// User Statistics
+
 export interface UserStats {
-  totalWatchTime: number; // minutes
+  totalWatchTime: number; 
   videosWatched: number;
   favoriteCategories: string[];
   mostWatchedChannel?: string;
   weeklyWatchTime: number[];
 }
 
-// Queue Item
+
 export interface QueueItem {
   channel: Channel;
   addedAt: Date;
   position: number;
 }
 
-// Share Data
+
 export interface ShareData {
   channelId: string;
   channelName: string;
@@ -139,7 +139,7 @@ export interface ShareData {
   message?: string;
 }
 
-// Subtitle Track
+
 export interface SubtitleTrack {
   id: string;
   language: string;

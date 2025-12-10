@@ -1,18 +1,16 @@
-// Screenshot Service - Capture video frames
+
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import { Alert } from 'react-native';
 
 export interface ScreenshotOptions {
-  quality?: number; // 0-1
+  quality?: number; 
   format?: 'jpg' | 'png';
   saveToGallery?: boolean;
 }
 
 class ScreenshotService {
-  /**
-   * Request media library permissions
-   */
+
   async requestPermissions(): Promise<boolean> {
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
@@ -23,11 +21,7 @@ class ScreenshotService {
     }
   }
 
-  /**
-   * Capture screenshot from video element
-   * Note: This is a placeholder - actual implementation would use
-   * expo-video's snapshot capability or react-native-view-shot
-   */
+
   async captureVideoFrame(
     videoRef: any,
     options: ScreenshotOptions = {}
@@ -39,7 +33,7 @@ class ScreenshotService {
     } = options;
 
     try {
-      // Check permissions
+
       if (saveToGallery) {
         const hasPermission = await this.requestPermissions();
         if (!hasPermission) {
@@ -51,30 +45,30 @@ class ScreenshotService {
         }
       }
 
-      // Placeholder for actual screenshot capture
-      // In real implementation, you would use:
-      // 1. expo-video's snapshot method (if available)
-      // 2. react-native-view-shot to capture the video view
-      // 3. Custom native module for frame extraction
+
+
+
+
+
 
       const timestamp = Date.now();
       const filename = `PlayCast_${timestamp}.${format}`;
       const filepath = `${FileSystem.cacheDirectory}${filename}`;
 
-      // Simulated screenshot capture
-      // const uri = await captureRef(videoRef, {
-      //   format,
-      //   quality,
-      //   result: 'tmpfile',
-      // });
 
-      // For now, return a placeholder
+
+
+
+
+
+
+
       console.log('Screenshot captured (placeholder):', filepath);
 
       if (saveToGallery) {
-        // Save to media library
-        // const asset = await MediaLibrary.createAssetAsync(uri);
-        // await MediaLibrary.createAlbumAsync('PlayCast', asset, false);
+
+
+
 
         Alert.alert('Success', 'Screenshot saved to gallery!');
       }
@@ -87,9 +81,7 @@ class ScreenshotService {
     }
   }
 
-  /**
-   * Save existing image to gallery
-   */
+
   async saveToGallery(uri: string): Promise<boolean> {
     try {
       const hasPermission = await this.requestPermissions();
@@ -105,16 +97,14 @@ class ScreenshotService {
     }
   }
 
-  /**
-   * Share screenshot
-   */
+
   async shareScreenshot(uri: string): Promise<void> {
     try {
-      // Use expo-sharing or react-native-share
-      // await Share.share({
-      //   url: uri,
-      //   message: 'Screenshot from PlayCast IPTV',
-      // });
+
+
+
+
+
 
       console.log('Share screenshot:', uri);
     } catch (error) {
@@ -122,9 +112,7 @@ class ScreenshotService {
     }
   }
 
-  /**
-   * Delete screenshot
-   */
+
   async deleteScreenshot(uri: string): Promise<boolean> {
     try {
       await FileSystem.deleteAsync(uri, { idempotent: true });
@@ -135,9 +123,7 @@ class ScreenshotService {
     }
   }
 
-  /**
-   * Get all screenshots
-   */
+
   async getAllScreenshots(): Promise<string[]> {
     try {
       const hasPermission = await this.requestPermissions();

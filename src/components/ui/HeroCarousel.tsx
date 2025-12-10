@@ -1,4 +1,4 @@
-// Hero Carousel - Auto-sliding banner with smooth animations
+
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
@@ -34,7 +34,7 @@ interface HeroCarouselProps {
     onSlidePress?: (slide: CarouselSlide) => void;
 }
 
-// Default slides for PlayCast
+
 const DEFAULT_SLIDES: CarouselSlide[] = [
     {
         id: '1',
@@ -80,7 +80,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
         if (slides.length <= 1) return;
 
         const interval = setInterval(() => {
-            // Animate out
+
             Animated.parallel([
                 Animated.timing(fadeAnim, {
                     toValue: 0,
@@ -98,11 +98,11 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                     useNativeDriver: true,
                 }),
             ]).start(() => {
-                // Change slide
+
                 setCurrentIndex((prev) => (prev + 1) % slides.length);
                 slideAnim.setValue(30);
 
-                // Animate in
+
                 Animated.parallel([
                     Animated.spring(fadeAnim, {
                         toValue: 1,
@@ -155,7 +155,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                         },
                     ]}
                 >
-                    {/* Background Icon */}
+                    {}
                     <View style={styles.backgroundIcon}>
                         <Ionicons
                             name={currentSlide.icon || 'musical-notes'}
@@ -164,7 +164,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                         />
                     </View>
 
-                    {/* Content */}
+                    {}
                     <View style={styles.content}>
                         <View style={styles.iconBadge}>
                             <Ionicons
@@ -187,7 +187,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                         )}
                     </View>
 
-                    {/* Image (if provided) */}
+                    {}
                     {currentSlide.image && (
                         <Image
                             source={{ uri: currentSlide.image }}
@@ -197,7 +197,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                     )}
                 </Animated.View>
 
-                {/* Pagination dots */}
+                {}
                 {slides.length > 1 && (
                     <View style={styles.pagination}>
                         {slides.map((_, index) => (
@@ -216,7 +216,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                     </View>
                 )}
 
-                {/* Shimmer effect overlay */}
+                {}
                 <View style={styles.shimmerOverlay} />
             </LinearGradient>
         </TouchableOpacity>
@@ -312,6 +312,6 @@ const styles = StyleSheet.create({
     shimmerOverlay: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'transparent',
-        // Can add shimmer animation here later
+
     },
 });

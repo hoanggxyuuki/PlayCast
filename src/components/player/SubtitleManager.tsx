@@ -1,4 +1,4 @@
-// Subtitle Manager Component
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, FontSizes, Spacing } from '../../constants/theme';
@@ -101,7 +101,7 @@ export const SubtitleManager: React.FC<SubtitleManagerProps> = ({
     const lines = content.split('\n');
     let i = 0;
 
-    // Skip WEBVTT header
+
     while (i < lines.length && !lines[i].includes('-->')) {
       i++;
     }
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     top: Spacing.xl,
   },
   bottom: {
-    bottom: Spacing.xl + 60, // Above controls
+    bottom: Spacing.xl + 60, 
   },
   textContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.8)',

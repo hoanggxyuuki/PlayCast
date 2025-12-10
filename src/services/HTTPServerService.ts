@@ -1,5 +1,5 @@
-// HTTP Server Service for Android/iOS
-// Requires native module - see SETUP_HTTP_SERVER.md
+
+
 import { Platform, NativeModules } from 'react-native';
 
 const { HTTPServer } = NativeModules;
@@ -9,22 +9,17 @@ export class HTTPServerService {
   private static isRunning = false;
   private static serverURL = '';
 
-  /**
-   * Check if native module is available
-   */
+
   static isNativeModuleAvailable(): boolean {
     return HTTPServer !== null && HTTPServer !== undefined;
   }
 
-  /**
-   * Start HTTP server on device
-   * Requires native module (see SETUP_HTTP_SERVER.md)
-   */
+
   static async startServer(port: number = 8080): Promise<{ success: boolean; url: string; message: string }> {
     try {
       this.serverPort = port;
 
-      // Check if native module is available
+
       if (!this.isNativeModuleAvailable()) {
         return {
           success: false,
@@ -33,7 +28,7 @@ export class HTTPServerService {
         };
       }
 
-      // Start server using native module
+
       const result = await HTTPServer.startServer(port);
 
       if (result.success) {
@@ -52,9 +47,7 @@ export class HTTPServerService {
     }
   }
 
-  /**
-   * Stop HTTP server
-   */
+
   static async stopServer(): Promise<{ success: boolean; message: string }> {
     try {
       if (!this.isNativeModuleAvailable()) {
@@ -88,9 +81,7 @@ export class HTTPServerService {
     }
   }
 
-  /**
-   * Get server status
-   */
+
   static async getStatus(): Promise<{ isRunning: boolean; port: number; url: string }> {
     try {
       if (!this.isNativeModuleAvailable()) {
@@ -116,9 +107,7 @@ export class HTTPServerService {
     }
   }
 
-  /**
-   * Get current server info
-   */
+
   static getCurrentInfo(): { isRunning: boolean; port: number; url: string } {
     return {
       isRunning: this.isRunning,

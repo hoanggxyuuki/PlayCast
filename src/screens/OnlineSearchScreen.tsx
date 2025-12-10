@@ -1,4 +1,4 @@
-// Online Search Screen - Search YouTube, SoundCloud, Spotify
+
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
 import {
@@ -31,25 +31,25 @@ export const OnlineSearchScreen = () => {
   const { t } = useTranslation();
   const { addToQueue } = useQueue();
 
-  // State
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState<SearchPlatform>('youtube');
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<OnlineSearchResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Video player state
+
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [isLoadingStream, setIsLoadingStream] = useState(false);
 
-  // Search history
+
   const [recentSearches, setRecentSearches] = useState<string[]>([
     'lofi hip hop',
     'jazz music',
     'workout playlist',
   ]);
 
-  // Handle search
+
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
       Alert.alert('Error', 'Please enter a search term');
@@ -108,7 +108,7 @@ export const OnlineSearchScreen = () => {
 
       setResults(searchResults);
 
-      // Add to recent searches
+
       if (!recentSearches.includes(searchQuery.trim())) {
         setRecentSearches(prev => [searchQuery.trim(), ...prev.slice(0, 4)]);
       }
@@ -130,14 +130,14 @@ export const OnlineSearchScreen = () => {
     }
   }, [searchQuery, selectedPlatform, recentSearches]);
 
-  // Handle play
+
   const handlePlay = useCallback(async (result: OnlineSearchResult) => {
     setIsLoadingStream(true);
 
     try {
       let streamUrl = result.streamUrl;
 
-      // Get stream URL for YouTube
+
       if (result.platform === 'youtube' && !streamUrl) {
         streamUrl = await OnlineSearchService.getYouTubeStreamUrl(result.id);
       }
@@ -166,12 +166,12 @@ export const OnlineSearchScreen = () => {
     }
   }, []);
 
-  // Handle add to queue
+
   const handleAddToQueue = useCallback(async (result: OnlineSearchResult) => {
     try {
       let streamUrl = result.streamUrl;
 
-      // Get stream URL for YouTube
+
       if (result.platform === 'youtube' && !streamUrl) {
         setIsLoadingStream(true);
         streamUrl = await OnlineSearchService.getYouTubeStreamUrl(result.id);
@@ -198,12 +198,12 @@ export const OnlineSearchScreen = () => {
     }
   }, [addToQueue]);
 
-  // Close player
+
   const handleClosePlayer = useCallback(() => {
     setSelectedChannel(null);
   }, []);
 
-  // Render search result item
+
   const renderResultItem = useCallback(({ item }: { item: OnlineSearchResult }) => (
     <OnlineResultCard
       result={item}
@@ -212,7 +212,7 @@ export const OnlineSearchScreen = () => {
     />
   ), [handlePlay, handleAddToQueue]);
 
-  // Get platform info
+
   const getPlatformInfo = () => {
     switch (selectedPlatform) {
       case 'youtube':
@@ -243,7 +243,7 @@ export const OnlineSearchScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Loading Overlay */}
+      {}
       {isLoadingStream && (
         <LoadingSpinner
           overlay={true}
@@ -252,7 +252,7 @@ export const OnlineSearchScreen = () => {
         />
       )}
 
-      {/* Header */}
+      {}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="globe-outline" size={28} color={Colors.primary} />
@@ -264,7 +264,7 @@ export const OnlineSearchScreen = () => {
         </View>
       </View>
 
-      {/* Platform Tabs */}
+      {}
       <PlatformTabs
         selectedPlatform={selectedPlatform}
         onSelectPlatform={(platform) => {
@@ -274,7 +274,7 @@ export const OnlineSearchScreen = () => {
         }}
       />
 
-      {/* Search Bar */}
+      {}
       <View style={styles.searchSection}>
         <Input
           value={searchQuery}
@@ -298,7 +298,7 @@ export const OnlineSearchScreen = () => {
         />
       </View>
 
-      {/* Quick hints */}
+      {}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -318,7 +318,7 @@ export const OnlineSearchScreen = () => {
         ))}
       </ScrollView>
 
-      {/* Results or Empty State */}
+      {}
       {isSearching ? (
         <View style={styles.loadingContainer}>
           <LoadingSpinner text={`Searching ${platformInfo.name}...`} size="large" />
@@ -341,7 +341,7 @@ export const OnlineSearchScreen = () => {
         />
       ) : (
         <ScrollView style={styles.welcomeContainer} showsVerticalScrollIndicator={false}>
-          {/* Recent Searches */}
+          {}
           {recentSearches.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Recent Searches</Text>
@@ -364,7 +364,7 @@ export const OnlineSearchScreen = () => {
             </View>
           )}
 
-          {/* Instructions */}
+          {}
           <View style={styles.instructionsCard}>
             <View style={styles.instructionsHeader}>
               <Ionicons name="information-circle" size={24} color={platformInfo.color} />
@@ -397,7 +397,7 @@ export const OnlineSearchScreen = () => {
               </View>
             </View>
 
-            {/* Platform notes */}
+            {}
             <View style={styles.noteBox}>
               <Ionicons name="alert-circle-outline" size={18} color={Colors.warning} />
               <Text style={styles.noteText}>
@@ -412,7 +412,7 @@ export const OnlineSearchScreen = () => {
         </ScrollView>
       )}
 
-      {/* Video Player Modal */}
+      {}
       <Modal
         visible={selectedChannel !== null}
         animationType="slide"

@@ -1,4 +1,4 @@
-// Playlist Auto-Update/Sync Service
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { M3UParser } from './M3UParser';
 import { Playlist } from '../types';
@@ -6,7 +6,7 @@ import { Playlist } from '../types';
 interface SyncConfig {
   playlistId: string;
   url: string;
-  interval: number; // in milliseconds
+  interval: number; 
   lastSync: number;
   enabled: boolean;
 }
@@ -22,18 +22,14 @@ class PlaylistSyncService {
     this.loadConfigs();
   }
 
-  /**
-   * Initialize sync service
-   */
+
   async initialize(onUpdate: (playlistId: string, playlist: Playlist) => void) {
     this.onPlaylistUpdate = onUpdate;
     await this.loadConfigs();
     this.startAllSyncs();
   }
 
-  /**
-   * Enable auto-sync for a playlist
-   */
+
   async enableSync(
     playlistId: string,
     url: string,
@@ -42,7 +38,7 @@ class PlaylistSyncService {
     const config: SyncConfig = {
       playlistId,
       url,
-      interval: intervalHours * 3600000, // Convert to milliseconds
+      interval: intervalHours * 3600000, 
       lastSync: 0,
       enabled: true,
     };
@@ -52,9 +48,7 @@ class PlaylistSyncService {
     this.startSync(playlistId);
   }
 
-  /**
-   * Disable auto-sync for a playlist
-   */
+
   async disableSync(playlistId: string): Promise<void> {
     const config = this.syncConfigs.get(playlistId);
     if (config) {
@@ -64,9 +58,7 @@ class PlaylistSyncService {
     }
   }
 
-  /**
-   * Manually sync a playlist
-   */
+
   async syncPlaylist(playlistId: string): Promise<Playlist | null> {
     const config = this.syncConfigs.get(playlistId);
     if (!config) {
@@ -91,12 +83,12 @@ class PlaylistSyncService {
         type: 'm3u',
       };
 
-      // Update last sync time
+
       config.lastSync = Date.now();
       this.syncConfigs.set(playlistId, config);
       await this.saveConfigs();
 
-      // Notify update
+
       if (this.onPlaylistUpdate) {
         this.onPlaylistUpdate(playlistId, playlist);
       }
@@ -108,32 +100,28 @@ class PlaylistSyncService {
     }
   }
 
-  /**
-   * Start sync timer for a playlist
-   */
+
   private startSync(playlistId: string): void {
     const config = this.syncConfigs.get(playlistId);
     if (!config || !config.enabled) return;
 
-    // Clear existing timer
+
     this.stopSync(playlistId);
 
-    // Calculate next sync time
+
     const timeSinceLastSync = Date.now() - config.lastSync;
     const timeUntilNextSync = Math.max(0, config.interval - timeSinceLastSync);
 
-    // Set up timer
+
     const timer = setTimeout(async () => {
       await this.syncPlaylist(playlistId);
-      this.startSync(playlistId); // Schedule next sync
+      this.startSync(playlistId); 
     }, timeUntilNextSync);
 
     this.syncTimers.set(playlistId, timer);
   }
 
-  /**
-   * Stop sync timer for a playlist
-   */
+
   private stopSync(playlistId: string): void {
     const timer = this.syncTimers.get(playlistId);
     if (timer) {
@@ -142,9 +130,7 @@ class PlaylistSyncService {
     }
   }
 
-  /**
-   * Start all enabled syncs
-   */
+
   private startAllSyncs(): void {
     this.syncConfigs.forEach((config, playlistId) => {
       if (config.enabled) {
@@ -153,17 +139,13 @@ class PlaylistSyncService {
     });
   }
 
-  /**
-   * Stop all syncs
-   */
+
   stopAllSyncs(): void {
     this.syncTimers.forEach(timer => clearTimeout(timer));
     this.syncTimers.clear();
   }
 
-  /**
-   * Get sync status for a playlist
-   */
+
   getSyncStatus(playlistId: string): {
     enabled: boolean;
     lastSync: number | null;
@@ -183,9 +165,7 @@ class PlaylistSyncService {
     };
   }
 
-  /**
-   * Load sync configs from storage
-   */
+
   private async loadConfigs(): Promise<void> {
     try {
       const data = await AsyncStorage.getItem(SYNC_CONFIG_KEY);
@@ -200,9 +180,7 @@ class PlaylistSyncService {
     }
   }
 
-  /**
-   * Save sync configs to storage
-   */
+
   private async saveConfigs(): Promise<void> {
     try {
       const configs = Array.from(this.syncConfigs.values());
@@ -212,16 +190,12 @@ class PlaylistSyncService {
     }
   }
 
-  /**
-   * Get all sync configs
-   */
+
   getAllConfigs(): SyncConfig[] {
     return Array.from(this.syncConfigs.values());
   }
 
-  /**
-   * Update sync interval
-   */
+
   async updateSyncInterval(
     playlistId: string,
     intervalHours: number
@@ -231,7 +205,7 @@ class PlaylistSyncService {
       config.interval = intervalHours * 3600000;
       await this.saveConfigs();
 
-      // Restart sync with new interval
+
       if (config.enabled) {
         this.stopSync(playlistId);
         this.startSync(playlistId);

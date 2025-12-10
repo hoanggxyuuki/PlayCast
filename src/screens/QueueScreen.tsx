@@ -1,4 +1,4 @@
-// Queue Management Screen
+
 import React, { useState } from 'react';
 import {
   View,
@@ -72,7 +72,7 @@ export const QueueScreen = () => {
 
     return (
       <View style={[styles.queueItem, isPlaying && styles.queueItemActive]}>
-        {/* Position indicator */}
+        {}
         <View style={styles.positionContainer}>
           {isPlaying ? (
             <Ionicons name="play-circle" size={24} color={Colors.primary} />
@@ -81,7 +81,7 @@ export const QueueScreen = () => {
           )}
         </View>
 
-        {/* Thumbnail */}
+        {}
         <TouchableOpacity
           style={styles.thumbnailContainer}
           onPress={() => handlePlayItem(index)}
@@ -100,7 +100,7 @@ export const QueueScreen = () => {
           )}
         </TouchableOpacity>
 
-        {/* Info */}
+        {}
         <View style={styles.queueInfo}>
           <Text style={styles.queueTitle} numberOfLines={2}>
             {item.channel.name}
@@ -115,7 +115,7 @@ export const QueueScreen = () => {
           )}
         </View>
 
-        {/* Actions */}
+        {}
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={styles.actionButton}
@@ -164,7 +164,7 @@ export const QueueScreen = () => {
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      {/* Stats */}
+      {}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <Ionicons name="musical-notes-outline" size={24} color={Colors.primary} />
@@ -185,7 +185,7 @@ export const QueueScreen = () => {
         )}
       </View>
 
-      {/* Actions */}
+      {}
       {queue.length > 0 && (
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.headerButton} onPress={shuffleQueue}>
@@ -202,7 +202,7 @@ export const QueueScreen = () => {
         </View>
       )}
 
-      {/* Currently Playing Card */}
+      {}
       {current && (
         <View style={styles.nowPlayingCard}>
           <View style={styles.nowPlayingHeader}>

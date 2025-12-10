@@ -1,4 +1,4 @@
-// LIBRARY SCREEN - Playlists, Favorites, History, Queue, Online Favorites, Downloads
+
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
@@ -48,7 +48,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
     const { currentTheme } = useCustomTheme();
     const themeColors = currentTheme.colors;
 
-    // TABS with translations
+
     const TABS: TabConfig[] = [
         { id: 'playlists', title: t('playlists'), icon: 'list' },
         { id: 'favorites', title: t('favorites'), icon: 'heart' },
@@ -63,7 +63,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
     const [showPlayer, setShowPlayer] = useState(false);
     const [downloads, setDownloads] = useState<DownloadItem[]>([]);
 
-    // Load downloads on mount
+
     useEffect(() => {
         const loadDownloads = async () => {
             await DownloadService.init();
@@ -343,7 +343,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
                 name: item.title,
                 url: item.localPath,
                 logo: item.thumbnail,
-                // group: item.artist,
+
             };
             handlePlayChannel(channel);
         };
@@ -383,10 +383,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
                         <View style={styles.channelInfo}>
                             <Text style={styles.channelName} numberOfLines={1}>{item.title}</Text>
                             <View style={styles.onlineMeta}>
-                                {/* <View style={[styles.platformBadge, { backgroundColor: Colors.accent }]}>
-                                    <Ionicons name="download" size={10} color="#fff" />
-                                    <Text style={styles.platformText}>{DownloadService.formatFileSize(item.fileSize)}</Text>
-                                </View> */}
+                                {}
                                 <Text style={styles.onlineArtist}>{item.artist}</Text>
                             </View>
                         </View>

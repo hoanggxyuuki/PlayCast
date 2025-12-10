@@ -1,8 +1,8 @@
-// Translations for all supported languages
+
 
 export const translations = {
   en: {
-    // Tabs
+
     home: 'Home',
     discover: 'Discover',
     library: 'Library',
@@ -18,7 +18,7 @@ export const translations = {
     pasteM3UPlaylistURL: 'Paste M3U playlist URL',
     url: 'URL',
     play: 'Play',
-    // Common
+
     add: 'Add',
     cancel: 'Cancel',
     delete: 'Delete',
@@ -35,7 +35,7 @@ export const translations = {
     clear: 'Clear',
     reset: 'Reset',
 
-    // Playlist Screen
+
     myPlaylists: 'My Playlists',
     addPlaylist: 'IPTV / M3U',
     addPlaylistSubtitle: 'Import IPTV channels',
@@ -43,7 +43,7 @@ export const translations = {
     addFirstPlaylist: 'Add your first playlist to get started',
     channels: 'channels',
 
-    // Add Playlist
+
     addNewPlaylist: 'Add IPTV Playlist',
     playlistUrl: 'Playlist URL',
     playlistName: 'Playlist Name',
@@ -71,18 +71,18 @@ export const translations = {
     failedToAddPlaylist: 'Failed to add playlist',
     supportedFormatsInfo: 'You can add M3U playlists, JSON playlists, or direct media URLs (.mp4, .m3u8, .mp3, etc.)',
 
-    // IPTV Explanation
+
     whatIsIptv: 'What is IPTV/M3U?',
     iptvExplanation: 'M3U is a playlist format used by IPTV providers. You can get M3U links from your TV service provider or free sources online.',
     notForYoutube: 'Note: For YouTube/SoundCloud, use the "Online" tab instead!',
 
-    // Favorites
+
     myFavorites: 'My Favorites',
     noFavorites: 'No favorites yet',
     addChannelsToFavorites: 'Add channels to your favorites',
     removeFromFavorites: 'Remove from favorites',
 
-    // Channels Screen
+
     playlistNotFound: 'Playlist Not Found',
     playlistNotFoundDesc: 'The requested playlist could not be found',
     searchChannels: 'Search channels...',
@@ -92,7 +92,7 @@ export const translations = {
     playlistHasNoChannels: 'This playlist has no channels',
     uncategorized: 'Uncategorized',
 
-    // History
+
     watchHistory: 'Watch History',
     clearHistory: 'Clear History',
     clearAllHistory: 'Clear All',
@@ -107,7 +107,7 @@ export const translations = {
     removeFromHistory: 'Remove from History',
     confirmClearHistory: 'Are you sure you want to clear your entire watch history? This cannot be undone.',
 
-    // Queue
+
     queueManagement: 'Queue Management',
     nowPlaying: 'Now Playing',
     upNext: 'Up Next',
@@ -120,7 +120,7 @@ export const translations = {
     confirmClearQueue: 'Are you sure you want to clear the entire queue?',
     removeFromQueue: 'Remove from Queue',
 
-    // Settings
+
     appearance: 'Appearance',
     theme: 'Theme',
     language: 'Language',
@@ -169,7 +169,7 @@ export const translations = {
     resetAllSettings: 'Reset All Settings',
     confirmReset: 'Are you sure you want to reset all settings to defaults?',
 
-    // Video Player
+
     playbackSpeed: 'Playback Speed',
     quality: 'Quality',
     subtitles: 'Subtitles',
@@ -178,18 +178,18 @@ export const translations = {
     failedToLoad: 'Failed to load video',
     checkUrl: 'Please check if the URL is valid and try again',
 
-    // Time formats
+
     minutesShort: 'm',
     hoursShort: 'h',
     secondsShort: 's',
     ago: 'ago',
     watched: 'watched',
 
-    // Footer
+
     madeWithLove: 'Made with BiDev',
     appTagline: 'PlayCast IPTV - Professional IPTV Player',
 
-    // Online Search
+
     onlineSearch: 'Online Search',
     searchOnline: 'Search online...',
     youtube: 'YouTube',
@@ -206,7 +206,7 @@ export const translations = {
     enterKeywords: 'Enter keywords',
     tapToPlay: 'Tap to play',
 
-    // Home Screen
+
     welcomeBack: 'Welcome back!',
     yourMedia: 'Your media, your way',
     nowPlaying: 'Now Playing',
@@ -217,7 +217,7 @@ export const translations = {
     seeAll: 'See All',
     emptyHome: 'Start by adding a playlist',
 
-    // Library Screen
+
     library: 'Library',
     online: 'YouTube & Music',
     onlineSubtitle: 'Search YouTube, SoundCloud',
@@ -225,7 +225,7 @@ export const translations = {
     noOnlineFavorites: 'No Online Favorites',
     addFromDiscover: 'Add favorites from YouTube or SoundCloud in the Discover tab',
 
-    // Discover Screen
+
     discover: 'Discover',
     findYourContent: 'Find your content',
     localFiles: 'Local Files',
@@ -244,7 +244,7 @@ export const translations = {
     playFromLink: 'Play from Link',
     pasteUrlPlaceholder: 'Paste URL',
 
-    // Home Guidance
+
     gettingStarted: 'Getting Started',
     guideIptv: 'IPTV / M3U',
     guideIptvDesc: 'For TV channels - Import M3U/JSON playlist links from your IPTV provider',
@@ -274,7 +274,7 @@ export const translations = {
     addPlaylistLink: 'Thêm Danh Sách',
     pasteM3UPlaylistURL: 'Dán URL',
     url: 'URL',
-    // Common
+
     add: 'Thêm',
     cancel: 'Hủy',
     delete: 'Xóa',
@@ -291,7 +291,7 @@ export const translations = {
     clear: 'Xóa',
     reset: 'Đặt lại',
 
-    // Playlist Screen
+
     myPlaylists: 'Danh Sách Của Tôi',
     addPlaylist: 'IPTV / M3U',
     addPlaylistSubtitle: 'Thêm kênh IPTV',
@@ -299,7 +299,7 @@ export const translations = {
     addFirstPlaylist: 'Thêm danh sách đầu tiên để bắt đầu',
     channels: 'kênh',
 
-    // Add Playlist
+
     addNewPlaylist: 'Thêm Playlist IPTV',
     playlistUrl: 'URL Danh Sách',
     playlistName: 'Tên Danh Sách',
@@ -327,18 +327,18 @@ export const translations = {
     failedToAddPlaylist: 'Không thể thêm danh sách',
     supportedFormatsInfo: 'Bạn có thể thêm danh sách M3U, JSON hoặc URL media trực tiếp (.mp4, .m3u8, .mp3, v.v.)',
 
-    // IPTV Explanation
+
     whatIsIptv: 'IPTV/M3U là gì?',
     iptvExplanation: 'M3U là định dạng playlist dùng bởi các nhà cung cấp IPTV. Bạn có thể lấy link M3U từ nhà cung cấp dịch vụ TV hoặc các nguồn miễn phí trên mạng.',
     notForYoutube: 'Lưu ý: Để xem YouTube/SoundCloud, hãy dùng tab "Trực Tuyến"!',
 
-    // Favorites
+
     myFavorites: 'Yêu Thích Của Tôi',
     noFavorites: 'Chưa có yêu thích',
     addChannelsToFavorites: 'Thêm kênh vào yêu thích',
     removeFromFavorites: 'Xóa khỏi yêu thích',
 
-    // Channels Screen
+
     playlistNotFound: 'Không Tìm Thấy Danh Sách',
     playlistNotFoundDesc: 'Không thể tìm thấy danh sách đã yêu cầu',
     searchChannels: 'Tìm kiếm kênh...',
@@ -348,7 +348,7 @@ export const translations = {
     playlistHasNoChannels: 'Danh sách này không có kênh nào',
     uncategorized: 'Chưa Phân Loại',
 
-    // History
+
     watchHistory: 'Lịch Sử Xem',
     clearHistory: 'Xóa Lịch Sử',
     clearAllHistory: 'Xóa Tất Cả',
@@ -363,7 +363,7 @@ export const translations = {
     removeFromHistory: 'Xóa Khỏi Lịch Sử',
     confirmClearHistory: 'Bạn có chắc muốn xóa toàn bộ lịch sử xem? Không thể hoàn tác.',
 
-    // Queue
+
     queueManagement: 'Quản Lý Hàng Đợi',
     nowPlaying: 'Đang Phát',
     upNext: 'Tiếp Theo',
@@ -376,7 +376,7 @@ export const translations = {
     confirmClearQueue: 'Bạn có chắc muốn xóa toàn bộ hàng đợi?',
     removeFromQueue: 'Xóa Khỏi Hàng Đợi',
 
-    // Settings
+
     appearance: 'Giao Diện',
     theme: 'Chủ Đề',
     language: 'Ngôn Ngữ',
@@ -425,7 +425,7 @@ export const translations = {
     resetAllSettings: 'Đặt Lại Tất Cả Cài Đặt',
     confirmReset: 'Bạn có chắc muốn đặt lại tất cả cài đặt về mặc định?',
 
-    // Video Player
+
     playbackSpeed: 'Tốc Độ Phát',
     quality: 'Chất Lượng',
     subtitles: 'Phụ Đề',
@@ -434,18 +434,18 @@ export const translations = {
     failedToLoad: 'Không thể tải video',
     checkUrl: 'Vui lòng kiểm tra URL có hợp lệ và thử lại',
 
-    // Time formats
+
     minutesShort: 'p',
     hoursShort: 'g',
     secondsShort: 'g',
     ago: 'trước',
     watched: 'đã xem',
 
-    // Footer
+
     madeWithLove: 'Làm với BiDev',
     appTagline: 'PlayCast IPTV - Trình Phát IPTV Chuyên Nghiệp',
 
-    // Online Search
+
     onlineSearch: 'Tìm Kiếm Online',
     searchOnline: 'Tìm kiếm online...',
     youtube: 'YouTube',
@@ -462,7 +462,7 @@ export const translations = {
     enterKeywords: 'Nhập từ khóa',
     tapToPlay: 'Nhấn để phát',
 
-    // Home Screen
+
     welcomeBack: 'Chào mừng trở lại!',
     yourMedia: 'Media của bạn, theo cách của bạn',
     nowPlaying: 'Đang Phát',
@@ -473,7 +473,7 @@ export const translations = {
     seeAll: 'Xem Tất Cả',
     emptyHome: 'Bắt đầu bằng cách thêm danh sách phát',
 
-    // Library Screen
+
     library: 'Thư Viện',
     online: 'YouTube & Nhạc',
     onlineSubtitle: 'Tìm YouTube, SoundCloud',
@@ -481,7 +481,7 @@ export const translations = {
     noOnlineFavorites: 'Chưa Có Mục Yêu Thích',
     addFromDiscover: 'Thêm từ YouTube hoặc SoundCloud trong tab Khám Phá',
 
-    // Discover Screen
+
     discover: 'Khám Phá',
     findYourContent: 'Tìm nội dung của bạn',
     localFiles: 'Tệp Cục Bộ',
@@ -497,7 +497,7 @@ export const translations = {
     playlistUrlLabel: 'URL Danh Sách',
     playlistNameLabel: 'Tên Danh Sách (không bắt buộc)',
 
-    // Home Guidance
+
     gettingStarted: 'Hướng Dẫn Bắt Đầu',
     guideIptv: 'IPTV / M3U',
     guideIptvDesc: 'Cho kênh TV - Nhập link M3U/JSON từ nhà cung cấp IPTV của bạn',

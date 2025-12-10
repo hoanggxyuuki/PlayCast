@@ -1,11 +1,11 @@
-// Mini Player Context - Manages floating mini player state
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Channel } from '../types';
 
 interface MiniPlayerState {
   isVisible: boolean;
   channel: Channel | null;
-  position: number; // Current playback position
+  position: number; 
   isPlaying: boolean;
 }
 
@@ -62,7 +62,7 @@ export const MiniPlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Register expand callback
+
   const registerExpandCallback = (callback: (channel: Channel, position: number) => void) => {
     setOnExpand(() => callback);
   };

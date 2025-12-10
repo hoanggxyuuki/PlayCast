@@ -1,4 +1,4 @@
-// Reusable Card Component
+
 import React from 'react';
 import {
     TouchableOpacity,
@@ -36,7 +36,7 @@ export const Card: React.FC<CardProps> = ({
       overflow: 'hidden',
     };
 
-    // Padding styles
+
     const paddingStyles = {
       none: {},
       small: { padding: Spacing.sm },
@@ -44,7 +44,7 @@ export const Card: React.FC<CardProps> = ({
       large: { padding: Spacing.lg },
     };
 
-    // Margin styles
+
     const marginStyles = {
       none: {},
       small: { margin: Spacing.sm },
@@ -52,7 +52,7 @@ export const Card: React.FC<CardProps> = ({
       large: { margin: Spacing.lg },
     };
 
-    // Border radius styles
+
     const radiusStyles = {
       small: { borderRadius: BorderRadius.sm },
       medium: { borderRadius: BorderRadius.md },
@@ -60,7 +60,7 @@ export const Card: React.FC<CardProps> = ({
       full: { borderRadius: BorderRadius.full },
     };
 
-    // Variant styles
+
     const variantStyles = {
       default: {
         borderWidth: 1,

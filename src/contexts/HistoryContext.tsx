@@ -1,4 +1,4 @@
-// History Context for Watch History Management
+
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { StorageService } from '../services/storageService';
 import { UserStats, WatchHistory } from '../types';
@@ -31,7 +31,7 @@ export const HistoryProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [stats, setStats] = useState<UserStats>(defaultStats);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load history and stats on mount
+
   useEffect(() => {
     loadHistory();
     loadStats();
@@ -64,23 +64,23 @@ export const HistoryProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       await StorageService.addToWatchHistory(item);
 
-      // Update local state
+
       const existingIndex = history.findIndex((h) => h.channelId === item.channelId);
       let newHistory: WatchHistory[];
       const isNewEntry = existingIndex === -1;
 
       if (existingIndex !== -1) {
-        // Update existing entry
+
         newHistory = [...history];
         newHistory[existingIndex] = item;
       } else {
-        // Add new entry at the beginning
+
         newHistory = [item, ...history];
       }
 
       setHistory(newHistory);
 
-      // Update stats - only increment count for NEW entries, not updates
+
       if (isNewEntry) {
         await StorageService.incrementVideosWatched();
         await loadStats();
@@ -156,7 +156,7 @@ export const HistoryProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const getContinueWatching = (): WatchHistory[] => {
-    // Return videos that are partially watched (between 5% and 95% progress)
+
     return [...history]
       .filter((h) => h.progress > 0.05 && h.progress < 0.95)
       .sort((a, b) => {
@@ -193,7 +193,7 @@ export const HistoryProvider: React.FC<{ children: ReactNode }> = ({ children })
   );
 };
 
-// Custom hook to use history
+
 export const useHistory = (): HistoryContextType => {
   const context = useContext(HistoryContext);
   if (!context) {
@@ -202,7 +202,7 @@ export const useHistory = (): HistoryContextType => {
   return context;
 };
 
-// Helper hook for continue watching feature
+
 export const useContinueWatching = () => {
   const { getContinueWatching, getHistoryForChannel } = useHistory();
   return {
@@ -214,7 +214,7 @@ export const useContinueWatching = () => {
   };
 };
 
-// Helper hook for statistics
+
 export const useWatchStats = () => {
   const { stats } = useHistory();
   return {

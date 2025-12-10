@@ -1,4 +1,4 @@
-// Queue Context for Playlist Queue Management
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Channel, QueueItem } from '../types';
 import { StorageService } from '../services/storageService';
@@ -33,12 +33,12 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load queue on mount
+
   useEffect(() => {
     loadQueue();
   }, []);
 
-  // Save queue whenever it changes
+
   useEffect(() => {
     if (!isLoading) {
       saveQueue();
@@ -68,7 +68,7 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const addToQueue = async (channel: Channel, position?: number) => {
     try {
-      // Check if already in queue
+
       if (isInQueue(channel.id)) {
         console.log('Channel already in queue:', channel.name);
         return;
@@ -83,16 +83,16 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       let newQueue: QueueItem[];
 
       if (position !== undefined && position >= 0 && position <= queue.length) {
-        // Insert at specific position
+
         newQueue = [
           ...queue.slice(0, position),
           newItem,
           ...queue.slice(position),
         ];
-        // Update positions
+
         newQueue = newQueue.map((item, index) => ({ ...item, position: index }));
       } else {
-        // Add to end
+
         newQueue = [...queue, newItem];
       }
 
@@ -129,7 +129,7 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         .filter((item) => item.channel.id !== channelId)
         .map((item, index) => ({ ...item, position: index }));
 
-      // Adjust current index if needed
+
       if (currentIndex >= newQueue.length) {
         setCurrentIndex(Math.max(0, newQueue.length - 1));
       }
@@ -161,7 +161,7 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const [movedItem] = newQueue.splice(fromIndex, 1);
       newQueue.splice(toIndex, 0, movedItem);
 
-      // Update positions
+
       const updatedQueue = newQueue.map((item, index) => ({
         ...item,
         position: index,
@@ -169,7 +169,7 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       setQueue(updatedQueue);
 
-      // Adjust current index if needed
+
       if (currentIndex === fromIndex) {
         setCurrentIndex(toIndex);
       } else if (fromIndex < currentIndex && toIndex >= currentIndex) {
@@ -213,14 +213,14 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       const currentChannel = currentIndex >= 0 ? queue[currentIndex]?.channel : null;
 
-      // Shuffle array using Fisher-Yates algorithm
+
       const newQueue = [...queue];
       for (let i = newQueue.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [newQueue[i], newQueue[j]] = [newQueue[j], newQueue[i]];
       }
 
-      // Update positions
+
       const shuffledQueue = newQueue.map((item, index) => ({
         ...item,
         position: index,
@@ -228,7 +228,7 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       setQueue(shuffledQueue);
 
-      // Update current index to match the current channel
+
       if (currentChannel) {
         const newIndex = shuffledQueue.findIndex(
           (item) => item.channel.id === currentChannel.id
@@ -326,7 +326,7 @@ export const QueueProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   );
 };
 
-// Custom hook to use queue
+
 export const useQueue = (): QueueContextType => {
   const context = useContext(QueueContext);
   if (!context) {
@@ -335,7 +335,7 @@ export const useQueue = (): QueueContextType => {
   return context;
 };
 
-// Helper hook for current playback
+
 export const useCurrentPlayback = () => {
   const { currentChannel, currentIndex, queue, playNext, playPrevious, hasNext, hasPrevious } =
     useQueue();

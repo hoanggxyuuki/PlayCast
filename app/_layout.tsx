@@ -50,7 +50,7 @@ export default function RootLayout() {
                             }}
                           />
                         </Stack>
-                        {/* Mini Player - Floating video player */}
+                        {}
                         <MiniPlayer />
                         <StatusBar style="light" />
                       </ThemeProvider>

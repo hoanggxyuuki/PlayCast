@@ -1,4 +1,4 @@
-// DISCOVER SCREEN - Local files, Online search, Add links
+
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,8 +31,6 @@ import { Channel } from '../types';
 
 type DiscoverTab = 'local' | 'online' | 'link';
 
-
-
 interface DiscoverScreenProps {
     initialTab?: 'local' | 'online' | 'link';
 }
@@ -51,7 +49,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
 
     const [activeTab, setActiveTab] = useState<DiscoverTab>(initialTab || 'local');
 
-    // Set active tab when initialTab prop changes
+
     useEffect(() => {
         if (initialTab) {
             setActiveTab(initialTab);
@@ -66,7 +64,6 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
     const [isAddingLink, setIsAddingLink] = useState(false);
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
     const [showPlayer, setShowPlayer] = useState(false);
-
 
     const handlePickLocalFile = async () => {
         try {
@@ -115,7 +112,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                                 onPress: async () => {
                                     const playlistName = `My Music (${files.length} tracks)`;
 
-                                    // Convert files to channels
+
                                     const channels: Channel[] = files.map((file, index) => ({
                                         id: `local-${Date.now()}-${index}`,
                                         name: file.name?.replace(/\.[^/.]+$/, '') || `Track ${index + 1}`,
@@ -123,7 +120,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                                         group: 'Local Files',
                                     }));
 
-                                    // Create playlist
+
                                     const playlist = {
                                         id: `local-playlist-${Date.now()}`,
                                         name: playlistName,
@@ -202,8 +199,6 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
         }
     }, [searchQuery, selectedPlatform]);
 
-
-
     const handleAddLink = async () => {
         if (!linkUrl.trim()) {
             Alert.alert('Error', 'Please enter a URL');
@@ -231,7 +226,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                 streamUrl = await OnlineSearchService.getYouTubeStreamUrl(result.id);
             } else if (result.platform === 'soundcloud' && !streamUrl) {
                 const scData = await OnlineSearchService.getSoundCloudStreamUrl(result.id);
-                streamUrl = scData.streamUrl; // Extract the actual URL from the object
+                streamUrl = scData.streamUrl; 
             }
 
             if (!streamUrl) throw new Error('Could not get stream URL');
@@ -246,7 +241,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
 
             setSelectedChannel(channel);
 
-            // Add to history
+
             addToHistory({
                 channelId: channel.id,
                 channelName: channel.name,
@@ -328,9 +323,9 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                                 ))}
                             </View>
 
-                            {/* Paste URL Section Removed */}
+                            {}
 
-                            {/* Search Section */}
+                            {}
 
                             <View style={styles.searchContainer}>
                                 <Ionicons name="search" size={20} color={Colors.textTertiary} />
@@ -514,7 +509,7 @@ const styles = StyleSheet.create({
     addButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
     favoriteBtn: { padding: Spacing.sm, marginRight: Spacing.xs },
     favoriteBtnActive: { backgroundColor: 'rgba(255, 75, 110, 0.15)', borderRadius: BorderRadius.full },
-    // Paste URL styles
+
     pasteUrlCard: { marginBottom: Spacing.lg },
     pasteUrlHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
     pasteUrlTitle: { fontSize: FontSizes.md, fontWeight: '600', color: Colors.text },

@@ -145,17 +145,17 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
   const { settings } = useSettings();
   const systemColorScheme = useColorScheme();
 
-  // Sync with Settings.theme (dark/light/auto)
+
   useEffect(() => {
     let targetThemeId: string;
 
     if (settings.theme === 'auto') {
-      // Use system preference
+
       targetThemeId = systemColorScheme === 'light' ? 'light' : 'default';
     } else if (settings.theme === 'light') {
       targetThemeId = 'light';
     } else {
-      targetThemeId = 'default'; // dark
+      targetThemeId = 'default'; 
     }
 
     const allThemes = [...PRESET_THEMES, ...customThemes];

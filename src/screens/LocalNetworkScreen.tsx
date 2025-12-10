@@ -1,4 +1,4 @@
-// Local Network Screen - Import playlists from local network
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -37,7 +37,7 @@ export const LocalNetworkScreen = () => {
     checkServerStatus();
   }, []);
 
-  // Listen for file uploads from HTTP server
+
   useEffect(() => {
     if (!serverRunning) return;
 
@@ -51,7 +51,7 @@ export const LocalNetworkScreen = () => {
           console.log(`Received ${type} file: ${filename}`);
 
           if (type === 'm3u') {
-            // Handle M3U/M3U8 playlist files
+
             if (!LocalNetworkService.isValidM3U(content)) {
               Alert.alert('Error', 'Invalid M3U file format received');
               return;
@@ -75,13 +75,13 @@ export const LocalNetworkScreen = () => {
             Alert.alert('Upload Successful', `Imported playlist with ${channels.length} channels`);
 
           } else if (type === 'video' || type === 'audio') {
-            // Handle single video/audio files - create a single-item playlist
+
             const { filepath } = payload;
 
             const channel = {
               id: `upload-${Date.now()}`,
               name: filename.replace(/\.(mp4|mkv|avi|mov|flv|wmv|webm|ts|mp3|aac|wav|flac|ogg|m4a|wma)$/i, ''),
-              url: `file://${filepath}`, // Local file path
+              url: `file://${filepath}`, 
               logo: '',
               group: type === 'video' ? 'Uploaded Videos' : 'Uploaded Audio',
             };
@@ -135,7 +135,7 @@ export const LocalNetworkScreen = () => {
         return;
       }
 
-      // Validate M3U
+
       if (!LocalNetworkService.isValidM3U(file.content)) {
         Alert.alert(
           t('error'),
@@ -145,10 +145,10 @@ export const LocalNetworkScreen = () => {
         return;
       }
 
-      // Parse M3U to channels
+
       const channels = await M3UParser.parseM3U(file.content);
 
-      // Create playlist object
+
       const playlist = {
         id: `local-${Date.now()}`,
         name: file.name.replace(/\.(m3u|m3u8)$/i, ''),
@@ -183,10 +183,10 @@ export const LocalNetworkScreen = () => {
     try {
       setIsLoading(true);
 
-      // Fetch content
+
       const { content, name } = await LocalNetworkService.fetchFromURL(urlInput.trim());
 
-      // Validate M3U
+
       if (!LocalNetworkService.isValidM3U(content)) {
         Alert.alert(
           t('error'),
@@ -196,10 +196,10 @@ export const LocalNetworkScreen = () => {
         return;
       }
 
-      // Parse M3U to channels
+
       const channels = await M3UParser.parseM3U(content);
 
-      // Create playlist object
+
       const playlist = {
         id: `network-${Date.now()}`,
         name: name.replace(/\.(m3u|m3u8)$/i, ''),
@@ -301,14 +301,14 @@ export const LocalNetworkScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        {}
         <View style={styles.header}>
           <Ionicons name="globe-outline" size={48} color={Colors.primary} />
           <Text style={styles.title}>Local Network</Text>
           <Text style={styles.subtitle}>Import playlists from your local network</Text>
         </View>
 
-        {/* Network Info Card */}
+        {}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="wifi" size={24} color={Colors.primary} />
@@ -340,7 +340,7 @@ export const LocalNetworkScreen = () => {
           </View>
         </View>
 
-        {/* HTTP Server Card */}
+        {}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="server-outline" size={24} color={Colors.primary} />
@@ -402,7 +402,7 @@ export const LocalNetworkScreen = () => {
           )}
         </View>
 
-        {/* Import from Device */}
+        {}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="folder-open-outline" size={24} color={Colors.primary} />
@@ -423,7 +423,7 @@ export const LocalNetworkScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Import from URL */}
+        {}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="link-outline" size={24} color={Colors.primary} />
@@ -463,7 +463,7 @@ export const LocalNetworkScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Instructions */}
+        {}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="information-circle-outline" size={24} color={Colors.primary} />

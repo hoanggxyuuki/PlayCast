@@ -1,4 +1,4 @@
-// Channels Screen - Display all channels from a playlist
+
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
@@ -41,10 +41,9 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
   const [loopMode, setLoopMode] = useState<'none' | 'one' | 'all'>('none');
   const [shuffleMode, setShuffleMode] = useState(false);
 
-
   const playlist = playlists.find(p => p.id === playlistId);
 
-  // Group channels by category
+
   const groupedChannels = useMemo(() => {
     if (!playlist) return new Map();
 
@@ -60,18 +59,18 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
     return grouped;
   }, [playlist, t]);
 
-  // Filter channels based on search and selected group
+
   const filteredChannels = useMemo(() => {
     if (!playlist) return [];
 
     let channels = playlist.channels;
 
-    // Filter by group
+
     if (selectedGroup) {
       channels = channels.filter(c => (c.group || t('uncategorized')) === selectedGroup);
     }
 
-    // Filter by search query
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       channels = channels.filter(c =>
@@ -84,11 +83,11 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
   }, [playlist, searchQuery, selectedGroup, t]);
 
   const handlePlayChannel = (channel: Channel, index?: number) => {
-    // Get resume position from history
+
     const history = getHistoryForChannel(channel.id);
     const resumeTime = history?.currentTime || 0;
 
-    // Find index if not provided
+
     const channelIndex = index ?? filteredChannels.findIndex(c => c.id === channel.id);
 
     setSelectedChannel(channel);
@@ -103,7 +102,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
     let nextIndex: number;
 
     if (shuffleMode) {
-      // Random next (but not the same channel)
+
       if (filteredChannels.length === 1) {
         nextIndex = 0;
       } else {
@@ -112,16 +111,16 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
         } while (nextIndex === currentChannelIndex);
       }
     } else {
-      // Sequential next
+
       nextIndex = currentChannelIndex + 1;
 
       if (nextIndex >= filteredChannels.length) {
         if (loopMode === 'all') {
-          nextIndex = 0; // Loop back to start
+          nextIndex = 0; 
         } else if (loopMode === 'one') {
-          nextIndex = currentChannelIndex; // Stay on same
+          nextIndex = currentChannelIndex; 
         } else {
-          return; // No loop, don't go past end
+          return; 
         }
       }
     }
@@ -141,7 +140,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
     let prevIndex: number;
 
     if (shuffleMode) {
-      // Random previous
+
       if (filteredChannels.length === 1) {
         prevIndex = 0;
       } else {
@@ -150,16 +149,16 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
         } while (prevIndex === currentChannelIndex);
       }
     } else {
-      // Sequential previous
+
       prevIndex = currentChannelIndex - 1;
 
       if (prevIndex < 0) {
         if (loopMode === 'all') {
-          prevIndex = filteredChannels.length - 1; // Loop to end
+          prevIndex = filteredChannels.length - 1; 
         } else if (loopMode === 'one') {
-          prevIndex = currentChannelIndex; // Stay on same
+          prevIndex = currentChannelIndex; 
         } else {
-          return; // No loop, don't go before start
+          return; 
         }
       }
     }
@@ -173,7 +172,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
     }
   };
 
-  // Check if can navigate (for enabling/disabling buttons)
+
   const canGoNext = shuffleMode || loopMode !== 'none' || currentChannelIndex < filteredChannels.length - 1;
   const canGoPrevious = shuffleMode || loopMode !== 'none' || currentChannelIndex > 0;
 
@@ -198,7 +197,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
+      {}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
@@ -213,7 +212,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
         </View>
       </View>
 
-      {/* Search Bar */}
+      {}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color={Colors.textTertiary} />
         <TextInput
@@ -230,7 +229,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
         )}
       </View>
 
-      {/* Group Filter */}
+      {}
       {groups.length > 1 && (
         <View style={styles.groupContainer}>
           <FlatList
@@ -267,7 +266,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
         </View>
       )}
 
-      {/* Channels List */}
+      {}
       {filteredChannels.length === 0 ? (
         <EmptyState
           icon="tv-outline"
@@ -294,7 +293,7 @@ export const ChannelsScreen: React.FC<ChannelsScreenProps> = ({
         />
       )}
 
-      {/* Video Player Modal */}
+      {}
       {selectedChannel && (
         <Modal
           visible={showPlayer}

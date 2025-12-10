@@ -1,4 +1,4 @@
-// Reusable Button Component
+
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -43,7 +43,7 @@ export const Button: React.FC<ButtonProps> = ({
       flexDirection: 'row',
     };
 
-    // Size styles
+
     const sizeStyles = {
       small: {
         paddingHorizontal: Spacing.md,
@@ -62,7 +62,7 @@ export const Button: React.FC<ButtonProps> = ({
       },
     };
 
-    // Variant styles
+
     const variantStyles = {
       primary: {
         backgroundColor: disabled ? Colors.textTertiary : Colors.primary,

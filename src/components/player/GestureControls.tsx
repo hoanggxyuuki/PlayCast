@@ -1,4 +1,4 @@
-// Gesture Controls for Video Player
+
 import React, { useRef, useState } from 'react';
 import {
   View,
@@ -35,7 +35,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
 }) => {
   const { settings } = useSettings();
 
-  // State
+
   const [showSeekIndicator, setShowSeekIndicator] = useState(false);
   const [seekAmount, setSeekAmount] = useState(0);
   const [showVolumeIndicator, setShowVolumeIndicator] = useState(false);
@@ -43,7 +43,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
   const [showBrightnessIndicator, setShowBrightnessIndicator] = useState(false);
   const [brightnessLevel, setBrightnessLevel] = useState(50);
 
-  // Refs
+
   const lastTap = useRef<number>(0);
   const lastTapPosition = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const indicatorOpacity = useRef(new Animated.Value(0)).current;
@@ -73,7 +73,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
 
     const seekSeconds = settings.doubleTapSeek || 10;
 
-    // Left side = seek backward, right side = seek forward
+
     if (x < SCREEN_WIDTH / 2) {
       setSeekAmount(-seekSeconds);
       onSeek?.(-seekSeconds);
@@ -90,11 +90,11 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
   const handleVerticalGesture = (dy: number, x: number) => {
     if (!settings.gestureControls) return;
 
-    const delta = -dy / SCREEN_HEIGHT; // Invert: swipe up = increase
+    const delta = -dy / SCREEN_HEIGHT; 
 
-    // Left side = brightness, right side = volume
+
     if (x < SCREEN_WIDTH / 2) {
-      // Brightness control
+
       if (!settings.brightnessGesture) return;
 
       const newBrightness = Math.max(0, Math.min(100, brightnessLevel + delta * 100));
@@ -104,7 +104,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
 
       setTimeout(() => setShowBrightnessIndicator(false), 1500);
     } else {
-      // Volume control
+
       if (!settings.volumeGesture) return;
 
       const newVolume = Math.max(0, Math.min(100, volumeLevel + delta * 100));
@@ -119,8 +119,8 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
   const handleHorizontalGesture = (dx: number) => {
     if (!settings.gestureControls) return;
 
-    // Calculate seek amount based on swipe distance
-    const seekSeconds = Math.round((dx / SCREEN_WIDTH) * 60); // Max 60 seconds per full swipe
+
+    const seekSeconds = Math.round((dx / SCREEN_WIDTH) * 60); 
 
     if (Math.abs(seekSeconds) >= 5) {
       setSeekAmount(seekSeconds);
@@ -145,7 +145,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
         isVerticalGesture.current = false;
         isHorizontalGesture.current = false;
 
-        // Check for double tap
+
         const now = Date.now();
         const timeDiff = now - lastTap.current;
         const distance = Math.sqrt(
@@ -155,7 +155,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
 
         if (timeDiff < DOUBLE_TAP_DELAY && distance < 50) {
           handleDoubleTap(locationX, locationY);
-          lastTap.current = 0; // Reset to prevent triple tap
+          lastTap.current = 0; 
         } else {
           lastTap.current = now;
           lastTapPosition.current = { x: locationX, y: locationY };
@@ -170,7 +170,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
 
-        // Determine gesture direction
+
         if (!isVerticalGesture.current && !isHorizontalGesture.current) {
           if (absDy > absDx && absDy > 10) {
             isVerticalGesture.current = true;
@@ -179,7 +179,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
           }
         }
 
-        // Handle vertical gesture (brightness/volume)
+
         if (isVerticalGesture.current && absDy > MIN_SWIPE_DISTANCE) {
           handleVerticalGesture(dy, startX.current);
         }
@@ -193,14 +193,14 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
 
-        // Handle horizontal gesture (seek)
+
         if (isHorizontalGesture.current && absDx > MIN_SWIPE_DISTANCE && absDy < 50) {
           handleHorizontalGesture(dx);
         }
 
-        // Single tap (if no significant movement)
+
         if (absDx < 10 && absDy < 10) {
-          // Will be handled by double-tap detection or trigger single tap after delay
+
           setTimeout(() => {
             const now = Date.now();
             if (now - lastTap.current >= DOUBLE_TAP_DELAY) {
@@ -209,7 +209,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
           }, DOUBLE_TAP_DELAY);
         }
 
-        // Reset gesture flags
+
         isVerticalGesture.current = false;
         isHorizontalGesture.current = false;
       },
@@ -220,7 +220,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
     <View style={styles.container} {...panResponder.panHandlers}>
       {children}
 
-      {/* Seek indicator */}
+      {}
       {showSeekIndicator && (
         <Animated.View style={[styles.indicator, { opacity: indicatorOpacity }]}>
           <Ionicons
@@ -235,7 +235,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
         </Animated.View>
       )}
 
-      {/* Volume indicator */}
+      {}
       {showVolumeIndicator && (
         <Animated.View
           style={[styles.sideIndicator, styles.rightIndicator, { opacity: indicatorOpacity }]}
@@ -252,7 +252,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
         </Animated.View>
       )}
 
-      {/* Brightness indicator */}
+      {}
       {showBrightnessIndicator && (
         <Animated.View
           style={[styles.sideIndicator, styles.leftIndicator, { opacity: indicatorOpacity }]}

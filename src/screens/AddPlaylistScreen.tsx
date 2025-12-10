@@ -1,4 +1,4 @@
-// Add Playlist Screen
+
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -43,7 +43,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
       return;
     }
 
-    // Validate URL
+
     try {
       new URL(url);
     } catch {
@@ -96,7 +96,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
         style={styles.keyboardView}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Header */}
+          {}
           <View style={styles.header}>
             <Button
               title=""
@@ -109,9 +109,9 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
             <View style={{ width: 40 }} />
           </View>
 
-          {/* Form */}
+          {}
           <View style={styles.form}>
-            {/* IPTV Explanation Banner */}
+            {}
             <Card variant="outlined" margin="small">
               <View style={styles.infoBox}>
                 <Ionicons name="tv-outline" size={24} color={Colors.primary} />
@@ -124,7 +124,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
               </View>
             </Card>
 
-            {/* YouTube Warning */}
+            {}
             <Card variant="outlined" margin="small">
               <View style={[styles.infoBox, { backgroundColor: 'rgba(251, 191, 36, 0.1)' }]}>
                 <Ionicons name="warning-outline" size={20} color={Colors.warning} />
@@ -134,7 +134,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
               </View>
             </Card>
 
-            {/* Playlist Name */}
+            {}
             <Input
               label={t('playlistName')}
               value={name}
@@ -143,7 +143,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
               placeholder={t('enterPlaylistName')}
             />
 
-            {/* Playlist URL */}
+            {}
             <Input
               label={t('playlistUrl')}
               value={url}
@@ -157,7 +157,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
               inputStyle={styles.urlInput}
             />
 
-            {/* Info Box */}
+            {}
             <Card variant="outlined" margin="small">
               <View style={styles.infoBox}>
                 <Ionicons name="information-circle" size={20} color={Colors.primary} />
@@ -167,7 +167,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
               </View>
             </Card>
 
-            {/* Playlist Type */}
+            {}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('type')}</Text>
               <View style={styles.typeSelector}>
@@ -190,7 +190,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
               </View>
             </View>
 
-            {/* Examples */}
+            {}
             <View style={styles.examplesSection}>
               <Text style={styles.sectionTitle}>{t('examples')}</Text>
               {exampleUrls.map((example, index) => (
@@ -217,7 +217,7 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
               ))}
             </View>
 
-            {/* Add Button */}
+            {}
             <Button
               title={t('addPlaylist')}
               variant="primary"
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   backButton: {
-    // Removed as handled by Button component
+
   },
   title: {
     fontSize: FontSizes.xxl,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   input: {
-    // Removed as we're using Input component
+
   },
   urlInput: {
     minHeight: 60,
@@ -308,13 +308,13 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.xs,
   },
   typeButtonActive: {
-    // Removed as handled by Button component
+
   },
   typeButtonText: {
-    // Removed as handled by Button component
+
   },
   typeButtonTextActive: {
-    // Removed as handled by Button component
+
   },
   examplesSection: {
     marginTop: Spacing.lg,
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   exampleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    // Removed as handled by Card component
+
   },
   exampleInfo: {
     flex: 1,
@@ -347,9 +347,9 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xl,
   },
   addButtonDisabled: {
-    // Removed as handled by Button component
+
   },
   addButtonText: {
-    // Removed as handled by Button component
+
   },
 });

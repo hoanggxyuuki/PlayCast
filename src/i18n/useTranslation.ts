@@ -1,4 +1,4 @@
-// Translation hook
+
 import { useSettings } from '../contexts/SettingsContext';
 import { translations, TranslationKey } from './translations';
 

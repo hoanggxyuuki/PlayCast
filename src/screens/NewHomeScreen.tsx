@@ -1,4 +1,4 @@
-// NEW HOME SCREEN - Modern design with hero, continue watching, playlists
+
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
@@ -75,7 +75,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         setSelectedChannel(null);
     };
 
-    // Handle playing from pasted URL (YouTube or SoundCloud)
+
     const handlePlayFromUrl = async () => {
         const url = pasteUrl.trim();
         if (!url) {
@@ -92,7 +92,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             let thumbnail = '';
             let platform: 'youtube' | 'soundcloud' = 'youtube';
 
-            // Detect YouTube URL patterns
+
             const ytPatterns = [
                 /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
                 /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
@@ -100,7 +100,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
 
             let videoId: string | null = null;
 
-            // Check YouTube
+
             for (const pattern of ytPatterns) {
                 const match = url.match(pattern);
                 if (match) {
@@ -111,13 +111,13 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             }
 
             if (videoId) {
-                // Fetch video details for better metadata
+
                 try {
                     const details = await OnlineSearchService.getYouTubeVideoDetails(videoId);
                     title = details.title;
                     thumbnail = details.thumbnail;
                 } catch (e) {
-                    // Fallback if details fetch fails
+
                     console.warn('Failed to fetch YouTube details', e);
                     title = 'YouTube Video';
                     thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
@@ -153,9 +153,9 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         }
     };
 
-    // Render hero carousel
+
     const renderHero = () => {
-        // Custom slides based on current state
+
         const slides: CarouselSlide[] = [
             {
                 id: '1',
@@ -187,7 +187,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             },
         ];
 
-        // Add now playing slide if something is playing
+
         if (currentItem) {
             slides.unshift({
                 id: 'now-playing',
@@ -205,7 +205,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         return <HeroCarousel slides={slides} autoPlayInterval={5000} />;
     };
 
-    // Render continue watching section
+
     const renderContinueWatching = () => {
         if (recentHistory.length === 0) return null;
 
@@ -256,7 +256,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         );
     };
 
-    // Render playlists section
+
     const renderPlaylists = () => {
         if (playlists.length === 0) return null;
 
@@ -298,7 +298,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         );
     };
 
-    // Render quick actions
+
     const renderQuickActions = () => (
         <View style={styles.quickActions}>
             <TouchableOpacity style={styles.quickAction} onPress={onNavigateToAddPlaylist}>
@@ -325,7 +325,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         </View>
     );
 
-    // Render Play from Link section
+
     const renderPlayFromLink = () => (
         <View style={styles.playFromLinkContainer}>
             <GlassCard variant="purple" padding="medium">
@@ -372,7 +372,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         </View>
     );
 
-    // Render guidance section for new users
+
     const renderGuidanceSection = () => {
         if (!showGuide) return null;
 
@@ -384,7 +384,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                 </View>
 
                 <View style={styles.guideItems}>
-                    {/* IPTV Guide */}
+                    {}
                     <TouchableOpacity style={styles.guideItem} onPress={onNavigateToAddPlaylist}>
                         <View style={[styles.guideIconBg, { backgroundColor: 'rgba(118, 75, 162, 0.2)' }]}>
                             <Ionicons name="tv-outline" size={20} color={Colors.primary} />
@@ -396,7 +396,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                         <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
                     </TouchableOpacity>
 
-                    {/* YouTube Guide */}
+                    {}
                     <TouchableOpacity style={styles.guideItem} onPress={onNavigateToOnline}>
                         <View style={[styles.guideIconBg, { backgroundColor: 'rgba(240, 147, 251, 0.2)' }]}>
                             <Ionicons name="logo-youtube" size={20} color={Colors.secondary} />
@@ -408,7 +408,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                         <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
                     </TouchableOpacity>
 
-                    {/* Local Files Guide */}
+                    {}
                     <TouchableOpacity style={styles.guideItem} onPress={onNavigateToLocalFiles}>
                         <View style={[styles.guideIconBg, { backgroundColor: 'rgba(79, 172, 254, 0.2)' }]}>
                             <Ionicons name="folder-outline" size={20} color={Colors.accent} />
@@ -428,7 +428,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         );
     };
 
-    // Render empty state
+
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
             <LinearGradient
@@ -465,7 +465,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                 showsVerticalScrollIndicator={false}
             >
                 <SafeAreaView edges={['top']}>
-                    {/* Header */}
+                    {}
                     <View style={styles.header}>
                         <Text style={[styles.logo, { color: themeColors.text }]}>PlayCast</Text>
                         <TouchableOpacity
@@ -476,19 +476,19 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    {/* Hero */}
+                    {}
                     {renderHero()}
 
-                    {/* Quick Actions */}
+                    {}
                     {renderQuickActions()}
 
-                    {/* Guidance for new users */}
+                    {}
                     {renderGuidanceSection()}
 
-                    {/* Play from Link */}
+                    {}
                     {renderPlayFromLink()}
 
-                    {/* Content */}
+                    {}
                     {hasContent ? (
                         <>
                             {renderContinueWatching()}
@@ -498,12 +498,12 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                         renderEmptyState()
                     )}
 
-                    {/* Spacer for tab bar */}
+                    {}
                     <View style={{ height: Layout.tabBarHeight + 20 }} />
                 </SafeAreaView>
             </ScrollView>
 
-            {/* Video Player Modal */}
+            {}
             {selectedChannel && (
                 <Modal
                     visible={showPlayer}
@@ -522,7 +522,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     );
 };
 
-// Helper function to get gradient based on playlist name
+
 const getPlaylistGradient = (name: string): string[] => {
     const gradients = [
         ['#667eea', '#764ba2'],
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
     avatarButton: {
         padding: Spacing.xs,
     },
-    // Hero styles
+
     heroContainer: {
         marginHorizontal: Layout.screenPadding,
         marginBottom: Spacing.lg,
@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: FontSizes.md,
     },
-    // Quick actions
+
     quickActions: {
         flexDirection: 'row',
         paddingHorizontal: Layout.screenPadding,
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
         color: Colors.textTertiary,
         textAlign: 'center',
     },
-    // Play from Link styles
+
     playFromLinkContainer: {
         paddingHorizontal: Layout.screenPadding,
         marginBottom: Spacing.lg,
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    // Section styles
+
     section: {
         marginBottom: Spacing.xl,
     },
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: Layout.screenPadding,
         gap: Spacing.md,
     },
-    // Continue watching card
+
     continueCard: {
         width: CARD_WIDTH,
     },
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
         color: Colors.text,
         fontWeight: '500',
     },
-    // Playlist grid
+
     playlistGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         fontWeight: '500',
     },
-    // Empty state
+
     emptyContainer: {
         paddingHorizontal: Layout.screenPadding,
         marginTop: Spacing.xl,
@@ -838,7 +838,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#fff',
     },
-    // Guidance Section
+
     guideContainer: {
         marginHorizontal: Layout.screenPadding,
         marginBottom: Spacing.lg,

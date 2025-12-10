@@ -1,4 +1,4 @@
-// Glass Card Component - Glassmorphism effect
+
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
@@ -66,7 +66,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
     return <View style={cardStyle}>{children}</View>;
 };
 
-// Gradient Glass Card
+
 interface GradientGlassCardProps extends Omit<GlassCardProps, 'variant'> {
     colors?: string[];
 }

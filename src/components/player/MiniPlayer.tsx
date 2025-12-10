@@ -1,4 +1,4 @@
-// Mini Player Component - Floating draggable video player
+
 import { Ionicons } from '@expo/vector-icons';
 import React, { useRef, useState } from 'react';
 import {
@@ -23,7 +23,7 @@ const PADDING = 16;
 export const MiniPlayer = () => {
   const { miniPlayer, hideMiniPlayer, togglePlayback, expandPlayer } = useMiniPlayer();
 
-  // Track position for snapping
+
   const [position, setPosition] = useState({
     x: SCREEN_WIDTH - MINI_PLAYER_WIDTH - PADDING,
     y: SCREEN_HEIGHT - MINI_PLAYER_HEIGHT - PADDING - 100,
@@ -48,11 +48,11 @@ export const MiniPlayer = () => {
       onPanResponderRelease: (_, gesture) => {
         pan.flattenOffset();
 
-        // Calculate final position
+
         let finalX = position.x + gesture.dx;
         let finalY = position.y + gesture.dy;
 
-        // Keep within bounds
+
         if (finalX < PADDING) finalX = PADDING;
         if (finalX > SCREEN_WIDTH - MINI_PLAYER_WIDTH - PADDING)
           finalX = SCREEN_WIDTH - MINI_PLAYER_WIDTH - PADDING;
