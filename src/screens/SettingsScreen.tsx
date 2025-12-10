@@ -1,4 +1,4 @@
-// Settings Screen
+
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
@@ -105,28 +105,16 @@ export const SettingsScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Appearance Section */}
+        {}
         {renderSection(t('appearance'), 'color-palette-outline')}
 
-        {/* Theme selector temporarily disabled - dark mode only
-        {renderSelector(
-          t('theme'),
-          getThemeName(theme),
-          () => {
-            const themes: AppSettings['theme'][] = ['dark', 'light', 'auto'];
-            const currentIndex = themes.indexOf(theme);
-            const nextTheme = themes[(currentIndex + 1) % themes.length];
-            setTheme(nextTheme);
-          },
-          t('chooseTheme')
-        )}
-        */}
+        {}
 
         {renderSelector(
           t('language'),
           getLanguageName(language),
           () => {
-            // Cycle through languages (en/vi only)
+
             const languages: AppSettings['language'][] = ['en', 'vi'];
             const currentIndex = languages.indexOf(language);
             const nextLanguage = languages[(currentIndex + 1) % languages.length];
@@ -135,7 +123,7 @@ export const SettingsScreen = () => {
           t('selectLanguage')
         )}
 
-        {/* Playback Section */}
+        {}
         {renderSection(t('playback'), 'play-circle-outline')}
 
         {renderToggle(
@@ -156,7 +144,7 @@ export const SettingsScreen = () => {
           t('defaultPlaybackSpeed'),
           `${settings.defaultPlaybackSpeed}x`,
           () => {
-            // Cycle through speeds
+
             const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
             const currentIndex = speeds.indexOf(settings.defaultPlaybackSpeed);
             const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
@@ -171,7 +159,7 @@ export const SettingsScreen = () => {
             ? t('auto')
             : settings.defaultQuality.toUpperCase(),
           () => {
-            // Cycle through qualities
+
             const qualities: AppSettings['defaultQuality'][] = [
               'auto',
               '1080p',
@@ -186,7 +174,7 @@ export const SettingsScreen = () => {
           t('preferredQuality')
         )}
 
-        {/* Player Features Section */}
+        {}
         {renderSection(t('playerFeatures'), 'film-outline')}
 
         {renderToggle(
@@ -203,7 +191,7 @@ export const SettingsScreen = () => {
           t('backgroundDesc')
         )}
 
-        {/* Gesture Controls Section */}
+        {}
         {renderSection(t('gestureControls'), 'hand-left-outline')}
 
         {renderToggle(
@@ -233,7 +221,7 @@ export const SettingsScreen = () => {
               t('doubleTapSeek'),
               `${settings.doubleTapSeek}s`,
               () => {
-                // Cycle through seek intervals
+
                 const intervals = [5, 10, 15, 30];
                 const currentIndex = intervals.indexOf(settings.doubleTapSeek);
                 const nextInterval = intervals[(currentIndex + 1) % intervals.length];
@@ -244,7 +232,7 @@ export const SettingsScreen = () => {
           </>
         )}
 
-        {/* Download Section */}
+        {}
         {renderSection(t('downloads'), 'download-outline')}
 
         {renderSelector(
@@ -255,7 +243,7 @@ export const SettingsScreen = () => {
               ? t('medium')
               : t('low'),
           () => {
-            // Cycle through qualities
+
             const qualities: AppSettings['downloadQuality'][] = ['high', 'medium', 'low'];
             const currentIndex = qualities.indexOf(settings.downloadQuality);
             const nextQuality = qualities[(currentIndex + 1) % qualities.length];
@@ -264,7 +252,7 @@ export const SettingsScreen = () => {
           t('downloadQualityDesc')
         )}
 
-        {/* About Section */}
+        {}
         {renderSection(t('about'), 'information-circle-outline')}
 
         <View style={styles.settingItem}>
@@ -277,7 +265,7 @@ export const SettingsScreen = () => {
           <Text style={styles.settingValueText}>PlayCast IPTV</Text>
         </View>
 
-        {/* Reset Button */}
+        {}
         <TouchableOpacity style={styles.resetButton} onPress={handleResetSettings}>
           <Ionicons name="refresh-outline" size={24} color={Colors.error} />
           <Text style={styles.resetButtonText}>{t('resetAllSettings')}</Text>

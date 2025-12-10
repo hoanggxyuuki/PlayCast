@@ -1,4 +1,4 @@
-// Premium Coming Soon Screen - Beautiful preview of upcoming features
+
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
@@ -50,7 +50,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
                 style={styles.gradient}
             >
                 <SafeAreaView style={styles.safeArea} edges={['top']}>
-                    {/* Header */}
+                    {}
                     <View style={styles.header}>
                         <TouchableOpacity style={styles.backButton} onPress={onBack}>
                             <Ionicons name="arrow-back" size={24} color={Colors.text} />
@@ -64,7 +64,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.scrollContent}
                     >
-                        {/* Diamond Hero */}
+                        {}
                         <View style={styles.hero}>
                             <LinearGradient
                                 colors={['rgba(102, 126, 234, 0.3)', 'rgba(118, 75, 162, 0.3)']}
@@ -84,7 +84,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
                             </Text>
                         </View>
 
-                        {/* Stats */}
+                        {}
                         <View style={styles.statsContainer}>
                             <GlassCard variant="purple" padding="medium" style={styles.statCard}>
                                 <Text style={styles.statNumber}>100+</Text>
@@ -96,7 +96,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
                             </GlassCard>
                         </View>
 
-                        {/* Features Grid */}
+                        {}
                         <Text style={styles.sectionTitle}>Tính năng sắp ra mắt</Text>
 
                         <View style={styles.featuresGrid}>
@@ -116,7 +116,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
                             ))}
                         </View>
 
-                        {/* CTA */}
+                        {}
                         <GlassCard variant="purple" padding="large" style={styles.ctaCard}>
                             <Ionicons name="heart" size={32} color={Colors.primary} />
                             <Text style={styles.ctaTitle}>Cảm ơn bạn đã sử dụng PlayCast!</Text>
@@ -126,7 +126,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ onBack }) => {
 
                         </GlassCard>
 
-                        {/* Footer */}
+                        {}
                         <Text style={styles.footer}>Made with ❤️ by BiDev</Text>
 
                         <View style={{ height: 40 }} />

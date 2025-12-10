@@ -1,4 +1,4 @@
-// Reusable Modal Component
+
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -55,7 +55,7 @@ export const Modal: React.FC<ModalProps> = ({
       overflow: 'hidden',
     };
 
-    // Size styles
+
     const sizeStyles = {
       small: {
         width: '80%',
@@ -134,7 +134,7 @@ export const Modal: React.FC<ModalProps> = ({
               )}
             </View>
           )}
-          
+
           <View style={getContentStyle()}>
             {children}
           </View>

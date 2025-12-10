@@ -1,4 +1,4 @@
-// Playlist Context for managing app state
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Playlist, Channel } from '../types';
 import { StorageService } from '../services/storageService';
@@ -10,17 +10,17 @@ interface PlaylistContextType {
   isLoading: boolean;
   error: string | null;
 
-  // Playlist operations
+
   addPlaylist: (playlist: Omit<Playlist, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   addPlaylistFromUrl: (url: string, name: string, type: 'm3u' | 'json') => Promise<void>;
   deletePlaylist: (id: string) => Promise<void>;
   refreshPlaylist: (id: string) => Promise<void>;
 
-  // Favorite operations
+
   toggleFavorite: (channelId: string) => Promise<void>;
   isFavorite: (channelId: string) => boolean;
 
-  // Utility
+
   getAllChannels: () => Channel[];
   getFavoriteChannels: () => Channel[];
   refreshData: () => Promise<void>;
@@ -46,7 +46,7 @@ export const PlaylistProvider: React.FC<PlaylistProviderProps> = ({ children }) 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load data on mount
+
   useEffect(() => {
     loadData();
   }, []);
@@ -95,7 +95,7 @@ export const PlaylistProvider: React.FC<PlaylistProviderProps> = ({ children }) 
 
       let channels: Channel[];
 
-      // Pass custom name to parser for direct media URLs
+
       if (type === 'm3u') {
         channels = await M3UParser.parseM3UFromUrl(url, name);
       } else {

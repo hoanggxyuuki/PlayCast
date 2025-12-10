@@ -1,4 +1,4 @@
-// Reusable List Component with Virtualization Support
+
 import React from 'react';
 import {
     ActivityIndicator,
@@ -72,7 +72,7 @@ export function List<T>({
 
   const renderSeparator = () => {
     if (!showSeparator) return null;
-    
+
     return (
       <View style={styles.separator} />
     );

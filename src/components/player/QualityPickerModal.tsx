@@ -1,4 +1,4 @@
-// Quality Picker Modal for selecting video quality
+
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -97,7 +97,7 @@ export const QualityPickerModal: React.FC<QualityPickerModalProps> = ({
                                 );
                             })}
 
-                            {/* Auto option */}
+                            {}
                             <TouchableOpacity
                                 style={[styles.optionItem, currentQuality === 'auto' && styles.optionItemActive]}
                                 onPress={() => onSelectQuality({

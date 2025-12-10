@@ -1,4 +1,4 @@
-// Reusable Input Component
+
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -78,7 +78,7 @@ export const Input: React.FC<InputProps> = ({
   return (
     <View style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
-      
+
       <View style={getInputContainerStyle()}>
         {leftIcon && (
           <Ionicons
@@ -88,13 +88,13 @@ export const Input: React.FC<InputProps> = ({
             style={styles.leftIcon}
           />
         )}
-        
+
         <TextInput
           style={[getInputStyle(), inputStyle]}
           placeholderTextColor={Colors.textTertiary}
           {...textInputProps}
         />
-        
+
         {rightIcon && (
           <Ionicons
             name={rightIcon as any}
@@ -105,7 +105,7 @@ export const Input: React.FC<InputProps> = ({
           />
         )}
       </View>
-      
+
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );

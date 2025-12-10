@@ -1,4 +1,4 @@
-// EPG Viewer Component
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -88,7 +88,7 @@ export const EPGViewer: React.FC<EPGViewerProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {}
       <View style={styles.header}>
         <View style={styles.headerInfo}>
           <Ionicons name="tv-outline" size={24} color={Colors.primary} />
@@ -100,7 +100,7 @@ export const EPGViewer: React.FC<EPGViewerProps> = ({
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Current Program */}
+        {}
         {currentProgram ? (
           <View style={styles.currentSection}>
             <View style={styles.liveIndicator}>
@@ -121,7 +121,7 @@ export const EPGViewer: React.FC<EPGViewerProps> = ({
                 </Text>
               )}
 
-              {/* Progress Bar */}
+              {}
               <View style={styles.progressContainer}>
                 <View style={styles.progressBar}>
                   <View
@@ -144,7 +144,7 @@ export const EPGViewer: React.FC<EPGViewerProps> = ({
           </View>
         )}
 
-        {/* Upcoming Programs */}
+        {}
         {nextPrograms.length > 0 && (
           <View style={styles.upcomingSection}>
             <Text style={styles.sectionTitle}>UP NEXT</Text>

@@ -1,4 +1,4 @@
-// NEW HOME SCREEN - Modern design with hero, continue watching, playlists
+
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
@@ -60,6 +60,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     const [showPlayer, setShowPlayer] = useState(false);
     const [pasteUrl, setPasteUrl] = useState('');
     const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+    const [showGuide, setShowGuide] = useState(true);
 
     const recentHistory = getRecentlyWatched(10);
     const hasContent = playlists.length > 0 || recentHistory.length > 0;
@@ -74,7 +75,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         setSelectedChannel(null);
     };
 
-    // Handle playing from pasted URL (YouTube or SoundCloud)
+
     const handlePlayFromUrl = async () => {
         const url = pasteUrl.trim();
         if (!url) {
@@ -91,7 +92,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             let thumbnail = '';
             let platform: 'youtube' | 'soundcloud' = 'youtube';
 
-            // Detect YouTube URL patterns
+
             const ytPatterns = [
                 /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
                 /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
@@ -99,7 +100,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
 
             let videoId: string | null = null;
 
-            // Check YouTube
+
             for (const pattern of ytPatterns) {
                 const match = url.match(pattern);
                 if (match) {
@@ -110,13 +111,13 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             }
 
             if (videoId) {
-                // Fetch video details for better metadata
+
                 try {
                     const details = await OnlineSearchService.getYouTubeVideoDetails(videoId);
                     title = details.title;
                     thumbnail = details.thumbnail;
                 } catch (e) {
-                    // Fallback if details fetch fails
+
                     console.warn('Failed to fetch YouTube details', e);
                     title = 'YouTube Video';
                     thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
@@ -152,9 +153,9 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         }
     };
 
-    // Render hero carousel
+
     const renderHero = () => {
-        // Custom slides based on current state
+
         const slides: CarouselSlide[] = [
             {
                 id: '1',
@@ -186,7 +187,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             },
         ];
 
-        // Add now playing slide if something is playing
+
         if (currentItem) {
             slides.unshift({
                 id: 'now-playing',
@@ -204,7 +205,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         return <HeroCarousel slides={slides} autoPlayInterval={5000} />;
     };
 
-    // Render continue watching section
+
     const renderContinueWatching = () => {
         if (recentHistory.length === 0) return null;
 
@@ -255,7 +256,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         );
     };
 
-    // Render playlists section
+
     const renderPlaylists = () => {
         if (playlists.length === 0) return null;
 
@@ -297,31 +298,34 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         );
     };
 
-    // Render quick actions
+
     const renderQuickActions = () => (
         <View style={styles.quickActions}>
             <TouchableOpacity style={styles.quickAction} onPress={onNavigateToAddPlaylist}>
                 <GlassCard variant="purple" padding="medium" style={styles.quickActionCard}>
-                    <Ionicons name="add-circle-outline" size={28} color={Colors.primary} />
+                    <Ionicons name="tv-outline" size={28} color={Colors.primary} />
                     <Text style={styles.quickActionText}>{t('addPlaylist')}</Text>
+                    <Text style={styles.quickActionSubtext}>{t('addPlaylistSubtitle') || 'IPTV channels'}</Text>
                 </GlassCard>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickAction} onPress={onNavigateToLocalFiles}>
                 <GlassCard variant="purple" padding="medium" style={styles.quickActionCard}>
                     <Ionicons name="folder-outline" size={28} color={Colors.accent} />
                     <Text style={styles.quickActionText}>{t('localFiles')}</Text>
+                    <Text style={styles.quickActionSubtext}>{t('localFilesSubtitle') || 'Device videos'}</Text>
                 </GlassCard>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickAction} onPress={onNavigateToOnline}>
                 <GlassCard variant="purple" padding="medium" style={styles.quickActionCard}>
-                    <Ionicons name="globe-outline" size={28} color={Colors.secondary} />
+                    <Ionicons name="logo-youtube" size={28} color={Colors.secondary} />
                     <Text style={styles.quickActionText}>{t('online')}</Text>
+                    <Text style={styles.quickActionSubtext}>{t('onlineSubtitle') || 'YouTube, SoundCloud'}</Text>
                 </GlassCard>
             </TouchableOpacity>
         </View>
     );
 
-    // Render Play from Link section
+
     const renderPlayFromLink = () => (
         <View style={styles.playFromLinkContainer}>
             <GlassCard variant="purple" padding="medium">
@@ -368,7 +372,63 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         </View>
     );
 
-    // Render empty state
+
+    const renderGuidanceSection = () => {
+        if (!showGuide) return null;
+
+        return (
+            <View style={styles.guideContainer}>
+                <View style={styles.guideHeader}>
+                    <Ionicons name="help-circle-outline" size={22} color={Colors.primary} />
+                    <Text style={styles.guideTitle}>{t('gettingStarted') || 'Getting Started'}</Text>
+                </View>
+
+                <View style={styles.guideItems}>
+                    {}
+                    <TouchableOpacity style={styles.guideItem} onPress={onNavigateToAddPlaylist}>
+                        <View style={[styles.guideIconBg, { backgroundColor: 'rgba(118, 75, 162, 0.2)' }]}>
+                            <Ionicons name="tv-outline" size={20} color={Colors.primary} />
+                        </View>
+                        <View style={styles.guideTextContainer}>
+                            <Text style={styles.guideItemTitle}>{t('guideIptv') || 'IPTV / M3U'}</Text>
+                            <Text style={styles.guideItemDesc}>{t('guideIptvDesc') || 'For TV channels - Import M3U/JSON playlist links'}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                    </TouchableOpacity>
+
+                    {}
+                    <TouchableOpacity style={styles.guideItem} onPress={onNavigateToOnline}>
+                        <View style={[styles.guideIconBg, { backgroundColor: 'rgba(240, 147, 251, 0.2)' }]}>
+                            <Ionicons name="logo-youtube" size={20} color={Colors.secondary} />
+                        </View>
+                        <View style={styles.guideTextContainer}>
+                            <Text style={styles.guideItemTitle}>{t('guideOnline') || 'YouTube & Music'}</Text>
+                            <Text style={styles.guideItemDesc}>{t('guideOnlineDesc') || 'Search and play from YouTube, SoundCloud'}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                    </TouchableOpacity>
+
+                    {}
+                    <TouchableOpacity style={styles.guideItem} onPress={onNavigateToLocalFiles}>
+                        <View style={[styles.guideIconBg, { backgroundColor: 'rgba(79, 172, 254, 0.2)' }]}>
+                            <Ionicons name="folder-outline" size={20} color={Colors.accent} />
+                        </View>
+                        <View style={styles.guideTextContainer}>
+                            <Text style={styles.guideItemTitle}>{t('guideLocal') || 'Local Files'}</Text>
+                            <Text style={styles.guideItemDesc}>{t('guideLocalDesc') || 'Play videos/music stored on your device'}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                    </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity style={styles.hideGuideBtn} onPress={() => setShowGuide(false)}>
+                    <Text style={styles.hideGuideText}>{t('hideGuide') || 'Got it, hide this'}</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    };
+
+
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
             <LinearGradient
@@ -405,7 +465,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                 showsVerticalScrollIndicator={false}
             >
                 <SafeAreaView edges={['top']}>
-                    {/* Header */}
+                    {}
                     <View style={styles.header}>
                         <Text style={[styles.logo, { color: themeColors.text }]}>PlayCast</Text>
                         <TouchableOpacity
@@ -416,16 +476,19 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    {/* Hero */}
+                    {}
                     {renderHero()}
 
-                    {/* Quick Actions */}
+                    {}
                     {renderQuickActions()}
 
-                    {/* Play from Link */}
+                    {}
+                    {renderGuidanceSection()}
+
+                    {}
                     {renderPlayFromLink()}
 
-                    {/* Content */}
+                    {}
                     {hasContent ? (
                         <>
                             {renderContinueWatching()}
@@ -435,12 +498,12 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                         renderEmptyState()
                     )}
 
-                    {/* Spacer for tab bar */}
+                    {}
                     <View style={{ height: Layout.tabBarHeight + 20 }} />
                 </SafeAreaView>
             </ScrollView>
 
-            {/* Video Player Modal */}
+            {}
             {selectedChannel && (
                 <Modal
                     visible={showPlayer}
@@ -459,7 +522,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     );
 };
 
-// Helper function to get gradient based on playlist name
+
 const getPlaylistGradient = (name: string): string[] => {
     const gradients = [
         ['#667eea', '#764ba2'],
@@ -497,7 +560,7 @@ const styles = StyleSheet.create({
     avatarButton: {
         padding: Spacing.xs,
     },
-    // Hero styles
+
     heroContainer: {
         marginHorizontal: Layout.screenPadding,
         marginBottom: Spacing.lg,
@@ -547,7 +610,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: FontSizes.md,
     },
-    // Quick actions
+
     quickActions: {
         flexDirection: 'row',
         paddingHorizontal: Layout.screenPadding,
@@ -559,17 +622,23 @@ const styles = StyleSheet.create({
     },
     quickActionCard: {
         alignItems: 'center',
-        gap: Spacing.sm,
-        minHeight: 90,
+        gap: Spacing.xs,
+        minHeight: 100,
         justifyContent: 'center',
+        paddingVertical: Spacing.sm,
     },
     quickActionText: {
         fontSize: FontSizes.sm,
         color: Colors.text,
-        fontWeight: '500',
+        fontWeight: '600',
         textAlign: 'center',
     },
-    // Play from Link styles
+    quickActionSubtext: {
+        fontSize: FontSizes.xs,
+        color: Colors.textTertiary,
+        textAlign: 'center',
+    },
+
     playFromLinkContainer: {
         paddingHorizontal: Layout.screenPadding,
         marginBottom: Spacing.lg,
@@ -626,7 +695,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    // Section styles
+
     section: {
         marginBottom: Spacing.xl,
     },
@@ -651,7 +720,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: Layout.screenPadding,
         gap: Spacing.md,
     },
-    // Continue watching card
+
     continueCard: {
         width: CARD_WIDTH,
     },
@@ -686,7 +755,7 @@ const styles = StyleSheet.create({
         color: Colors.text,
         fontWeight: '500',
     },
-    // Playlist grid
+
     playlistGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -728,7 +797,7 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         fontWeight: '500',
     },
-    // Empty state
+
     emptyContainer: {
         paddingHorizontal: Layout.screenPadding,
         marginTop: Spacing.xl,
@@ -768,6 +837,66 @@ const styles = StyleSheet.create({
         fontSize: FontSizes.md,
         fontWeight: '600',
         color: '#fff',
+    },
+
+    guideContainer: {
+        marginHorizontal: Layout.screenPadding,
+        marginBottom: Spacing.lg,
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.lg,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        padding: Spacing.md,
+    },
+    guideHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        marginBottom: Spacing.md,
+    },
+    guideTitle: {
+        fontSize: FontSizes.md,
+        fontWeight: '600',
+        color: Colors.text,
+    },
+    guideItems: {
+        gap: Spacing.sm,
+    },
+    guideItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.backgroundCard,
+        borderRadius: BorderRadius.md,
+        padding: Spacing.sm,
+        gap: Spacing.sm,
+    },
+    guideIconBg: {
+        width: 40,
+        height: 40,
+        borderRadius: BorderRadius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    guideTextContainer: {
+        flex: 1,
+    },
+    guideItemTitle: {
+        fontSize: FontSizes.sm,
+        fontWeight: '600',
+        color: Colors.text,
+    },
+    guideItemDesc: {
+        fontSize: FontSizes.xs,
+        color: Colors.textSecondary,
+        marginTop: 2,
+    },
+    hideGuideBtn: {
+        marginTop: Spacing.md,
+        alignItems: 'center',
+    },
+    hideGuideText: {
+        fontSize: FontSizes.sm,
+        color: Colors.textTertiary,
     },
 });
 

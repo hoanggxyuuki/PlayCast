@@ -1,4 +1,4 @@
-// Channel List Item Component
+
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +27,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
       onPress={onPress}
     >
       <View style={styles.content}>
-        {/* Channel Logo */}
+        {}
         {channel.logo ? (
           <Image
             source={{ uri: channel.logo }}
@@ -40,7 +40,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
           </View>
         )}
 
-        {/* Channel Info */}
+        {}
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>
             {channel.name}
@@ -52,7 +52,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
           )}
         </View>
 
-        {/* Favorite Button */}
+        {}
         {onToggleFavorite && (
           <Button
             title=""
@@ -67,7 +67,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
           />
         )}
 
-        {/* Play Icon */}
+        {}
         <View style={styles.playIcon}>
           <Ionicons name="play-circle" size={28} color={Colors.primary} />
         </View>
@@ -78,7 +78,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    // Removed as handled by Card component
+
   },
   content: {
     flexDirection: 'row',

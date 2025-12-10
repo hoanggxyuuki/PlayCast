@@ -1,4 +1,4 @@
-// Advanced Search Screen with Filters
+
 import React, { useMemo, useState } from 'react';
 import {
   ScrollView,
@@ -24,12 +24,12 @@ export const SearchScreen = () => {
   const [sortBy, setSortBy] = useState<SortType>('name');
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
 
-  // Get all channels from all playlists
+
   const allChannels = useMemo(() => {
     return playlists.flatMap(p => p.channels);
   }, [playlists]);
 
-  // Get all unique groups
+
   const allGroups = useMemo(() => {
     const groups = new Set<string>();
     allChannels.forEach(channel => {
@@ -38,21 +38,21 @@ export const SearchScreen = () => {
     return Array.from(groups).sort();
   }, [allChannels]);
 
-  // Filter and search channels
+
   const filteredChannels = useMemo(() => {
     let channels = allChannels;
 
-    // Apply filter type
+
     if (activeFilter === 'favorites') {
       channels = channels.filter(c => isFavorite(c.id));
     }
 
-    // Apply group filter
+
     if (selectedGroups.length > 0) {
       channels = channels.filter(c => c.group && selectedGroups.includes(c.group));
     }
 
-    // Apply search query
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       channels = channels.filter(
@@ -62,12 +62,12 @@ export const SearchScreen = () => {
       );
     }
 
-    // Apply sorting
+
     channels = [...channels].sort((a, b) => {
       if (sortBy === 'name') {
         return a.name.localeCompare(b.name);
       }
-      // Add more sorting options
+
       return 0;
     });
 
@@ -89,7 +89,7 @@ export const SearchScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Search Bar */}
+      {}
       <View style={styles.searchSection}>
         <Input
           value={searchQuery}
@@ -102,7 +102,7 @@ export const SearchScreen = () => {
           containerStyle={styles.searchBar}
         />
 
-        {/* Filter Chips */}
+        {}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -134,7 +134,7 @@ export const SearchScreen = () => {
           ))}
         </ScrollView>
 
-        {/* Results Count & Clear */}
+        {}
         <View style={styles.resultsBar}>
           <Text style={styles.resultsText}>
             {filteredChannels.length} {t('channels')}
@@ -150,7 +150,7 @@ export const SearchScreen = () => {
         </View>
       </View>
 
-      {/* Results */}
+      {}
       {filteredChannels.length === 0 ? (
         <EmptyState
           icon="search-outline"
@@ -164,7 +164,7 @@ export const SearchScreen = () => {
             <ChannelItem
               channel={item}
               onPress={() => {
-                // TODO: Navigate to player with this channel
+
                 console.log('Play channel:', item.name);
               }}
               isFavorite={isFavorite(item.id)}
@@ -178,7 +178,7 @@ export const SearchScreen = () => {
             description: t('tryDifferentSearch'),
           }}
           contentContainerStyle={styles.list}
-          estimatedItemSize={80} // Approximate height for ChannelItem
+          estimatedItemSize={80} 
         />
       )}
     </SafeAreaView>
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   searchInput: {
-    // Removed as handled by Input component
+
   },
   filterChips: {
     flexDirection: 'row',
@@ -207,16 +207,16 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   chip: {
-    // Removed as handled by Chip component
+
   },
   chipActive: {
-    // Removed as handled by Chip component
+
   },
   chipText: {
-    // Removed as handled by Chip component
+
   },
   chipTextActive: {
-    // Removed as handled by Chip component
+
   },
   resultsBar: {
     flexDirection: 'row',
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   clearText: {
-    // Removed as handled by Chip component
+
   },
   list: {
     padding: Spacing.md,

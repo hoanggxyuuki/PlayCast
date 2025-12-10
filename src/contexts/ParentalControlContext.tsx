@@ -1,4 +1,4 @@
-// Parental Control Context
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
@@ -10,7 +10,7 @@ interface ParentalControlSettings {
   restrictedChannels: string[];
   requirePinForSettings: boolean;
   requirePinForAdultContent: boolean;
-  ageRating: number; // 0 = all, 12, 16, 18
+  ageRating: number; 
 }
 
 interface ParentalControlContextType {
@@ -80,7 +80,7 @@ export const ParentalControlProvider = ({ children }: { children: ReactNode }) =
 
     if (pin === settings.pin) {
       setIsLocked(false);
-      // Auto-lock after 5 minutes
+
       setTimeout(() => setIsLocked(true), 5 * 60 * 1000);
       return true;
     }
@@ -152,17 +152,17 @@ export const ParentalControlProvider = ({ children }: { children: ReactNode }) =
   const isChannelRestricted = (channelId: string, category?: string): boolean => {
     if (!settings.enabled) return false;
 
-    // Check if channel is explicitly restricted
+
     if (settings.restrictedChannels.includes(channelId)) {
       return true;
     }
 
-    // Check if category is restricted
+
     if (category && settings.restrictedCategories.includes(category)) {
       return true;
     }
 
-    // Check adult content keywords
+
     if (settings.requirePinForAdultContent && category) {
       const adultKeywords = ['adult', '18+', 'xxx', 'mature', 'porn'];
       const lowerCategory = category.toLowerCase();

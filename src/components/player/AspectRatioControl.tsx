@@ -1,4 +1,4 @@
-// Aspect Ratio Control Component
+
 import React from 'react';
 import {
   View,

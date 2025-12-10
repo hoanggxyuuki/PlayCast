@@ -1,5 +1,5 @@
-// Online Result Card - Display search results from YouTube, SoundCloud, Spotify
-// With favorite toggle button
+
+
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -69,7 +69,7 @@ export const OnlineResultCard: React.FC<OnlineResultCardProps> = ({
             thumbnail: result.thumbnail,
             duration: result.duration,
             viewCount: result.viewCount,
-            // Platform-specific
+
             videoId: result.platform === 'youtube' ? result.id : undefined,
             permalinkUrl: result.platform === 'soundcloud' ? result.streamUrl : undefined,
         };
@@ -82,40 +82,40 @@ export const OnlineResultCard: React.FC<OnlineResultCardProps> = ({
             onPress={() => onPlay(result)}
             activeOpacity={0.7}
         >
-            {/* Thumbnail */}
+            {}
             <View style={styles.thumbnailContainer}>
                 <Image
                     source={{ uri: result.thumbnail || 'https://via.placeholder.com/120x90?text=No+Image' }}
                     style={styles.thumbnail}
                     resizeMode="cover"
                 />
-                {/* Duration badge */}
+                {}
                 <View style={styles.durationBadge}>
                     <Text style={styles.durationText}>{formattedDuration}</Text>
                 </View>
-                {/* Platform badge */}
+                {}
                 <View style={[styles.platformBadge, { backgroundColor: platformColor }]}>
                     <Ionicons name={platformIcon} size={12} color="#fff" />
                 </View>
-                {/* Play overlay */}
+                {}
                 <View style={styles.playOverlay}>
                     <Ionicons name="play" size={32} color="#fff" />
                 </View>
             </View>
 
-            {/* Content */}
+            {}
             <View style={styles.content}>
-                {/* Title */}
+                {}
                 <Text style={styles.title} numberOfLines={2}>
                     {result.title}
                 </Text>
 
-                {/* Artist */}
+                {}
                 <Text style={styles.artist} numberOfLines={1}>
                     {result.artist}
                 </Text>
 
-                {/* Meta info */}
+                {}
                 <View style={styles.metaContainer}>
                     {formattedViews && (
                         <View style={styles.metaItem}>
@@ -129,7 +129,7 @@ export const OnlineResultCard: React.FC<OnlineResultCardProps> = ({
                     </View>
                 </View>
 
-                {/* Actions */}
+                {}
                 <View style={styles.actions}>
                     <TouchableOpacity
                         style={[styles.playButton, { backgroundColor: platformColor }]}
@@ -139,7 +139,7 @@ export const OnlineResultCard: React.FC<OnlineResultCardProps> = ({
                         <Text style={styles.playButtonText}>Play</Text>
                     </TouchableOpacity>
 
-                    {/* Favorite button */}
+                    {}
                     <TouchableOpacity
                         style={[
                             styles.favoriteButton,

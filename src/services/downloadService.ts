@@ -39,13 +39,13 @@ class DownloadServiceClass {
     async init(): Promise<void> {
         if (this.initialized) return;
 
-        // Ensure download directory exists
+
         const dirInfo = await FileSystem.getInfoAsync(DOWNLOAD_DIR);
         if (!dirInfo.exists) {
             await FileSystem.makeDirectoryAsync(DOWNLOAD_DIR, { intermediates: true });
         }
 
-        // Load saved downloads
+
         await this.loadDownloads();
         this.initialized = true;
         console.log('[Downloads] Initialized with', this.downloads.size, 'items');
@@ -57,7 +57,7 @@ class DownloadServiceClass {
             if (stored) {
                 const items: DownloadItem[] = JSON.parse(stored);
                 for (const item of items) {
-                    // Verify file still exists
+
                     const info = await FileSystem.getInfoAsync(item.localPath);
                     if (info.exists) {
                         this.downloads.set(item.id, {
@@ -93,13 +93,13 @@ class DownloadServiceClass {
     ): Promise<string> {
         await this.init();
 
-        // Generate filename
+
         const extension = mimeType.includes('audio') ? 'mp3' : 'mp4';
         const safeTitle = title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
         const filename = `${safeTitle}_${Date.now()}.${extension}`;
         const localPath = `${DOWNLOAD_DIR}${filename}`;
 
-        // Create download task
+
         const downloadResumable = FileSystem.createDownloadResumable(
             sourceUrl,
             localPath,
@@ -118,7 +118,7 @@ class DownloadServiceClass {
 
         this.activeDownloads.set(id, downloadResumable);
 
-        // Notify start
+
         this.notifyProgress(id, {
             id,
             progress: 0,
@@ -231,7 +231,7 @@ class DownloadServiceClass {
         }
         this.progressCallbacks.get(id)!.push(callback);
 
-        // Return unsubscribe function
+
         return () => {
             const callbacks = this.progressCallbacks.get(id);
             if (callbacks) {

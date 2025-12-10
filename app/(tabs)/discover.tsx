@@ -1,4 +1,4 @@
-// Discover Tab - Combines local files, online search, and add links
+
 import { DiscoverScreen } from '@/src/screens/DiscoverScreen';
 import { useLocalSearchParams } from 'expo-router';
 

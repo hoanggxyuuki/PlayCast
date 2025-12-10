@@ -1,7 +1,4 @@
-/**
- * Subtitles Service - Fetch and parse YouTube captions
- * Based on yt-dlp _extract_captions (line 2683-2750)
- */
+
 
 export interface SubtitleTrack {
     id: string;
@@ -13,20 +10,18 @@ export interface SubtitleTrack {
 }
 
 export interface SubtitleCue {
-    start: number; // seconds
+    start: number; 
     end: number;
     text: string;
 }
 
 class SubtitlesServiceClass {
-    /**
-     * Fetch available subtitle tracks for a YouTube video
-     */
+
     async getYouTubeSubtitles(videoId: string): Promise<SubtitleTrack[]> {
         const tracks: SubtitleTrack[] = [];
 
         try {
-            // Request player data with captions
+
             const requestBody = {
                 context: {
                     client: {
@@ -70,14 +65,12 @@ class SubtitlesServiceClass {
         return tracks;
     }
 
-    /**
-     * Fetch and parse subtitle content (VTT/XML)
-     */
+
     async loadSubtitleTrack(track: SubtitleTrack): Promise<SubtitleCue[]> {
         const cues: SubtitleCue[] = [];
 
         try {
-            // Request VTT format
+
             const url = `${track.url}&fmt=vtt`;
             const response = await fetch(url);
 
@@ -92,9 +85,7 @@ class SubtitlesServiceClass {
         return cues;
     }
 
-    /**
-     * Parse WebVTT format
-     */
+
     parseVTT(content: string): SubtitleCue[] {
         const cues: SubtitleCue[] = [];
         const lines = content.split('\n');
@@ -106,21 +97,21 @@ class SubtitlesServiceClass {
         for (const line of lines) {
             const trimmedLine = line.trim();
 
-            // Skip WEBVTT header and empty lines
+
             if (trimmedLine.startsWith('WEBVTT') || trimmedLine.startsWith('NOTE')) {
                 continue;
             }
 
-            // Timestamp line
+
             const timestampMatch = trimmedLine.match(/(\d{2}:\d{2}:\d{2}\.\d{3}|\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3}|\d{2}:\d{2}\.\d{3})/);
             if (timestampMatch) {
-                // Save previous cue if exists
+
                 if (inCue && textLines.length > 0) {
                     currentCue.text = textLines.join('\n');
                     cues.push(currentCue as SubtitleCue);
                 }
 
-                // Start new cue
+
                 currentCue = {
                     start: this.parseTimestamp(timestampMatch[1]),
                     end: this.parseTimestamp(timestampMatch[2]),
@@ -130,7 +121,7 @@ class SubtitlesServiceClass {
                 continue;
             }
 
-            // Empty line ends cue
+
             if (trimmedLine === '') {
                 if (inCue && textLines.length > 0) {
                     currentCue.text = textLines.join('\n');
@@ -142,9 +133,9 @@ class SubtitlesServiceClass {
                 continue;
             }
 
-            // Text line
+
             if (inCue) {
-                // Remove VTT styling tags
+
                 const cleanText = trimmedLine.replace(/<[^>]+>/g, '');
                 if (cleanText) {
                     textLines.push(cleanText);
@@ -152,7 +143,7 @@ class SubtitlesServiceClass {
             }
         }
 
-        // Don't forget last cue
+
         if (inCue && textLines.length > 0) {
             currentCue.text = textLines.join('\n');
             cues.push(currentCue as SubtitleCue);
@@ -161,26 +152,22 @@ class SubtitlesServiceClass {
         return cues;
     }
 
-    /**
-     * Parse timestamp to seconds
-     */
+
     private parseTimestamp(timestamp: string): number {
         const parts = timestamp.split(':');
         if (parts.length === 2) {
-            // MM:SS.mmm
+
             const [minutes, seconds] = parts;
             return parseInt(minutes, 10) * 60 + parseFloat(seconds);
         } else if (parts.length === 3) {
-            // HH:MM:SS.mmm
+
             const [hours, minutes, seconds] = parts;
             return parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseFloat(seconds);
         }
         return 0;
     }
 
-    /**
-     * Get current cue for given time
-     */
+
     getCurrentCue(cues: SubtitleCue[], currentTime: number): SubtitleCue | null {
         for (const cue of cues) {
             if (currentTime >= cue.start && currentTime <= cue.end) {

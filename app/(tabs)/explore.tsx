@@ -27,7 +27,7 @@ export default function FavoritesTab() {
   const favoriteChannels = getFavoriteChannels();
 
   const handlePlayChannel = (channel: Channel) => {
-    // Get resume position from history
+
     const history = getHistoryForChannel(channel.id);
     const resumeTime = history?.currentTime || 0;
 
@@ -69,7 +69,7 @@ export default function FavoritesTab() {
         />
       )}
 
-      {/* Video Player Modal */}
+      {}
       {selectedChannel && (
         <Modal
           visible={showPlayer}

@@ -1,4 +1,4 @@
-// Enhanced Storage Service - Complete Implementation
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   AppSettings,
@@ -21,7 +21,7 @@ const STORAGE_KEYS = {
   CHANNEL_RATINGS: '@playcast_channel_ratings',
 };
 
-// Default settings
+
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
   language: 'en',
@@ -39,7 +39,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 export class StorageService {
-  // ========== PLAYLISTS ==========
+
 
   static async savePlaylists(playlists: Playlist[]): Promise<void> {
     try {
@@ -116,7 +116,7 @@ export class StorageService {
     }
   }
 
-  // ========== FAVORITES ==========
+
 
   static async saveFavorites(channelIds: string[]): Promise<void> {
     try {
@@ -162,7 +162,7 @@ export class StorageService {
     }
   }
 
-  // ========== WATCH HISTORY ==========
+
 
   static async saveWatchHistory(history: WatchHistory[]): Promise<void> {
     try {
@@ -196,14 +196,14 @@ export class StorageService {
       const existingIndex = history.findIndex(h => h.channelId === item.channelId);
 
       if (existingIndex !== -1) {
-        // Update existing entry
+
         history[existingIndex] = item;
       } else {
-        // Add new entry at the beginning
+
         history.unshift(item);
       }
 
-      // Keep only last 100 items
+
       const limitedHistory = history.slice(0, 100);
       await this.saveWatchHistory(limitedHistory);
     } catch (error) {
@@ -239,7 +239,7 @@ export class StorageService {
     }
   }
 
-  // ========== SETTINGS ==========
+
 
   static async saveSettings(settings: AppSettings): Promise<void> {
     try {
@@ -276,7 +276,7 @@ export class StorageService {
     }
   }
 
-  // ========== QUEUE ==========
+
 
   static async saveQueue(queue: QueueItem[]): Promise<void> {
     try {
@@ -308,7 +308,7 @@ export class StorageService {
     try {
       const queue = await this.loadQueue();
 
-      // Check if already in queue
+
       if (queue.some(item => item.channel.id === channel.id)) {
         return;
       }
@@ -351,7 +351,7 @@ export class StorageService {
       const [movedItem] = queue.splice(from, 1);
       queue.splice(to, 0, movedItem);
 
-      // Update positions
+
       const reorderedQueue = queue.map((item, index) => ({
         ...item,
         position: index,
@@ -363,7 +363,7 @@ export class StorageService {
     }
   }
 
-  // ========== USER STATS ==========
+
 
   static async saveUserStats(stats: UserStats): Promise<void> {
     try {
@@ -402,7 +402,7 @@ export class StorageService {
       const stats = await this.loadUserStats();
       stats.totalWatchTime += minutes;
 
-      // Update weekly watch time (current day of week)
+
       const dayOfWeek = new Date().getDay();
       stats.weeklyWatchTime[dayOfWeek] += minutes;
 
@@ -422,7 +422,7 @@ export class StorageService {
     }
   }
 
-  // ========== CHANNEL RATINGS ==========
+
 
   static async saveChannelRating(channelId: string, rating: number): Promise<void> {
     try {
@@ -449,7 +449,7 @@ export class StorageService {
     }
   }
 
-  // ========== UTILITIES ==========
+
 
   static async clearAll(): Promise<void> {
     try {

@@ -1,4 +1,4 @@
-// Reusable Empty State Component
+
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -40,13 +40,13 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           style={styles.icon}
         />
       )}
-      
+
       <Text style={[styles.title, textStyle]}>{title}</Text>
-      
+
       {description && (
         <Text style={styles.description}>{description}</Text>
       )}
-      
+
       {action && (
         <View style={styles.actionContainer}>
           <Text style={styles.actionText} onPress={action.onPress}>

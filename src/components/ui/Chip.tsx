@@ -1,4 +1,4 @@
-// Reusable Chip Component
+
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -42,7 +42,7 @@ export const Chip: React.FC<ChipProps> = ({
       borderRadius: BorderRadius.full,
     };
 
-    // Size styles
+
     const sizeStyles = {
       small: {
         paddingHorizontal: Spacing.sm,
@@ -61,7 +61,7 @@ export const Chip: React.FC<ChipProps> = ({
       },
     };
 
-    // Variant styles
+
     const variantStyles = {
       default: {
         backgroundColor: selected ? Colors.primary : Colors.surface,
@@ -94,7 +94,7 @@ export const Chip: React.FC<ChipProps> = ({
       fontWeight: '600',
     };
 
-    // Size styles
+
     const sizeStyles = {
       small: {
         fontSize: FontSizes.xs,
@@ -107,7 +107,7 @@ export const Chip: React.FC<ChipProps> = ({
       },
     };
 
-    // Variant styles
+
     const variantStyles = {
       default: {
         color: selected ? Colors.text : Colors.textSecondary,

@@ -1,12 +1,10 @@
-// Share Service for Social Features
+
 import { Share, Platform } from 'react-native';
 import { ShareData, Channel } from '../types';
 import * as Clipboard from 'expo-clipboard';
 
 export class ShareService {
-  /**
-   * Share a channel via native share dialog
-   */
+
   static async shareChannel(channel: Channel): Promise<boolean> {
     try {
       const shareData: ShareData = {
@@ -38,9 +36,7 @@ export class ShareService {
     }
   }
 
-  /**
-   * Share playlist via native share dialog
-   */
+
   static async sharePlaylist(
     playlistName: string,
     channelCount: number,
@@ -63,9 +59,7 @@ export class ShareService {
     }
   }
 
-  /**
-   * Copy channel URL to clipboard
-   */
+
   static async copyChannelUrl(channel: Channel): Promise<boolean> {
     try {
       await Clipboard.setStringAsync(channel.url);
@@ -77,9 +71,7 @@ export class ShareService {
     }
   }
 
-  /**
-   * Copy playlist URL to clipboard
-   */
+
   static async copyPlaylistUrl(url: string): Promise<boolean> {
     try {
       await Clipboard.setStringAsync(url);
@@ -91,60 +83,46 @@ export class ShareService {
     }
   }
 
-  /**
-   * Generate WhatsApp share URL
-   */
+
   static getWhatsAppShareUrl(channel: Channel): string {
     const message = this.generateShareMessage(channel);
     const encodedMessage = encodeURIComponent(message);
     return `whatsapp://send?text=${encodedMessage}`;
   }
 
-  /**
-   * Generate Telegram share URL
-   */
+
   static getTelegramShareUrl(channel: Channel): string {
     const message = this.generateShareMessage(channel);
     const encodedMessage = encodeURIComponent(message);
     return `https://t.me/share/url?url=${encodeURIComponent(channel.url)}&text=${encodedMessage}`;
   }
 
-  /**
-   * Generate Facebook share URL
-   */
+
   static getFacebookShareUrl(channel: Channel): string {
     return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(channel.url)}`;
   }
 
-  /**
-   * Generate Twitter share URL
-   */
+
   static getTwitterShareUrl(channel: Channel): string {
     const message = this.generateShareMessage(channel);
     return `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(channel.url)}`;
   }
 
-  /**
-   * Generate email share URL
-   */
+
   static getEmailShareUrl(channel: Channel): string {
     const subject = `Check out ${channel.name}`;
     const body = this.generateShareMessage(channel);
     return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
 
-  /**
-   * Generate SMS share URL
-   */
+
   static getSMSShareUrl(channel: Channel): string {
     const message = this.generateShareMessage(channel);
     const separator = Platform.OS === 'ios' ? '&' : '?';
     return `sms:${separator}body=${encodeURIComponent(message)}`;
   }
 
-  /**
-   * Generate share message for a channel
-   */
+
   private static generateShareMessage(channel: Channel): string {
     let message = `🎬 Watch "${channel.name}"`;
 
@@ -158,9 +136,7 @@ export class ShareService {
     return message;
   }
 
-  /**
-   * Get all available share options
-   */
+
   static getShareOptions() {
     return [
       {
@@ -214,9 +190,7 @@ export class ShareService {
     ];
   }
 
-  /**
-   * Share app itself (for inviting friends)
-   */
+
   static async shareApp(): Promise<boolean> {
     try {
       const message = `🎬 Check out PlayCast IPTV - Professional IPTV Player!\n\nFeatures:\n✓ M3U & JSON playlist support\n✓ Direct media URLs\n✓ Advanced video player\n✓ Smart recommendations\n✓ And much more!\n\nDownload now and enjoy!`;
@@ -233,9 +207,7 @@ export class ShareService {
     }
   }
 
-  /**
-   * Export favorites as M3U text
-   */
+
   static generateM3UFromChannels(channels: Channel[]): string {
     let m3u = '#EXTM3U\n\n';
 
@@ -265,9 +237,7 @@ export class ShareService {
     return m3u;
   }
 
-  /**
-   * Share favorites as M3U file
-   */
+
   static async shareFavoritesAsM3U(channels: Channel[]): Promise<boolean> {
     try {
       const m3uContent = this.generateM3UFromChannels(channels);

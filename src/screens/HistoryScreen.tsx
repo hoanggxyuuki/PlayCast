@@ -1,4 +1,4 @@
-// Watch History Screen
+
 import React, { useState } from 'react';
 import {
   View,
@@ -168,7 +168,7 @@ export const HistoryScreen = () => {
           )}
         </View>
 
-        {/* Progress bar */}
+        {}
         {item.duration > 0 && (
           <View style={styles.progressBarContainer}>
             <View
@@ -204,7 +204,7 @@ export const HistoryScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
+      {}
       <View style={[styles.header, { paddingTop: Spacing.md }]}>
         <Text style={styles.headerTitle}>{t('watchHistory')}</Text>
         {history.length > 0 && (
@@ -214,13 +214,13 @@ export const HistoryScreen = () => {
         )}
       </View>
 
-      {/* Stats Cards */}
+      {}
       {renderStatsCard()}
 
-      {/* Favorite Categories */}
+      {}
       {renderFavoriteCategories()}
 
-      {/* Tab Selector */}
+      {}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, selectedTab === 'all' && styles.tabActive]}
@@ -251,7 +251,7 @@ export const HistoryScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* History List */}
+      {}
       <FlatList
         data={displayHistory}
         renderItem={renderHistoryItem}

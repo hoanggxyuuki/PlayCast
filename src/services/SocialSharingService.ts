@@ -1,4 +1,4 @@
-// Social Sharing & Export Service
+
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -6,9 +6,7 @@ import { Alert } from 'react-native';
 import { Playlist } from '../types';
 
 class SocialSharingService {
-  /**
-   * Share playlist with friends
-   */
+
   async sharePlaylist(playlist: Playlist): Promise<void> {
     try {
       const playlistData = JSON.stringify(playlist, null, 2);
@@ -33,9 +31,7 @@ class SocialSharingService {
     }
   }
 
-  /**
-   * Export all playlists
-   */
+
   async exportPlaylists(playlists: Playlist[]): Promise<void> {
     try {
       const exportData = {
@@ -65,9 +61,7 @@ class SocialSharingService {
     }
   }
 
-  /**
-   * Import playlists from file
-   */
+
   async importPlaylists(fileUri: string): Promise<Playlist[]> {
     try {
       const content = await FileSystem.readAsStringAsync(fileUri);
@@ -87,9 +81,7 @@ class SocialSharingService {
     }
   }
 
-  /**
-   * Export app settings
-   */
+
   async exportSettings(): Promise<void> {
     try {
       const keys = await AsyncStorage.getAllKeys();
@@ -133,9 +125,7 @@ class SocialSharingService {
     }
   }
 
-  /**
-   * Import app settings
-   */
+
   async importSettings(fileUri: string): Promise<boolean> {
     try {
       const content = await FileSystem.readAsStringAsync(fileUri);
@@ -162,16 +152,14 @@ class SocialSharingService {
     }
   }
 
-  /**
-   * Share channel link
-   */
+
   async shareChannel(channelName: string, streamUrl: string): Promise<void> {
     try {
       const message = `Check out ${channelName} on PlayCast IPTV!\n\n${streamUrl}`;
 
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
-        // In real implementation, create a deep link or share directly
+
         Alert.alert('Share', message);
       }
     } catch (error) {
@@ -179,11 +167,9 @@ class SocialSharingService {
     }
   }
 
-  /**
-   * Generate shareable link for playlist
-   */
+
   generateShareableLink(playlist: Playlist): string {
-    // In real implementation, this would create a deep link or upload to cloud
+
     const encoded = encodeURIComponent(JSON.stringify({
       name: playlist.name,
       url: playlist.url,
@@ -193,9 +179,7 @@ class SocialSharingService {
     return `playcast://import?data=${encoded}`;
   }
 
-  /**
-   * Parse shareable link
-   */
+
   parseShareableLink(link: string): Partial<Playlist> | null {
     try {
       const url = new URL(link);

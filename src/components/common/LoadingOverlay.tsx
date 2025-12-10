@@ -1,4 +1,4 @@
-// Loading Overlay Component
+
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, FontSizes } from '../../constants/theme';

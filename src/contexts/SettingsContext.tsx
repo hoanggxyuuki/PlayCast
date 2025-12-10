@@ -1,7 +1,7 @@
-// Settings Context for App Configuration
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AppSettings } from '../types';
+
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { StorageService } from '../services/storageService';
+import { AppSettings } from '../types';
 
 interface SettingsContextType {
   settings: AppSettings;
@@ -12,7 +12,7 @@ interface SettingsContextType {
 
 const defaultSettings: AppSettings = {
   theme: 'dark',
-  language: 'en',
+  language: 'vi',
   autoPlayNext: true,
   defaultPlaybackSpeed: 1.0,
   defaultQuality: 'auto',
@@ -32,7 +32,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load settings on mount
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -42,7 +42,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
       setIsLoading(true);
       const savedSettings = await StorageService.loadSettings();
 
-      // Merge with defaults to ensure all fields exist
+
       const mergedSettings = { ...defaultSettings, ...savedSettings };
       setSettings(mergedSettings);
     } catch (error) {
@@ -90,7 +90,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   );
 };
 
-// Custom hook to use settings
+
 export const useSettings = (): SettingsContextType => {
   const context = useContext(SettingsContext);
   if (!context) {
@@ -99,7 +99,7 @@ export const useSettings = (): SettingsContextType => {
   return context;
 };
 
-// Helper hooks for specific settings
+
 export const useTheme = () => {
   const { settings, updateSettings } = useSettings();
   return {

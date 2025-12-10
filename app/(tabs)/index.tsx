@@ -1,4 +1,4 @@
-// Home Tab - New Modern Design
+
 import { NewHomeScreen } from '@/src/screens/NewHomeScreen';
 import { useRouter } from 'expo-router';
 

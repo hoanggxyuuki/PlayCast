@@ -1,10 +1,4 @@
-/**
- * Online Search Service for YouTube & SoundCloud
- * 
- * Based on yt-dlp (https://github.com/yt-dlp/yt-dlp) extraction patterns:
- * - YouTube: Uses innertube API (youtubei/v1/search and youtubei/v1/player)
- * - SoundCloud: Uses api-v2.soundcloud.com with client_id extraction
- */
+
 
 import { Platform } from 'react-native';
 import { Channel } from '../types';
@@ -57,7 +51,7 @@ export interface OnlineSearchResult {
 
 export interface VideoQualityOption {
     itag: number;
-    quality: string; // e.g., "360p", "720p", "1080p"
+    quality: string; 
     mimeType: string;
     bitrate: number;
     url: string;
@@ -66,16 +60,16 @@ export interface VideoQualityOption {
     qualityLabel?: string;
 }
 
-// ============= YOUTUBE INNERTUBE CONFIG (from yt-dlp _base.py) =============
 
-// Innertube clients (from yt-dlp INNERTUBE_CLIENTS)
+
+
 const INNERTUBE_CLIENTS = {
-    // Web client (line 98-109)
+
     web: {
         clientName: 'WEB',
         clientVersion: '2.20250925.01.00',
     },
-    // Android client (line 194-206) - often has direct URLs without signature
+
     android: {
         clientName: 'ANDROID',
         clientVersion: '20.10.38',
@@ -84,7 +78,7 @@ const INNERTUBE_CLIENTS = {
         osName: 'Android',
         osVersion: '11',
     },
-    // iOS client (line 259-287)
+
     ios: {
         clientName: 'IOS',
         clientVersion: '20.10.4',
@@ -94,7 +88,7 @@ const INNERTUBE_CLIENTS = {
         osName: 'iPhone',
         osVersion: '18.3.2.22D82',
     },
-    // TV HTML5 client (line 321-332) - sometimes bypasses restrictions
+
     tv: {
         clientName: 'TVHTML5',
         clientVersion: '7.20250923.13.00',
@@ -102,10 +96,10 @@ const INNERTUBE_CLIENTS = {
     },
 };
 
-// Search params for videos only (from yt-dlp _search.py line 12)
+
 const YOUTUBE_SEARCH_PARAMS = 'EgIQAfABAQ==';
 
-// ============= SOUNDCLOUD CONFIG (from yt-dlp soundcloud.py) =============
+
 
 const SOUNDCLOUD_API_V2_BASE = 'https://api-v2.soundcloud.com/';
 const SOUNDCLOUD_DEFAULT_CLIENT_ID = 'a3e059563d7fd3372b49b37f00a00bcf';
@@ -116,7 +110,7 @@ class OnlineSearchServiceClass {
     private soundCloudClientId: string | null = null;
     private isWeb = Platform.OS === 'web';
 
-    // ============= UTILITY METHODS =============
+
 
     async getYouTubeVideoDetails(videoId: string): Promise<YouTubeResult> {
         try {
@@ -182,7 +176,7 @@ class OnlineSearchServiceClass {
         return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
     }
 
-    // Build innertube context (from yt-dlp _extract_context)
+
     private buildInnertubeContext(clientKey: keyof typeof INNERTUBE_CLIENTS) {
         const client = INNERTUBE_CLIENTS[clientKey];
         return {
@@ -196,7 +190,7 @@ class OnlineSearchServiceClass {
         };
     }
 
-    // ============= YOUTUBE INNERTUBE SEARCH (yt-dlp method) =============
+
 
     async searchYouTube(query: string): Promise<YouTubeResult[]> {
         try {
@@ -292,18 +286,9 @@ class OnlineSearchServiceClass {
         }
     }
 
-    // ============= YOUTUBE INNERTUBE PLAYER (yt-dlp method) =============
 
-    /**
-     * Get YouTube stream URL using innertube player API
-     * Based on yt-dlp _extract_player_response (line 2847) and format extraction (line 3140)
-     * 
-     * Tries multiple clients in order:
-     * 1. Android - often has direct URLs without signature cipher
-     * 2. iOS - fallback
-     * 3. TV - another fallback
-     * 4. Web - last resort
-     */
+
+
     async getYouTubeStreamUrl(videoId: string): Promise<string> {
         const clientsToTry: (keyof typeof INNERTUBE_CLIENTS)[] = ['android', 'ios', 'tv', 'web'];
 
@@ -327,11 +312,11 @@ class OnlineSearchServiceClass {
     private async _extractStreamFromClient(videoId: string, clientKey: keyof typeof INNERTUBE_CLIENTS): Promise<string | null> {
         const context = this.buildInnertubeContext(clientKey);
 
-        // Build player request (from yt-dlp line 2863-2884)
+
         const requestBody = {
             context: context,
             videoId: videoId,
-            // contentCheckOk and racyCheckOk can help bypass some restrictions
+
             contentCheckOk: true,
             racyCheckOk: true,
         };
@@ -364,7 +349,7 @@ class OnlineSearchServiceClass {
 
         const data = await response.json();
 
-        // Check playability status (yt-dlp line 2832-2845)
+
         const playabilityStatus = data?.playabilityStatus;
         if (playabilityStatus?.status !== 'OK') {
             const reason = playabilityStatus?.reason || playabilityStatus?.status || 'Unknown error';
@@ -372,14 +357,14 @@ class OnlineSearchServiceClass {
             return null;
         }
 
-        // Extract formats from streamingData (yt-dlp line 3056, 3212)
+
         const streamingData = data?.streamingData;
         if (!streamingData) {
             console.log(`[YouTube] ${clientKey}: No streaming data`);
             return null;
         }
 
-        // Combine formats and adaptiveFormats
+
         const allFormats = [
             ...(streamingData.formats || []),
             ...(streamingData.adaptiveFormats || []),
@@ -390,18 +375,18 @@ class OnlineSearchServiceClass {
             return null;
         }
 
-        // PRIORITY 1: Try combined video+audio formats first (expo-video may not support audio-only)
-        // These are the "formats" not "adaptiveFormats" - they have both video+audio
-        // Only select formats that have BOTH video and audio codecs
+
+
+
         const combinedFormats = (streamingData.formats || []).filter((f: any) =>
             f.url &&
             !f.signatureCipher &&
-            f.mimeType?.includes('video/') && // Must be video format
-            f.audioQuality // Must have audio quality (means it has audio track)
+            f.mimeType?.includes('video/') && 
+            f.audioQuality 
         );
 
         if (combinedFormats.length > 0) {
-            // Prefer medium quality (360p/480p - itag 18) for smooth playback
+
             combinedFormats.sort((a: any, b: any) => (a.bitrate || 0) - (b.bitrate || 0));
             const chosen = combinedFormats[0];
             console.log(`[YouTube] ${clientKey}: Found ${combinedFormats.length} combined video+audio formats`);
@@ -410,21 +395,21 @@ class OnlineSearchServiceClass {
         }
 
 
-        // PRIORITY 2: HLS manifest (supports both video and audio)
+
         if (streamingData.hlsManifestUrl) {
             console.log(`[YouTube] ${clientKey}: Using HLS manifest`);
             return streamingData.hlsManifestUrl;
         }
 
-        // PRIORITY 3: Try mp4 audio formats (may not work with expo-video VideoView)
+
         const audioFormats = allFormats.filter((f: any) =>
-            f.url && // Must have direct URL (no signatureCipher)
-            f.mimeType?.includes('audio/') && // Audio only
-            !f.signatureCipher // No cipher = direct playable URL
+            f.url && 
+            f.mimeType?.includes('audio/') && 
+            !f.signatureCipher 
         );
 
         if (audioFormats.length > 0) {
-            // Separate mp4 and webm formats
+
             const mp4Audio = audioFormats.filter((f: any) =>
                 f.mimeType?.includes('audio/mp4') || f.mimeType?.includes('audio/m4a')
             );
@@ -434,7 +419,7 @@ class OnlineSearchServiceClass {
 
             console.log(`[YouTube] ${clientKey}: Found ${mp4Audio.length} mp4 audio, ${webmAudio.length} webm audio formats`);
 
-            // Prefer mp4 formats (better mobile compatibility)
+
             if (mp4Audio.length > 0) {
                 mp4Audio.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
                 console.log(`[YouTube] ${clientKey}: Using mp4 audio format (may not work with VideoView)`);
@@ -442,7 +427,7 @@ class OnlineSearchServiceClass {
             }
         }
 
-        // PRIORITY 4: Any video format with direct URL
+
         const videoFormats = allFormats.filter((f: any) =>
             f.url &&
             !f.signatureCipher
@@ -456,13 +441,13 @@ class OnlineSearchServiceClass {
 
 
 
-        // If all formats require signatureCipher, we can't use them without JS runtime
+
         const cipherFormats = allFormats.filter((f: any) => f.signatureCipher);
         if (cipherFormats.length > 0) {
             console.log(`[YouTube] ${clientKey}: ${cipherFormats.length} formats require signature decryption (not supported)`);
         }
 
-        // Try HLS manifest as last resort
+
         if (streamingData.hlsManifestUrl) {
             console.log(`[YouTube] ${clientKey}: Using HLS manifest`);
             return streamingData.hlsManifestUrl;
@@ -471,9 +456,7 @@ class OnlineSearchServiceClass {
         return null;
     }
 
-    /**
-     * Get all available quality options for a YouTube video
-     */
+
     static async getYouTubeQualityOptions(videoId: string): Promise<VideoQualityOption[]> {
         const instance = new OnlineSearchService();
         const options: VideoQualityOption[] = [];
@@ -516,7 +499,7 @@ class OnlineSearchServiceClass {
                 const streamingData = data?.streamingData;
                 if (!streamingData) continue;
 
-                // Get combined formats (video+audio)
+
                 const formats = [...(streamingData.formats || [])];
 
                 for (const f of formats) {
@@ -535,7 +518,7 @@ class OnlineSearchServiceClass {
                 }
 
                 if (options.length > 0) {
-                    // Sort by quality (higher first)
+
                     options.sort((a, b) => b.bitrate - a.bitrate);
                     console.log(`[YouTube] Found ${options.length} quality options`);
                     return options;
@@ -548,7 +531,7 @@ class OnlineSearchServiceClass {
         return options;
     }
 
-    // ============= SOUNDCLOUD (yt-dlp method) =============
+
 
     private async getSoundCloudClientId(): Promise<string> {
         if (this.soundCloudClientId) {
@@ -704,14 +687,14 @@ class OnlineSearchServiceClass {
         }
     }
 
-    // ============= SPOTIFY =============
+
 
     async searchSpotify(_query: string): Promise<SpotifyResult[]> {
         console.log('[Spotify] Not supported without API credentials');
         return [];
     }
 
-    // ============= HELPERS =============
+
 
     convertToChannel(result: OnlineSearchResult): Channel {
         return {

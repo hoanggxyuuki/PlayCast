@@ -1,22 +1,20 @@
-/**
- * OnlineFavoritesContext - Manage favorites for YouTube and SoundCloud content
- */
+
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
-// Types for online favorites
+
 export interface OnlineFavorite {
     id: string;
     platform: 'youtube' | 'soundcloud';
     title: string;
     artist: string;
     thumbnail: string;
-    duration: number; // in seconds for YT, milliseconds for SC
+    duration: number; 
     addedAt: Date;
-    // Platform specific
-    videoId?: string; // YouTube
-    permalinkUrl?: string; // SoundCloud
+
+    videoId?: string; 
+    permalinkUrl?: string; 
     viewCount?: number;
     playbackCount?: number;
 }
@@ -53,7 +51,7 @@ export const OnlineFavoritesProvider: React.FC<OnlineFavoritesProviderProps> = (
     const [favorites, setFavorites] = useState<OnlineFavorite[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Load favorites from storage on mount
+
     useEffect(() => {
         loadFavorites();
     }, []);
@@ -63,7 +61,7 @@ export const OnlineFavoritesProvider: React.FC<OnlineFavoritesProviderProps> = (
             const stored = await AsyncStorage.getItem(STORAGE_KEY);
             if (stored) {
                 const parsed = JSON.parse(stored);
-                // Convert date strings back to Date objects
+
                 const withDates = parsed.map((f: any) => ({
                     ...f,
                     addedAt: new Date(f.addedAt),
@@ -92,7 +90,7 @@ export const OnlineFavoritesProvider: React.FC<OnlineFavoritesProviderProps> = (
         };
 
         setFavorites((prev) => {
-            // Check if already exists
+
             if (prev.some((f) => f.id === item.id)) {
                 return prev;
             }
@@ -131,7 +129,7 @@ export const OnlineFavoritesProvider: React.FC<OnlineFavoritesProviderProps> = (
         console.log('[Favorites] Cleared all');
     }, []);
 
-    // Computed: filter by platform
+
     const youtubeFavorites = favorites.filter((f) => f.platform === 'youtube');
     const soundcloudFavorites = favorites.filter((f) => f.platform === 'soundcloud');
 

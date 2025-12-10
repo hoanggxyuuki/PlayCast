@@ -1,4 +1,4 @@
-// New Tab Layout - 4 Tabs: Home, Discover, Library, Settings
+
 import { Colors, Layout } from '@/src/constants/theme';
 import { useTranslation } from '@/src/i18n/useTranslation';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,7 +42,7 @@ export default function TabLayout() {
         ),
       }}
     >
-      {/* HOME TAB */}
+      {}
       <Tabs.Screen
         name="index"
         options={{
@@ -59,7 +59,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* DISCOVER TAB */}
+      {}
       <Tabs.Screen
         name="discover"
         options={{
@@ -76,7 +76,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* LIBRARY TAB */}
+      {}
       <Tabs.Screen
         name="library"
         options={{
@@ -93,7 +93,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* SETTINGS TAB */}
+      {}
       <Tabs.Screen
         name="settings"
         options={{
@@ -110,11 +110,11 @@ export default function TabLayout() {
         }}
       />
 
-      {/* HIDDEN TABS - Keep for routing but hide from tab bar */}
+      {}
       <Tabs.Screen
         name="explore"
         options={{
-          href: null, // Hide from tab bar
+          href: null, 
         }}
       />
       <Tabs.Screen

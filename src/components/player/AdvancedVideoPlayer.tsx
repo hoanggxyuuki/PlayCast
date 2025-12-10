@@ -1,4 +1,4 @@
-// Advanced Video Player with react-native-video for better PiP support
+
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -41,7 +41,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   onShuffleModeChange,
   playlistInfo,
 }) => {
-  // State
+
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -59,19 +59,19 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [showQualityMenu, setShowQualityMenu] = useState(false);
 
-  // Contexts
+
   const { addToHistory, updateProgress } = useHistory();
   const { playNext: queueNext, playPrevious: queuePrev, hasNext, hasPrevious } = useQueue();
   const { settings } = useSettings();
   const insets = useSafeAreaInsets();
 
-  // Refs
+
   const videoRef = useRef<VideoRef>(null);
   const controlsTimeout = useRef<NodeJS.Timeout>();
   const progressInterval = useRef<NodeJS.Timeout>();
   const controlsOpacity = useRef(new Animated.Value(1)).current;
 
-  // Handle orientation changes
+
   useEffect(() => {
     ScreenOrientation.unlockAsync();
 
@@ -89,7 +89,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     };
   }, []);
 
-  // Track progress for history
+
   useEffect(() => {
     if (!channel) return;
 
@@ -106,7 +106,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     };
   }, [channel, isPlaying, currentTime, duration]);
 
-  // Add to history on mount
+
   useEffect(() => {
     if (channel) {
       addToHistory({
@@ -122,14 +122,14 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [channel]);
 
-  // Auto-hide controls
+
   useEffect(() => {
     if (showControls && isPlaying) {
       resetControlsTimeout();
     }
   }, [showControls, isPlaying]);
 
-  // Sleep timer check
+
   useEffect(() => {
     const interval = setInterval(() => {
       if (SleepTimerService.isActive()) {
@@ -142,13 +142,13 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Video callbacks
+
   const onVideoLoad = (data: OnLoadData) => {
     console.log('Video loaded:', data.duration);
     setIsLoading(false);
     setDuration(data.duration);
 
-    // Resume from last position
+
     if (settings.continueWatching && startPosition > 0) {
       videoRef.current?.seek(startPosition);
     }
@@ -170,17 +170,17 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const onVideoEnd = () => {
-    // Handle loop modes
+
     if (loopMode === 'one') {
-      // Loop current track - seek back to start
+
       videoRef.current?.seek(0);
       setIsPlaying(true);
       return;
     }
 
-    // Auto play next if available
+
     if (onNext) {
-      // Use the provided onNext callback (supports shuffle/loop from parent)
+
       onNext();
     } else if (hasNext()) {
       const next = queueNext();
@@ -209,7 +209,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const showControlsAnimated = () => {
-    // Reset opacity to 1 immediately when showing (fixes re-show issue)
+
     controlsOpacity.setValue(1);
     setShowControls(true);
     resetControlsTimeout();
@@ -304,7 +304,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     <View style={styles.container}>
       <StatusBar hidden={isLandscape} />
 
-      {/* Video view with react-native-video */}
+      {}
       <View style={styles.videoContainer}>
         <Video
           ref={videoRef}
@@ -316,15 +316,15 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           volume={1.0}
           muted={false}
           repeat={false}
-          // For audio-only content, this prevents black screen
+
           audioOnly={channel.url.includes('soundcloud') || channel.group?.toLowerCase() === 'soundcloud'}
           poster={channel.logo}
           posterResizeMode="contain"
-          // PiP and background playback
+
           pictureInPicture={true}
           playInBackground={true}
           playWhenInactive={true}
-          // Lock screen / notification controls
+
           controls={false}
           showNotificationControls={true}
           metadata={{
@@ -332,7 +332,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
             artist: channel.group || 'PlayCast',
             imageUri: channel.logo,
           }}
-          // Callbacks
+
           onLoad={onVideoLoad}
           onProgress={onVideoProgress}
           onBuffer={onVideoBuffer}
@@ -340,7 +340,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           onEnd={onVideoEnd}
         />
 
-        {/* Audio artwork overlay (for SoundCloud/audio content - renders ON TOP of video) */}
+        {}
         {channel.logo && (channel.url.includes('soundcloud') || channel.group?.toLowerCase() === 'soundcloud') && (
           <View style={styles.audioArtworkContainer}>
             <Image
@@ -358,7 +358,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         )}
       </View>
 
-      {/* Touch overlay to capture taps (on top of video but below controls) */}
+      {}
       <TouchableOpacity
         style={styles.touchOverlay}
         activeOpacity={1}
@@ -374,7 +374,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         }}
       />
 
-      {/* Loading overlay */}
+      {}
       {
         (isLoading || isBuffering) && (
           <View style={styles.loadingContainer}>
@@ -386,11 +386,11 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         )
       }
 
-      {/* Controls overlay */}
+      {}
       {
         showControls && (
           <Animated.View style={[styles.controlsContainer, { opacity: controlsOpacity }]}>
-            {/* Top bar */}
+            {}
             <View style={[styles.topBar, { paddingTop: isLandscape ? Spacing.md : insets.top + Spacing.md }]}>
               <TouchableOpacity style={styles.iconButton} onPress={handleClose}>
                 <Ionicons name="close" size={28} color={Colors.text} />
@@ -421,7 +421,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Center controls */}
+            {}
             <View style={styles.centerControls}>
               <TouchableOpacity
                 style={styles.controlButton}
@@ -459,9 +459,9 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Bottom bar */}
+            {}
             <View style={[styles.bottomBar, { paddingBottom: isLandscape ? Spacing.md : insets.bottom + Spacing.md }]}>
-              {/* Progress bar */}
+              {}
               <View style={styles.progressContainer}>
                 <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
                 <Slider
@@ -477,9 +477,9 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 <Text style={styles.timeText}>{formatTime(duration)}</Text>
               </View>
 
-              {/* Bottom controls */}
+              {}
               <View style={styles.bottomControls}>
-                {/* Shuffle Button */}
+                {}
                 {onShuffleModeChange && (
                   <TouchableOpacity
                     style={styles.modeButton}
@@ -493,7 +493,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                   </TouchableOpacity>
                 )}
 
-                {/* Playlist Info */}
+                {}
                 {playlistInfo && playlistInfo.total > 1 && (
                   <View style={styles.playlistInfoContainer}>
                     <Text style={styles.playlistInfoText}>
@@ -502,7 +502,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                   </View>
                 )}
 
-                {/* Loop Button */}
+                {}
                 {onLoopModeChange && (
                   <TouchableOpacity
                     style={styles.modeButton}
@@ -524,7 +524,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                   </TouchableOpacity>
                 )}
 
-                {/* Sleep Timer Indicator */}
+                {}
                 {sleepTimerRemaining && (
                   <View style={styles.sleepTimerIndicator}>
                     <Ionicons name="moon" size={16} color={Colors.primary} />
@@ -537,7 +537,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         )
       }
 
-      {/* Speed selection menu */}
+      {}
       <Modal
         visible={showSpeedMenu}
         transparent
@@ -577,7 +577,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         </TouchableOpacity>
       </Modal>
 
-      {/* More options menu */}
+      {}
       <Modal
         visible={showMoreMenu}
         transparent
@@ -641,7 +641,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               onPress={async () => {
                 setShowMoreMenu(false);
 
-                // Check if URL is HLS stream (cannot be downloaded directly)
+
                 const isHLSStream = channel.url.includes('.m3u8') ||
                   channel.url.includes('/hls/') ||
                   channel.url.includes('m3u8');
@@ -705,14 +705,14 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         </TouchableOpacity>
       </Modal>
 
-      {/* Sleep Timer Modal */}
+      {}
       <SleepTimerModal
         visible={showSleepTimer}
         onClose={() => setShowSleepTimer(false)}
         onTimerSet={(minutes) => console.log(`Sleep timer set for ${minutes} minutes`)}
       />
 
-      {/* Quality Menu Modal */}
+      {}
       <Modal
         visible={showQualityMenu}
         transparent

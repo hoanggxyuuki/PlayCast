@@ -1,4 +1,4 @@
-// Premium Screen Route
+
 import { PremiumScreen } from '@/src/screens/PremiumScreen';
 import { useRouter } from 'expo-router';
 

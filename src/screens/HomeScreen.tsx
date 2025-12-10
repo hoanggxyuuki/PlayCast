@@ -1,4 +1,4 @@
-// Home Screen - Main screen showing playlists
+
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -98,7 +98,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             handleRefreshPlaylist(item);
           }}
         />
-        
+
         <Button
           title=""
           variant="ghost"
@@ -109,7 +109,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             handleDeletePlaylist(item);
           }}
         />
-        
+
         <View style={styles.arrowIcon}>
           <Ionicons name="chevron-forward" size={20} color={Colors.textTertiary} />
         </View>
@@ -117,7 +117,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     </Card>
   );
 
-  // Loading state is now handled by List component
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -184,13 +184,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   addButton: {
-    // Removed as we're using Button component
+
   },
   listContent: {
     padding: Spacing.md,
   },
   playlistCard: {
-    // Removed as we're using Card component
+
   },
   playlistHeader: {
     flexDirection: 'row',
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   actionButton: {
-    // Removed as we're using Button component
+
   },
   arrowIcon: {
     marginLeft: 'auto',

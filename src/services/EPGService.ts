@@ -1,4 +1,4 @@
-// EPG (Electronic Program Guide) Service
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface EPGProgram {
@@ -19,42 +19,38 @@ export interface EPGChannel {
 }
 
 const EPG_STORAGE_KEY = '@playcast_epg';
-const EPG_CACHE_DURATION = 3600000; // 1 hour
+const EPG_CACHE_DURATION = 3600000; 
 
 class EPGService {
   private cache: Map<string, { data: EPGChannel; timestamp: number }> = new Map();
 
-  /**
-   * Fetch EPG data from XML/XMLTV source
-   */
+
   async fetchEPG(url: string): Promise<EPGChannel[]> {
     try {
       const response = await fetch(url);
       const xmlText = await response.text();
 
-      // Parse XMLTV format
+
       const channels = this.parseXMLTV(xmlText);
 
-      // Cache the data
+
       await this.cacheEPGData(channels);
 
       return channels;
     } catch (error) {
       console.error('EPG fetch error:', error);
-      // Return cached data if available
+
       return this.getCachedEPG();
     }
   }
 
-  /**
-   * Parse XMLTV format
-   */
+
   private parseXMLTV(xmlText: string): EPGChannel[] {
-    // Basic XMLTV parsing
-    // In a real implementation, use a proper XML parser
+
+
     const channels: EPGChannel[] = [];
 
-    // This is a simplified parser - in production use xml2js or similar
+
     const channelMatches = xmlText.matchAll(/<channel id="([^"]+)">([\s\S]*?)<\/channel>/g);
 
     for (const match of channelMatches) {
@@ -71,7 +67,7 @@ class EPGService {
       });
     }
 
-    // Parse programmes
+
     const programMatches = xmlText.matchAll(
       /<programme start="([^"]+)" stop="([^"]+)" channel="([^"]+)">([\s\S]*?)<\/programme>/g
     );
@@ -102,7 +98,7 @@ class EPGService {
       }
     }
 
-    // Sort programs by start time
+
     channels.forEach(channel => {
       channel.programs.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
     });
@@ -110,9 +106,7 @@ class EPGService {
     return channels;
   }
 
-  /**
-   * Parse XMLTV timestamp (format: YYYYMMDDHHmmss +offset)
-   */
+
   private parseXMLTVTime(timeStr: string): Date {
     const year = parseInt(timeStr.substring(0, 4));
     const month = parseInt(timeStr.substring(4, 6)) - 1;
@@ -124,9 +118,7 @@ class EPGService {
     return new Date(year, month, day, hour, minute, second);
   }
 
-  /**
-   * Get current program for a channel
-   */
+
   getCurrentProgram(channelId: string): EPGProgram | null {
     const now = new Date();
     const channel = this.getCachedChannel(channelId);
@@ -140,9 +132,7 @@ class EPGService {
     );
   }
 
-  /**
-   * Get next programs for a channel
-   */
+
   getNextPrograms(channelId: string, count: number = 5): EPGProgram[] {
     const now = new Date();
     const channel = this.getCachedChannel(channelId);
@@ -154,9 +144,7 @@ class EPGService {
       .slice(0, count);
   }
 
-  /**
-   * Get programs for a specific time range
-   */
+
   getProgramsInRange(
     channelId: string,
     startTime: Date,
@@ -171,9 +159,7 @@ class EPGService {
     );
   }
 
-  /**
-   * Cache EPG data
-   */
+
   private async cacheEPGData(channels: EPGChannel[]): Promise<void> {
     const timestamp = Date.now();
 
@@ -194,15 +180,13 @@ class EPGService {
     }
   }
 
-  /**
-   * Get cached channel
-   */
+
   private getCachedChannel(channelId: string): EPGChannel | null {
     const cached = this.cache.get(channelId);
 
     if (!cached) return null;
 
-    // Check if cache is still valid
+
     if (Date.now() - cached.timestamp > EPG_CACHE_DURATION) {
       this.cache.delete(channelId);
       return null;
@@ -211,9 +195,7 @@ class EPGService {
     return cached.data;
   }
 
-  /**
-   * Get all cached EPG data
-   */
+
   private async getCachedEPG(): Promise<EPGChannel[]> {
     try {
       const data = await AsyncStorage.getItem(EPG_STORAGE_KEY);
@@ -221,7 +203,7 @@ class EPGService {
 
       const { channels, timestamp } = JSON.parse(data);
 
-      // Check if cache is still valid
+
       if (Date.now() - timestamp > EPG_CACHE_DURATION) {
         return [];
       }
@@ -233,9 +215,7 @@ class EPGService {
     }
   }
 
-  /**
-   * Clear EPG cache
-   */
+
   async clearCache(): Promise<void> {
     this.cache.clear();
     try {

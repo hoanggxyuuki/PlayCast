@@ -1,4 +1,4 @@
-// Categories Management Context
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -69,7 +69,7 @@ export const CategoriesProvider = ({ children }: { children: ReactNode }) => {
     const [removed] = newCategories.splice(fromIndex, 1);
     newCategories.splice(toIndex, 0, removed);
 
-    // Update order values
+
     const reordered = newCategories.map((c, index) => ({ ...c, order: index }));
     saveCategories(reordered);
   };

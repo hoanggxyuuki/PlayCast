@@ -1,4 +1,4 @@
-// Equalizer Modal with preset audio profiles
+
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import React, { useState } from 'react';
@@ -22,7 +22,7 @@ interface EQPreset {
     id: string;
     name: string;
     icon: keyof typeof Ionicons.glyphMap;
-    bands: number[]; // -12 to +12 dB for each band
+    bands: number[]; 
 }
 
 const EQ_PRESETS: EQPreset[] = [
@@ -87,7 +87,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    {/* EQ Sliders */}
+                    {}
                     <View style={styles.eqContainer}>
                         {currentBands.map((value, index) => (
                             <View key={index} style={styles.bandContainer}>
@@ -111,7 +111,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({
                         ))}
                     </View>
 
-                    {/* Presets */}
+                    {}
                     <Text style={styles.sectionTitle}>Presets</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsScroll}>
                         {EQ_PRESETS.map((preset) => (
