@@ -105,12 +105,35 @@ export const AddPlaylistScreen: React.FC<AddPlaylistScreenProps> = ({
               icon="arrow-back"
               onPress={onBack}
             />
-            <Text style={styles.title}>{t('addPlaylist')}</Text>
+            <Text style={styles.title}>{t('addNewPlaylist')}</Text>
             <View style={{ width: 40 }} />
           </View>
 
           {/* Form */}
           <View style={styles.form}>
+            {/* IPTV Explanation Banner */}
+            <Card variant="outlined" margin="small">
+              <View style={styles.infoBox}>
+                <Ionicons name="tv-outline" size={24} color={Colors.primary} />
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={styles.whatIsTitle}>{t('whatIsIptv') || 'What is IPTV/M3U?'}</Text>
+                  <Text style={styles.infoText}>
+                    {t('iptvExplanation') || 'M3U is a playlist format used by IPTV providers to stream TV channels.'}
+                  </Text>
+                </View>
+              </View>
+            </Card>
+
+            {/* YouTube Warning */}
+            <Card variant="outlined" margin="small">
+              <View style={[styles.infoBox, { backgroundColor: 'rgba(251, 191, 36, 0.1)' }]}>
+                <Ionicons name="warning-outline" size={20} color={Colors.warning} />
+                <Text style={[styles.infoText, { color: Colors.warning }]}>
+                  {t('notForYoutube') || 'Note: For YouTube/SoundCloud, use the "Online" tab instead!'}
+                </Text>
+              </View>
+            </Card>
+
             {/* Playlist Name */}
             <Input
               label={t('playlistName')}
@@ -261,6 +284,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: 8,
+  },
+  whatIsTitle: {
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 4,
   },
   infoText: {
     flex: 1,

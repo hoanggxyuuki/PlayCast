@@ -230,7 +230,8 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
             if (result.platform === 'youtube' && !streamUrl) {
                 streamUrl = await OnlineSearchService.getYouTubeStreamUrl(result.id);
             } else if (result.platform === 'soundcloud' && !streamUrl) {
-                streamUrl = await OnlineSearchService.getSoundCloudStreamUrl(result.id);
+                const scData = await OnlineSearchService.getSoundCloudStreamUrl(result.id);
+                streamUrl = scData.streamUrl; // Extract the actual URL from the object
             }
 
             if (!streamUrl) throw new Error('Could not get stream URL');

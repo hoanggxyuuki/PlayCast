@@ -37,13 +37,14 @@ export const translations = {
 
     // Playlist Screen
     myPlaylists: 'My Playlists',
-    addPlaylist: 'Add Playlist',
+    addPlaylist: 'IPTV / M3U',
+    addPlaylistSubtitle: 'Import IPTV channels',
     noPlaylists: 'No playlists yet',
     addFirstPlaylist: 'Add your first playlist to get started',
     channels: 'channels',
 
     // Add Playlist
-    addNewPlaylist: 'Add New Playlist',
+    addNewPlaylist: 'Add IPTV Playlist',
     playlistUrl: 'Playlist URL',
     playlistName: 'Playlist Name',
     enterUrl: 'Enter M3U/JSON URL or direct media link',
@@ -69,6 +70,11 @@ export const translations = {
     playlistAddedSuccess: 'Playlist added successfully',
     failedToAddPlaylist: 'Failed to add playlist',
     supportedFormatsInfo: 'You can add M3U playlists, JSON playlists, or direct media URLs (.mp4, .m3u8, .mp3, etc.)',
+
+    // IPTV Explanation
+    whatIsIptv: 'What is IPTV/M3U?',
+    iptvExplanation: 'M3U is a playlist format used by IPTV providers. You can get M3U links from your TV service provider or free sources online.',
+    notForYoutube: 'Note: For YouTube/SoundCloud, use the "Online" tab instead!',
 
     // Favorites
     myFavorites: 'My Favorites',
@@ -213,7 +219,8 @@ export const translations = {
 
     // Library Screen
     library: 'Library',
-    online: 'Online',
+    online: 'YouTube & Music',
+    onlineSubtitle: 'Search YouTube, SoundCloud',
     onlineFavorites: 'Online Favorites',
     noOnlineFavorites: 'No Online Favorites',
     addFromDiscover: 'Add favorites from YouTube or SoundCloud in the Discover tab',
@@ -222,6 +229,7 @@ export const translations = {
     discover: 'Discover',
     findYourContent: 'Find your content',
     localFiles: 'Local Files',
+    localFilesSubtitle: 'Videos on device',
     playFromDevice: 'Play from device',
     youtubeAndSoundcloud: 'YouTube, SoundCloud',
     addLink: 'Add Link',
@@ -235,6 +243,16 @@ export const translations = {
     selectVideoOrAudioFiles: 'Select video or audio files',
     playFromLink: 'Play from Link',
     pasteUrlPlaceholder: 'Paste URL',
+
+    // Home Guidance
+    gettingStarted: 'Getting Started',
+    guideIptv: 'IPTV / M3U',
+    guideIptvDesc: 'For TV channels - Import M3U/JSON playlist links from your IPTV provider',
+    guideOnline: 'YouTube & Music',
+    guideOnlineDesc: 'Search and play from YouTube, SoundCloud directly',
+    guideLocal: 'Local Files',
+    guideLocalDesc: 'Play videos/music stored on your device',
+    hideGuide: 'Got it, hide this',
   },
 
   vi: {
@@ -275,13 +293,14 @@ export const translations = {
 
     // Playlist Screen
     myPlaylists: 'Danh Sách Của Tôi',
-    addPlaylist: 'Thêm Danh Sách',
+    addPlaylist: 'IPTV / M3U',
+    addPlaylistSubtitle: 'Thêm kênh IPTV',
     noPlaylists: 'Chưa có danh sách nào',
     addFirstPlaylist: 'Thêm danh sách đầu tiên để bắt đầu',
     channels: 'kênh',
 
     // Add Playlist
-    addNewPlaylist: 'Thêm Danh Sách Mới',
+    addNewPlaylist: 'Thêm Playlist IPTV',
     playlistUrl: 'URL Danh Sách',
     playlistName: 'Tên Danh Sách',
     enterUrl: 'Nhập URL M3U/JSON hoặc link video trực tiếp',
@@ -307,6 +326,11 @@ export const translations = {
     playlistAddedSuccess: 'Đã thêm danh sách thành công',
     failedToAddPlaylist: 'Không thể thêm danh sách',
     supportedFormatsInfo: 'Bạn có thể thêm danh sách M3U, JSON hoặc URL media trực tiếp (.mp4, .m3u8, .mp3, v.v.)',
+
+    // IPTV Explanation
+    whatIsIptv: 'IPTV/M3U là gì?',
+    iptvExplanation: 'M3U là định dạng playlist dùng bởi các nhà cung cấp IPTV. Bạn có thể lấy link M3U từ nhà cung cấp dịch vụ TV hoặc các nguồn miễn phí trên mạng.',
+    notForYoutube: 'Lưu ý: Để xem YouTube/SoundCloud, hãy dùng tab "Trực Tuyến"!',
 
     // Favorites
     myFavorites: 'Yêu Thích Của Tôi',
@@ -451,7 +475,8 @@ export const translations = {
 
     // Library Screen
     library: 'Thư Viện',
-    online: 'Trực Tuyến',
+    online: 'YouTube & Nhạc',
+    onlineSubtitle: 'Tìm YouTube, SoundCloud',
     onlineFavorites: 'Yêu Thích Online',
     noOnlineFavorites: 'Chưa Có Mục Yêu Thích',
     addFromDiscover: 'Thêm từ YouTube hoặc SoundCloud trong tab Khám Phá',
@@ -460,6 +485,7 @@ export const translations = {
     discover: 'Khám Phá',
     findYourContent: 'Tìm nội dung của bạn',
     localFiles: 'Tệp Cục Bộ',
+    localFilesSubtitle: 'Video trên thiết bị',
     playFromDevice: 'Phát từ thiết bị',
     youtubeAndSoundcloud: 'YouTube, SoundCloud',
     addLink: 'Thêm Link',
@@ -470,6 +496,16 @@ export const translations = {
     searchPlatform: 'Tìm Kiếm',
     playlistUrlLabel: 'URL Danh Sách',
     playlistNameLabel: 'Tên Danh Sách (không bắt buộc)',
+
+    // Home Guidance
+    gettingStarted: 'Hướng Dẫn Bắt Đầu',
+    guideIptv: 'IPTV / M3U',
+    guideIptvDesc: 'Cho kênh TV - Nhập link M3U/JSON từ nhà cung cấp IPTV của bạn',
+    guideOnline: 'YouTube & Nhạc',
+    guideOnlineDesc: 'Tìm kiếm và phát trực tiếp từ YouTube, SoundCloud',
+    guideLocal: 'Tệp Cục Bộ',
+    guideLocalDesc: 'Phát video/nhạc đã lưu trên thiết bị',
+    hideGuide: 'Đã hiểu, ẩn đi',
   },
 };
 

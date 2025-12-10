@@ -60,6 +60,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     const [showPlayer, setShowPlayer] = useState(false);
     const [pasteUrl, setPasteUrl] = useState('');
     const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+    const [showGuide, setShowGuide] = useState(true);
 
     const recentHistory = getRecentlyWatched(10);
     const hasContent = playlists.length > 0 || recentHistory.length > 0;
@@ -302,20 +303,23 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         <View style={styles.quickActions}>
             <TouchableOpacity style={styles.quickAction} onPress={onNavigateToAddPlaylist}>
                 <GlassCard variant="purple" padding="medium" style={styles.quickActionCard}>
-                    <Ionicons name="add-circle-outline" size={28} color={Colors.primary} />
+                    <Ionicons name="tv-outline" size={28} color={Colors.primary} />
                     <Text style={styles.quickActionText}>{t('addPlaylist')}</Text>
+                    <Text style={styles.quickActionSubtext}>{t('addPlaylistSubtitle') || 'IPTV channels'}</Text>
                 </GlassCard>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickAction} onPress={onNavigateToLocalFiles}>
                 <GlassCard variant="purple" padding="medium" style={styles.quickActionCard}>
                     <Ionicons name="folder-outline" size={28} color={Colors.accent} />
                     <Text style={styles.quickActionText}>{t('localFiles')}</Text>
+                    <Text style={styles.quickActionSubtext}>{t('localFilesSubtitle') || 'Device videos'}</Text>
                 </GlassCard>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickAction} onPress={onNavigateToOnline}>
                 <GlassCard variant="purple" padding="medium" style={styles.quickActionCard}>
-                    <Ionicons name="globe-outline" size={28} color={Colors.secondary} />
+                    <Ionicons name="logo-youtube" size={28} color={Colors.secondary} />
                     <Text style={styles.quickActionText}>{t('online')}</Text>
+                    <Text style={styles.quickActionSubtext}>{t('onlineSubtitle') || 'YouTube, SoundCloud'}</Text>
                 </GlassCard>
             </TouchableOpacity>
         </View>
@@ -367,6 +371,62 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             </GlassCard>
         </View>
     );
+
+    // Render guidance section for new users
+    const renderGuidanceSection = () => {
+        if (!showGuide) return null;
+
+        return (
+            <View style={styles.guideContainer}>
+                <View style={styles.guideHeader}>
+                    <Ionicons name="help-circle-outline" size={22} color={Colors.primary} />
+                    <Text style={styles.guideTitle}>{t('gettingStarted') || 'Getting Started'}</Text>
+                </View>
+
+                <View style={styles.guideItems}>
+                    {/* IPTV Guide */}
+                    <TouchableOpacity style={styles.guideItem} onPress={onNavigateToAddPlaylist}>
+                        <View style={[styles.guideIconBg, { backgroundColor: 'rgba(118, 75, 162, 0.2)' }]}>
+                            <Ionicons name="tv-outline" size={20} color={Colors.primary} />
+                        </View>
+                        <View style={styles.guideTextContainer}>
+                            <Text style={styles.guideItemTitle}>{t('guideIptv') || 'IPTV / M3U'}</Text>
+                            <Text style={styles.guideItemDesc}>{t('guideIptvDesc') || 'For TV channels - Import M3U/JSON playlist links'}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                    </TouchableOpacity>
+
+                    {/* YouTube Guide */}
+                    <TouchableOpacity style={styles.guideItem} onPress={onNavigateToOnline}>
+                        <View style={[styles.guideIconBg, { backgroundColor: 'rgba(240, 147, 251, 0.2)' }]}>
+                            <Ionicons name="logo-youtube" size={20} color={Colors.secondary} />
+                        </View>
+                        <View style={styles.guideTextContainer}>
+                            <Text style={styles.guideItemTitle}>{t('guideOnline') || 'YouTube & Music'}</Text>
+                            <Text style={styles.guideItemDesc}>{t('guideOnlineDesc') || 'Search and play from YouTube, SoundCloud'}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                    </TouchableOpacity>
+
+                    {/* Local Files Guide */}
+                    <TouchableOpacity style={styles.guideItem} onPress={onNavigateToLocalFiles}>
+                        <View style={[styles.guideIconBg, { backgroundColor: 'rgba(79, 172, 254, 0.2)' }]}>
+                            <Ionicons name="folder-outline" size={20} color={Colors.accent} />
+                        </View>
+                        <View style={styles.guideTextContainer}>
+                            <Text style={styles.guideItemTitle}>{t('guideLocal') || 'Local Files'}</Text>
+                            <Text style={styles.guideItemDesc}>{t('guideLocalDesc') || 'Play videos/music stored on your device'}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                    </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity style={styles.hideGuideBtn} onPress={() => setShowGuide(false)}>
+                    <Text style={styles.hideGuideText}>{t('hideGuide') || 'Got it, hide this'}</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    };
 
     // Render empty state
     const renderEmptyState = () => (
@@ -421,6 +481,9 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
 
                     {/* Quick Actions */}
                     {renderQuickActions()}
+
+                    {/* Guidance for new users */}
+                    {renderGuidanceSection()}
 
                     {/* Play from Link */}
                     {renderPlayFromLink()}
@@ -559,14 +622,20 @@ const styles = StyleSheet.create({
     },
     quickActionCard: {
         alignItems: 'center',
-        gap: Spacing.sm,
-        minHeight: 90,
+        gap: Spacing.xs,
+        minHeight: 100,
         justifyContent: 'center',
+        paddingVertical: Spacing.sm,
     },
     quickActionText: {
         fontSize: FontSizes.sm,
         color: Colors.text,
-        fontWeight: '500',
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    quickActionSubtext: {
+        fontSize: FontSizes.xs,
+        color: Colors.textTertiary,
         textAlign: 'center',
     },
     // Play from Link styles
@@ -768,6 +837,66 @@ const styles = StyleSheet.create({
         fontSize: FontSizes.md,
         fontWeight: '600',
         color: '#fff',
+    },
+    // Guidance Section
+    guideContainer: {
+        marginHorizontal: Layout.screenPadding,
+        marginBottom: Spacing.lg,
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.lg,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        padding: Spacing.md,
+    },
+    guideHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        marginBottom: Spacing.md,
+    },
+    guideTitle: {
+        fontSize: FontSizes.md,
+        fontWeight: '600',
+        color: Colors.text,
+    },
+    guideItems: {
+        gap: Spacing.sm,
+    },
+    guideItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.backgroundCard,
+        borderRadius: BorderRadius.md,
+        padding: Spacing.sm,
+        gap: Spacing.sm,
+    },
+    guideIconBg: {
+        width: 40,
+        height: 40,
+        borderRadius: BorderRadius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    guideTextContainer: {
+        flex: 1,
+    },
+    guideItemTitle: {
+        fontSize: FontSizes.sm,
+        fontWeight: '600',
+        color: Colors.text,
+    },
+    guideItemDesc: {
+        fontSize: FontSizes.xs,
+        color: Colors.textSecondary,
+        marginTop: 2,
+    },
+    hideGuideBtn: {
+        marginTop: Spacing.md,
+        alignItems: 'center',
+    },
+    hideGuideText: {
+        fontSize: FontSizes.sm,
+        color: Colors.textTertiary,
     },
 });
 
