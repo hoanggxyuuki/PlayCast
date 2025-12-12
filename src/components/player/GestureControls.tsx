@@ -1,17 +1,16 @@
-
+import { Ionicons } from '@expo/vector-icons';
 import React, { useRef, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  PanResponder,
-  Dimensions,
-  Text,
   Animated,
+  Dimensions,
   GestureResponderEvent,
+  PanResponder,
   PanResponderGestureState,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSizes } from '../../constants/theme';
+import { Colors, FontSizes, Spacing } from '../../constants/theme';
 import { useSettings } from '../../contexts/SettingsContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -35,14 +34,12 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
 }) => {
   const { settings } = useSettings();
 
-
   const [showSeekIndicator, setShowSeekIndicator] = useState(false);
   const [seekAmount, setSeekAmount] = useState(0);
   const [showVolumeIndicator, setShowVolumeIndicator] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(50);
   const [showBrightnessIndicator, setShowBrightnessIndicator] = useState(false);
   const [brightnessLevel, setBrightnessLevel] = useState(50);
-
 
   const lastTap = useRef<number>(0);
   const lastTapPosition = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -51,6 +48,7 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
   const startX = useRef<number>(0);
   const isVerticalGesture = useRef<boolean>(false);
   const isHorizontalGesture = useRef<boolean>(false);
+  const doubleTapDetected = useRef<boolean>(false);
 
   const showIndicator = () => {
     Animated.sequence([
@@ -68,11 +66,11 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
     ]).start();
   };
 
-  const handleDoubleTap = (x: number, y: number) => {
+  const handleDoubleTap = (x: number) => {
     if (!settings.gestureControls) return;
+    doubleTapDetected.current = true;
 
     const seekSeconds = settings.doubleTapSeek || 10;
-
 
     if (x < SCREEN_WIDTH / 2) {
       setSeekAmount(-seekSeconds);
@@ -90,28 +88,23 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
   const handleVerticalGesture = (dy: number, x: number) => {
     if (!settings.gestureControls) return;
 
-    const delta = -dy / SCREEN_HEIGHT; 
-
+    const delta = -dy / SCREEN_HEIGHT;
 
     if (x < SCREEN_WIDTH / 2) {
-
       if (!settings.brightnessGesture) return;
 
       const newBrightness = Math.max(0, Math.min(100, brightnessLevel + delta * 100));
       setBrightnessLevel(newBrightness);
       setShowBrightnessIndicator(true);
       onBrightnessChange?.(delta);
-
       setTimeout(() => setShowBrightnessIndicator(false), 1500);
     } else {
-
       if (!settings.volumeGesture) return;
 
       const newVolume = Math.max(0, Math.min(100, volumeLevel + delta * 100));
       setVolumeLevel(newVolume);
       setShowVolumeIndicator(true);
       onVolumeChange?.(delta);
-
       setTimeout(() => setShowVolumeIndicator(false), 1500);
     }
   };
@@ -119,14 +112,12 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
   const handleHorizontalGesture = (dx: number) => {
     if (!settings.gestureControls) return;
 
-
-    const seekSeconds = Math.round((dx / SCREEN_WIDTH) * 60); 
+    const seekSeconds = Math.round((dx / SCREEN_WIDTH) * 60);
 
     if (Math.abs(seekSeconds) >= 5) {
       setSeekAmount(seekSeconds);
       setShowSeekIndicator(true);
       onSeek?.(seekSeconds);
-
       setTimeout(() => setShowSeekIndicator(false), 1500);
     }
   };
@@ -144,18 +135,18 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
         startY.current = locationY;
         isVerticalGesture.current = false;
         isHorizontalGesture.current = false;
-
+        doubleTapDetected.current = false;
 
         const now = Date.now();
         const timeDiff = now - lastTap.current;
         const distance = Math.sqrt(
           Math.pow(locationX - lastTapPosition.current.x, 2) +
-            Math.pow(locationY - lastTapPosition.current.y, 2)
+          Math.pow(locationY - lastTapPosition.current.y, 2)
         );
 
         if (timeDiff < DOUBLE_TAP_DELAY && distance < 50) {
-          handleDoubleTap(locationX, locationY);
-          lastTap.current = 0; 
+          handleDoubleTap(locationX);
+          lastTap.current = 0;
         } else {
           lastTap.current = now;
           lastTapPosition.current = { x: locationX, y: locationY };
@@ -170,7 +161,6 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
 
-
         if (!isVerticalGesture.current && !isHorizontalGesture.current) {
           if (absDy > absDx && absDy > 10) {
             isVerticalGesture.current = true;
@@ -178,7 +168,6 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
             isHorizontalGesture.current = true;
           }
         }
-
 
         if (isVerticalGesture.current && absDy > MIN_SWIPE_DISTANCE) {
           handleVerticalGesture(dy, startX.current);
@@ -193,22 +182,18 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
 
-
         if (isHorizontalGesture.current && absDx > MIN_SWIPE_DISTANCE && absDy < 50) {
           handleHorizontalGesture(dx);
         }
 
-
-        if (absDx < 10 && absDy < 10) {
-
+        if (absDx < 10 && absDy < 10 && !doubleTapDetected.current) {
           setTimeout(() => {
-            const now = Date.now();
-            if (now - lastTap.current >= DOUBLE_TAP_DELAY) {
+            if (!doubleTapDetected.current) {
+              console.log('[GestureControls] Single tap detected');
               onSingleTap?.();
             }
-          }, DOUBLE_TAP_DELAY);
+          }, DOUBLE_TAP_DELAY + 50);
         }
-
 
         isVerticalGesture.current = false;
         isHorizontalGesture.current = false;
@@ -220,7 +205,6 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
     <View style={styles.container} {...panResponder.panHandlers}>
       {children}
 
-      {}
       {showSeekIndicator && (
         <Animated.View style={[styles.indicator, { opacity: indicatorOpacity }]}>
           <Ionicons
@@ -235,7 +219,6 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
         </Animated.View>
       )}
 
-      {}
       {showVolumeIndicator && (
         <Animated.View
           style={[styles.sideIndicator, styles.rightIndicator, { opacity: indicatorOpacity }]}
@@ -252,7 +235,6 @@ export const GestureControls: React.FC<GestureControlsProps> = ({
         </Animated.View>
       )}
 
-      {}
       {showBrightnessIndicator && (
         <Animated.View
           style={[styles.sideIndicator, styles.leftIndicator, { opacity: indicatorOpacity }]}

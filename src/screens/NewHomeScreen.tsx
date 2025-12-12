@@ -1,7 +1,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Alert,
     Dimensions,
@@ -18,6 +18,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdvancedVideoPlayer } from '../components/player/AdvancedVideoPlayer';
+import { WebViewPlayer } from '../components/player/WebViewPlayer';
+import { AnimatedPressable, FadeInView } from '../components/ui/AnimatedComponents';
 import { GlassCard } from '../components/ui/GlassCard';
 import { CarouselSlide, HeroCarousel } from '../components/ui/HeroCarousel';
 import { BorderRadius, Colors, FontSizes, Gradients, Layout, Shadows, Spacing } from '../constants/theme';
@@ -26,7 +28,7 @@ import { usePlaylist } from '../contexts/PlaylistContext';
 import { useQueue } from '../contexts/QueueContext';
 import { useCustomTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
-import { OnlineSearchService } from '../services/OnlineSearchService';
+import { DetectedLink, LinkDetectionService } from '../services/LinkDetectionService';
 import { Channel } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -58,12 +60,26 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
 
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
     const [showPlayer, setShowPlayer] = useState(false);
+    const [showWebView, setShowWebView] = useState(false);
+    const [webViewUrl, setWebViewUrl] = useState('');
+    const [webViewTitle, setWebViewTitle] = useState('');
     const [pasteUrl, setPasteUrl] = useState('');
     const [isLoadingUrl, setIsLoadingUrl] = useState(false);
     const [showGuide, setShowGuide] = useState(true);
+    const [detectedLink, setDetectedLink] = useState<DetectedLink | null>(null);
+    const { addPlaylistFromUrl } = usePlaylist();
 
     const recentHistory = getRecentlyWatched(10);
     const hasContent = playlists.length > 0 || recentHistory.length > 0;
+
+    useEffect(() => {
+        if (pasteUrl.trim()) {
+            const detected = LinkDetectionService.detectLinkType(pasteUrl);
+            setDetectedLink(detected);
+        } else {
+            setDetectedLink(null);
+        }
+    }, [pasteUrl]);
 
     const handlePlayChannel = (channel: Channel) => {
         setSelectedChannel(channel);
@@ -75,79 +91,59 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         setSelectedChannel(null);
     };
 
-
-    const handlePlayFromUrl = async () => {
+    const handleSmartLink = async () => {
         const url = pasteUrl.trim();
         if (!url) {
-            Alert.alert('Error', 'Please paste a URL');
+            Alert.alert('Error', t('pleaseEnterUrl') || 'Please paste a URL');
             return;
         }
 
-        setIsLoadingUrl(true);
+        const detected = LinkDetectionService.detectLinkType(url);
         Keyboard.dismiss();
+        setIsLoadingUrl(true);
 
         try {
-            let streamUrl: string | null = null;
-            let title = 'Playing from URL';
-            let thumbnail = '';
-            let platform: 'youtube' | 'soundcloud' = 'youtube';
-
-
-            const ytPatterns = [
-                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
-                /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
-            ];
-
-            let videoId: string | null = null;
-
-
-            for (const pattern of ytPatterns) {
-                const match = url.match(pattern);
-                if (match) {
-                    videoId = match[1];
-                    platform = 'youtube';
-                    break;
-                }
-            }
-
-            if (videoId) {
-
-                try {
-                    const details = await OnlineSearchService.getYouTubeVideoDetails(videoId);
-                    title = details.title;
-                    thumbnail = details.thumbnail;
-                } catch (e) {
-
-                    console.warn('Failed to fetch YouTube details', e);
-                    title = 'YouTube Video';
-                    thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-                }
-                streamUrl = await OnlineSearchService.getYouTubeStreamUrl(videoId);
-            } else if (url.includes('soundcloud.com')) {
-                platform = 'soundcloud';
-                const scData = await OnlineSearchService.getSoundCloudStreamUrl(url);
-                streamUrl = scData.streamUrl;
-                title = scData.title;
-                thumbnail = scData.thumbnail;
-            }
-
-            if (streamUrl) {
-                const channel: Channel = {
-                    id: `url-${Date.now()}`,
-                    name: title,
-                    url: streamUrl,
-                    logo: thumbnail,
-                    group: platform === 'youtube' ? 'YouTube' : 'SoundCloud',
-                };
-                setSelectedChannel(channel);
-                setShowPlayer(true);
+            if (detected.type === 'iptv_playlist') {
+                await addPlaylistFromUrl(url, 'IPTV Playlist', 'm3u');
+                Alert.alert(
+                    t('success') || 'Success',
+                    t('playlistAddedSuccess') || 'Playlist added to library!'
+                );
                 setPasteUrl('');
+                setDetectedLink(null);
+            } else if (detected.type === 'webview') {
+                setWebViewUrl(url);
+                setWebViewTitle(detected.platformName || 'Web Content');
+                setShowWebView(true);
+                setPasteUrl('');
+                setDetectedLink(null);
+            } else if (detected.isPlayable) {
+                const result = await LinkDetectionService.handlePlayableLink(detected);
+
+                if (result.success && result.streamUrl) {
+                    const channel: Channel = {
+                        id: `smart-${Date.now()}`,
+                        name: result.title || 'Media',
+                        url: result.streamUrl,
+                        logo: result.thumbnail,
+                        group: LinkDetectionService.getLinkTypeLabel(result.type),
+                    };
+                    setSelectedChannel(channel);
+                    setShowPlayer(true);
+                    setPasteUrl('');
+                    setDetectedLink(null);
+                } else {
+                    throw new Error(result.error || 'Failed to play');
+                }
             } else {
-                Alert.alert('Error', 'Could not play this URL. Make sure it\'s a valid YouTube or SoundCloud link.');
+                Alert.alert(
+                    'Unknown Link',
+                    'This link type is not supported. Try YouTube, SoundCloud, M3U playlist, or direct video URLs.'
+                );
             }
         } catch (error: any) {
-            console.error('Error playing from URL:', error);
-            Alert.alert('Error', error.message || 'Failed to play from URL');
+            console.error('Smart link error:', error);
+            Alert.alert('Error', error.message || 'Failed to process link');
         } finally {
             setIsLoadingUrl(false);
         }
@@ -299,76 +295,97 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     };
 
 
-    const renderQuickActions = () => (
-        <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.quickAction} onPress={onNavigateToAddPlaylist}>
-                <GlassCard variant="purple" padding="medium" style={styles.quickActionCard}>
-                    <Ionicons name="tv-outline" size={28} color={Colors.primary} />
-                    <Text style={styles.quickActionText}>{t('addPlaylist')}</Text>
-                    <Text style={styles.quickActionSubtext}>{t('addPlaylistSubtitle') || 'IPTV channels'}</Text>
-                </GlassCard>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickAction} onPress={onNavigateToLocalFiles}>
-                <GlassCard variant="purple" padding="medium" style={styles.quickActionCard}>
-                    <Ionicons name="folder-outline" size={28} color={Colors.accent} />
-                    <Text style={styles.quickActionText}>{t('localFiles')}</Text>
-                    <Text style={styles.quickActionSubtext}>{t('localFilesSubtitle') || 'Device videos'}</Text>
-                </GlassCard>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickAction} onPress={onNavigateToOnline}>
-                <GlassCard variant="purple" padding="medium" style={styles.quickActionCard}>
-                    <Ionicons name="logo-youtube" size={28} color={Colors.secondary} />
-                    <Text style={styles.quickActionText}>{t('online')}</Text>
-                    <Text style={styles.quickActionSubtext}>{t('onlineSubtitle') || 'YouTube, SoundCloud'}</Text>
-                </GlassCard>
-            </TouchableOpacity>
-        </View>
-    );
+    const renderSmartInput = () => (
+        <View style={styles.smartInputContainer}>
+            <FadeInView delay={100} direction="up">
+                <GlassCard variant="purple" padding="large">
+                    <View style={styles.smartInputHeader}>
+                        <Ionicons name="flash" size={24} color={Colors.primary} />
+                        <Text style={styles.smartInputTitle}>
+                            {t('smartPlay') || 'Smart Play'}
+                        </Text>
+                    </View>
 
+                    <Text style={styles.smartInputDesc}>
+                        {t('smartPlayDesc') || 'Paste any link - YouTube, SoundCloud, M3U playlist, or video URL'}
+                    </Text>
 
-    const renderPlayFromLink = () => (
-        <View style={styles.playFromLinkContainer}>
-            <GlassCard variant="purple" padding="medium">
-                <View style={styles.playFromLinkHeader}>
-                    <Ionicons name="link" size={22} color={Colors.primary} />
-                    <Text style={styles.playFromLinkTitle}>{t('playFromLink') || 'Play from Link'}</Text>
-                </View>
-                <Text style={styles.playFromLinkDesc}>{t('pasteUrlPlaceholder') || 'Paste YouTube or SoundCloud URL'}</Text>
-                <View style={styles.playFromLinkInputRow}>
-                    <View style={styles.playFromLinkInputContainer}>
+                    <View style={styles.inputWrapper}>
                         <TextInput
-                            style={styles.playFromLinkInput}
-                            placeholder="https://youtube.com/watch?v=..."
+                            style={styles.smartInput}
+                            placeholder={t('pasteAnyLink') || 'Paste any link here...'}
                             placeholderTextColor={Colors.textTertiary}
                             value={pasteUrl}
                             onChangeText={setPasteUrl}
                             autoCapitalize="none"
                             autoCorrect={false}
+                            multiline={false}
                         />
                         {pasteUrl.length > 0 && (
-                            <TouchableOpacity onPress={() => setPasteUrl('')} style={styles.clearUrlBtn}>
-                                <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
+                            <TouchableOpacity
+                                onPress={() => { setPasteUrl(''); setDetectedLink(null); }}
+                                style={styles.clearBtn}
+                            >
+                                <Ionicons name="close-circle" size={20} color={Colors.textTertiary} />
                             </TouchableOpacity>
                         )}
                     </View>
-                    <TouchableOpacity
-                        style={[styles.playUrlBtn, !pasteUrl.trim() && styles.playUrlBtnDisabled]}
-                        onPress={handlePlayFromUrl}
+
+                    {detectedLink && detectedLink.type !== 'unknown' && (
+                        <View style={styles.detectedType}>
+                            <Ionicons
+                                name={LinkDetectionService.getLinkTypeIcon(detectedLink.type) as any}
+                                size={16}
+                                color={LinkDetectionService.getLinkTypeColor(detectedLink.type)}
+                            />
+                            <Text style={[styles.detectedTypeText, { color: LinkDetectionService.getLinkTypeColor(detectedLink.type) }]}>
+                                {LinkDetectionService.getLinkTypeLabel(detectedLink.type)}
+                            </Text>
+                            {detectedLink.type === 'iptv_playlist' && (
+                                <Text style={styles.detectedAction}>→ Add to Library</Text>
+                            )}
+                            {detectedLink.isPlayable && (
+                                <Text style={styles.detectedAction}>→ Play</Text>
+                            )}
+                        </View>
+                    )}
+
+                    <AnimatedPressable
+                        style={[styles.smartPlayBtn, !pasteUrl.trim() && styles.smartPlayBtnDisabled]}
+                        onPress={handleSmartLink}
                         disabled={isLoadingUrl || !pasteUrl.trim()}
                     >
                         <LinearGradient
-                            colors={pasteUrl.trim() ? Gradients.accent as [string, string] : ['#555', '#444']}
-                            style={styles.playUrlBtnGradient}
+                            colors={pasteUrl.trim() ? Gradients.primary as [string, string] : ['#444', '#333']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.smartPlayBtnGradient}
                         >
                             {isLoadingUrl ? (
-                                <Ionicons name="hourglass" size={18} color="#fff" />
+                                <Ionicons name="hourglass" size={20} color="#fff" />
                             ) : (
-                                <Ionicons name="play" size={18} color="#fff" />
+                                <>
+                                    <Ionicons name="flash" size={20} color="#fff" />
+                                    <Text style={styles.smartPlayBtnText}>
+                                        {detectedLink?.type === 'iptv_playlist'
+                                            ? (t('addToLibrary') || 'Add to Library')
+                                            : detectedLink?.type === 'webview'
+                                                ? `Open ${detectedLink.platformName || 'Link'}`
+                                                : (t('playNow') || 'Play Now')}
+                                    </Text>
+                                </>
                             )}
                         </LinearGradient>
-                    </TouchableOpacity>
-                </View>
-            </GlassCard>
+                    </AnimatedPressable>
+
+                    <View style={styles.examplesRow}>
+                        <Text style={styles.examplesLabel}>Examples:</Text>
+                        <Text style={styles.exampleText}>youtube.com/watch?v=...</Text>
+                        <Text style={styles.exampleText}>soundcloud.com/artist/track</Text>
+                        <Text style={styles.exampleText}>iptv.example.com/playlist.m3u</Text>
+                    </View>
+                </GlassCard>
+            </FadeInView>
         </View>
     );
 
@@ -384,7 +401,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                 </View>
 
                 <View style={styles.guideItems}>
-                    {}
+                    { }
                     <TouchableOpacity style={styles.guideItem} onPress={onNavigateToAddPlaylist}>
                         <View style={[styles.guideIconBg, { backgroundColor: 'rgba(118, 75, 162, 0.2)' }]}>
                             <Ionicons name="tv-outline" size={20} color={Colors.primary} />
@@ -396,7 +413,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                         <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
                     </TouchableOpacity>
 
-                    {}
+                    { }
                     <TouchableOpacity style={styles.guideItem} onPress={onNavigateToOnline}>
                         <View style={[styles.guideIconBg, { backgroundColor: 'rgba(240, 147, 251, 0.2)' }]}>
                             <Ionicons name="logo-youtube" size={20} color={Colors.secondary} />
@@ -408,7 +425,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                         <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
                     </TouchableOpacity>
 
-                    {}
+                    { }
                     <TouchableOpacity style={styles.guideItem} onPress={onNavigateToLocalFiles}>
                         <View style={[styles.guideIconBg, { backgroundColor: 'rgba(79, 172, 254, 0.2)' }]}>
                             <Ionicons name="folder-outline" size={20} color={Colors.accent} />
@@ -465,7 +482,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                 showsVerticalScrollIndicator={false}
             >
                 <SafeAreaView edges={['top']}>
-                    {}
+                    { }
                     <View style={styles.header}>
                         <Text style={[styles.logo, { color: themeColors.text }]}>PlayCast</Text>
                         <TouchableOpacity
@@ -476,19 +493,16 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    {}
+                    { }
                     {renderHero()}
 
-                    {}
-                    {renderQuickActions()}
+                    { }
+                    {renderSmartInput()}
 
-                    {}
+                    { }
                     {renderGuidanceSection()}
 
-                    {}
-                    {renderPlayFromLink()}
-
-                    {}
+                    { }
                     {hasContent ? (
                         <>
                             {renderContinueWatching()}
@@ -498,12 +512,12 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                         renderEmptyState()
                     )}
 
-                    {}
+                    { }
                     <View style={{ height: Layout.tabBarHeight + 20 }} />
                 </SafeAreaView>
             </ScrollView>
 
-            {}
+            { }
             {selectedChannel && (
                 <Modal
                     visible={showPlayer}
@@ -518,6 +532,14 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                     />
                 </Modal>
             )}
+
+            { }
+            <WebViewPlayer
+                visible={showWebView}
+                url={webViewUrl}
+                title={webViewTitle}
+                onClose={() => setShowWebView(false)}
+            />
         </View>
     );
 };
@@ -897,6 +919,105 @@ const styles = StyleSheet.create({
     hideGuideText: {
         fontSize: FontSizes.sm,
         color: Colors.textTertiary,
+    },
+
+    smartInputContainer: {
+        paddingHorizontal: Layout.screenPadding,
+        marginBottom: Spacing.lg,
+    },
+    smartInputHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        marginBottom: Spacing.sm,
+    },
+    smartInputTitle: {
+        fontSize: FontSizes.xl,
+        fontWeight: '700',
+        color: Colors.text,
+    },
+    smartInputDesc: {
+        fontSize: FontSizes.sm,
+        color: Colors.textSecondary,
+        marginBottom: Spacing.md,
+    },
+    inputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.md,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        marginBottom: Spacing.md,
+    },
+    smartInput: {
+        flex: 1,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.md,
+        fontSize: FontSizes.md,
+        color: Colors.text,
+    },
+    clearBtn: {
+        padding: Spacing.sm,
+    },
+    detectedType: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        marginBottom: Spacing.md,
+        paddingVertical: Spacing.xs,
+        paddingHorizontal: Spacing.sm,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: BorderRadius.sm,
+        alignSelf: 'flex-start',
+    },
+    detectedTypeText: {
+        fontSize: FontSizes.sm,
+        fontWeight: '600',
+    },
+    detectedAction: {
+        fontSize: FontSizes.xs,
+        color: Colors.textSecondary,
+        marginLeft: Spacing.xs,
+    },
+    smartPlayBtn: {
+        borderRadius: BorderRadius.md,
+        overflow: 'hidden',
+        marginBottom: Spacing.md,
+    },
+    smartPlayBtnDisabled: {
+        opacity: 0.5,
+    },
+    smartPlayBtnGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.sm,
+        paddingVertical: Spacing.md,
+    },
+    smartPlayBtnText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: FontSizes.md,
+    },
+    examplesRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.xs,
+        alignItems: 'center',
+    },
+    examplesLabel: {
+        fontSize: FontSizes.xs,
+        color: Colors.textTertiary,
+        marginRight: Spacing.xs,
+    },
+    exampleText: {
+        fontSize: FontSizes.xs,
+        color: Colors.textSecondary,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        paddingHorizontal: Spacing.xs,
+        paddingVertical: 2,
+        borderRadius: BorderRadius.sm,
     },
 });
 

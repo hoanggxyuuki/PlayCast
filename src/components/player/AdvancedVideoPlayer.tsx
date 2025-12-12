@@ -23,9 +23,12 @@ import { Colors, FontSizes, Spacing } from '../../constants/theme';
 import { useHistory } from '../../contexts/HistoryContext';
 import { useQueue } from '../../contexts/QueueContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { getSoundCloudRelatedTracks, getYouTubeQualities, getYouTubeRelatedVideos, VideoQuality } from '../../services/AutoplayService';
 import { DownloadService } from '../../services/downloadService';
+import { OnlineSearchService, SoundCloudResult, YouTubeResult } from '../../services/OnlineSearchService';
 import { SleepTimerService } from '../../services/sleepTimerService';
 import { VideoPlayerProps } from '../../types';
+import { GestureControls } from './GestureControls';
 import { SleepTimerModal } from './SleepTimerModal';
 
 export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -58,6 +61,11 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const [qualities, setQualities] = useState<VideoQuality[]>([]);
+  const [currentQuality, setCurrentQuality] = useState<string>('auto');
+  const [nextVideo, setNextVideo] = useState<YouTubeResult | SoundCloudResult | null>(null);
+  const [showUpNext, setShowUpNext] = useState(false);
+  const [upNextCountdown, setUpNextCountdown] = useState(5);
 
 
   const { addToHistory, updateProgress } = useHistory();
@@ -70,6 +78,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const controlsTimeout = useRef<NodeJS.Timeout>();
   const progressInterval = useRef<NodeJS.Timeout>();
   const controlsOpacity = useRef(new Animated.Value(1)).current;
+  const showControlsRef = useRef(true);
 
 
   useEffect(() => {
@@ -142,6 +151,51 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (settings.defaultPlaybackSpeed && settings.defaultPlaybackSpeed !== 1.0) {
+      setPlaybackSpeed(settings.defaultPlaybackSpeed);
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchRelatedContent = async () => {
+      if (!channel) return;
+
+      const isYouTube = channel.group?.toLowerCase() === 'youtube' || channel.url.includes('googlevideo');
+      const isSoundCloud = channel.group?.toLowerCase() === 'soundcloud' || channel.url.includes('soundcloud');
+
+      try {
+        if (isYouTube) {
+          const videoId = channel.id.replace('youtube-', '');
+
+          const quals = await getYouTubeQualities(videoId);
+          console.log('[YouTube] Fetched qualities:', quals.length);
+          if (quals.length > 0) {
+            setQualities(quals);
+            setCurrentQuality(quals[0].label);
+          }
+
+          if (settings.autoPlayNext) {
+            const related = await getYouTubeRelatedVideos(videoId);
+            if (related.length > 0) {
+              setNextVideo(related[0]);
+            }
+          }
+        } else if (isSoundCloud && settings.autoPlayNext) {
+          const trackId = channel.id.replace('soundcloud-', '');
+          const related = await getSoundCloudRelatedTracks(trackId);
+          if (related.length > 0) {
+            setNextVideo(related[0]);
+          }
+        }
+      } catch (error) {
+        console.log('Failed to fetch related content:', error);
+      }
+    };
+
+    fetchRelatedContent();
+  }, [channel]);
+
 
   const onVideoLoad = (data: OnLoadData) => {
     console.log('Video loaded:', data.duration);
@@ -170,24 +224,76 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const onVideoEnd = () => {
-
     if (loopMode === 'one') {
-
       videoRef.current?.seek(0);
       setIsPlaying(true);
       return;
     }
 
-
     if (onNext) {
-
       onNext();
     } else if (hasNext()) {
       const next = queueNext();
       if (next) {
         console.log('Auto-playing next:', next.name);
       }
+    } else if (nextVideo && settings.autoPlayNext) {
+      setShowUpNext(true);
+      setUpNextCountdown(5);
+
+      const countdown = setInterval(() => {
+        setUpNextCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdown);
+            playNextVideo();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     }
+  };
+
+  const playNextVideo = async () => {
+    if (!nextVideo) return;
+    setShowUpNext(false);
+
+    try {
+      const isYouTube = 'videoId' in nextVideo;
+      let streamUrl = '';
+      let thumbnail = '';
+      let title = '';
+
+      if (isYouTube) {
+        const ytVideo = nextVideo as YouTubeResult;
+        streamUrl = await OnlineSearchService.getYouTubeStreamUrl(ytVideo.videoId);
+        thumbnail = ytVideo.thumbnail;
+        title = ytVideo.title;
+      } else {
+        const scTrack = nextVideo as SoundCloudResult;
+        const scData = await OnlineSearchService.getSoundCloudStreamUrl(scTrack.id);
+        streamUrl = scData.streamUrl;
+        thumbnail = scTrack.thumbnail;
+        title = scTrack.title;
+      }
+
+      const newChannel: Channel = {
+        id: isYouTube ? `youtube-${(nextVideo as YouTubeResult).videoId}` : `soundcloud-${(nextVideo as SoundCloudResult).id}`,
+        name: title,
+        url: streamUrl,
+        logo: thumbnail,
+        group: isYouTube ? 'YouTube' : 'SoundCloud',
+      };
+
+      console.log('Auto-playing next:', newChannel.name);
+    } catch (error) {
+      console.error('Failed to play next video:', error);
+    }
+  };
+
+  const cancelUpNext = () => {
+    setShowUpNext(false);
+    setIsPlaying(false);
   };
 
   const resetControlsTimeout = () => {
@@ -201,17 +307,19 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const hideControls = () => {
+    showControlsRef.current = false;
+    setShowControls(false);
     Animated.timing(controlsOpacity, {
       toValue: 0,
       duration: 300,
       useNativeDriver: true,
-    }).start(() => setShowControls(false));
+    }).start();
   };
 
   const showControlsAnimated = () => {
-
-    controlsOpacity.setValue(1);
+    showControlsRef.current = true;
     setShowControls(true);
+    controlsOpacity.setValue(1);
     resetControlsTimeout();
   };
 
@@ -304,7 +412,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     <View style={styles.container}>
       <StatusBar hidden={isLandscape} />
 
-      {}
+      { }
       <View style={styles.videoContainer}>
         <Video
           ref={videoRef}
@@ -340,7 +448,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           onEnd={onVideoEnd}
         />
 
-        {}
+        { }
         {channel.logo && (channel.url.includes('soundcloud') || channel.group?.toLowerCase() === 'soundcloud') && (
           <View style={styles.audioArtworkContainer}>
             <Image
@@ -358,23 +466,33 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         )}
       </View>
 
-      {}
-      <TouchableOpacity
-        style={styles.touchOverlay}
-        activeOpacity={1}
-        onPress={() => {
-          console.log('[Controls] Tap detected, showControls:', showControls);
-          if (showControls) {
-            console.log('[Controls] Hiding controls...');
+      { }
+      <GestureControls
+        onSeek={(seconds) => {
+          const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
+          videoRef.current?.seek(newTime);
+          setCurrentTime(newTime);
+          showControlsAnimated();
+        }}
+        onVolumeChange={(delta) => {
+          console.log('Volume change:', delta);
+        }}
+        onBrightnessChange={(delta) => {
+          console.log('Brightness change:', delta);
+        }}
+        onSingleTap={() => {
+          console.log('[Player] Single tap - showControlsRef:', showControlsRef.current);
+          if (showControlsRef.current) {
             hideControls();
           } else {
-            console.log('[Controls] Showing controls...');
             showControlsAnimated();
           }
         }}
-      />
+      >
+        <View style={styles.touchOverlay} />
+      </GestureControls>
 
-      {}
+      { }
       {
         (isLoading || isBuffering) && (
           <View style={styles.loadingContainer}>
@@ -386,11 +504,11 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         )
       }
 
-      {}
+      { }
       {
         showControls && (
           <Animated.View style={[styles.controlsContainer, { opacity: controlsOpacity }]}>
-            {}
+            { }
             <View style={[styles.topBar, { paddingTop: isLandscape ? Spacing.md : insets.top + Spacing.md }]}>
               <TouchableOpacity style={styles.iconButton} onPress={handleClose}>
                 <Ionicons name="close" size={28} color={Colors.text} />
@@ -421,7 +539,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               </TouchableOpacity>
             </View>
 
-            {}
+            { }
             <View style={styles.centerControls}>
               <TouchableOpacity
                 style={styles.controlButton}
@@ -459,9 +577,9 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               </TouchableOpacity>
             </View>
 
-            {}
+            { }
             <View style={[styles.bottomBar, { paddingBottom: isLandscape ? Spacing.md : insets.bottom + Spacing.md }]}>
-              {}
+              { }
               <View style={styles.progressContainer}>
                 <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
                 <Slider
@@ -477,9 +595,9 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 <Text style={styles.timeText}>{formatTime(duration)}</Text>
               </View>
 
-              {}
+              { }
               <View style={styles.bottomControls}>
-                {}
+                { }
                 {onShuffleModeChange && (
                   <TouchableOpacity
                     style={styles.modeButton}
@@ -493,7 +611,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                   </TouchableOpacity>
                 )}
 
-                {}
+                { }
                 {playlistInfo && playlistInfo.total > 1 && (
                   <View style={styles.playlistInfoContainer}>
                     <Text style={styles.playlistInfoText}>
@@ -502,7 +620,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                   </View>
                 )}
 
-                {}
+                { }
                 {onLoopModeChange && (
                   <TouchableOpacity
                     style={styles.modeButton}
@@ -524,7 +642,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                   </TouchableOpacity>
                 )}
 
-                {}
+                { }
                 {sleepTimerRemaining && (
                   <View style={styles.sleepTimerIndicator}>
                     <Ionicons name="moon" size={16} color={Colors.primary} />
@@ -537,7 +655,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         )
       }
 
-      {}
+      { }
       <Modal
         visible={showSpeedMenu}
         transparent
@@ -577,7 +695,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         </TouchableOpacity>
       </Modal>
 
-      {}
+      { }
       <Modal
         visible={showMoreMenu}
         transparent
@@ -606,6 +724,32 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               <Ionicons name="speedometer-outline" size={24} color={Colors.text} />
               <Text style={styles.menuItemText}>Speed ({playbackSpeed}x)</Text>
             </TouchableOpacity>
+
+            {qualities.length > 0 && (
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setShowMoreMenu(false);
+                  Alert.alert(
+                    'Video Quality',
+                    'Select quality:',
+                    [
+                      ...qualities.map((q) => ({
+                        text: q.label,
+                        onPress: () => {
+                          setCurrentQuality(q.label);
+                          console.log('Changed quality to:', q.label, q.url);
+                        },
+                      })),
+                      { text: 'Cancel', style: 'cancel' },
+                    ]
+                  );
+                }}
+              >
+                <Ionicons name="settings-outline" size={24} color={Colors.text} />
+                <Text style={styles.menuItemText}>Quality ({currentQuality})</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.menuItem}
@@ -705,14 +849,14 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         </TouchableOpacity>
       </Modal>
 
-      {}
+      { }
       <SleepTimerModal
         visible={showSleepTimer}
         onClose={() => setShowSleepTimer(false)}
         onTimerSet={(minutes) => console.log(`Sleep timer set for ${minutes} minutes`)}
       />
 
-      {}
+      { }
       <Modal
         visible={showQualityMenu}
         transparent
@@ -752,6 +896,37 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {showUpNext && nextVideo && (
+        <View style={styles.upNextOverlay}>
+          <View style={styles.upNextCard}>
+            <Text style={styles.upNextLabel}>Up Next in {upNextCountdown}s</Text>
+            <View style={styles.upNextContent}>
+              <Image
+                source={{ uri: 'videoId' in nextVideo ? nextVideo.thumbnail : (nextVideo as SoundCloudResult).thumbnail }}
+                style={styles.upNextThumb}
+              />
+              <View style={styles.upNextInfo}>
+                <Text style={styles.upNextTitle} numberOfLines={2}>
+                  {'videoId' in nextVideo ? nextVideo.title : (nextVideo as SoundCloudResult).title}
+                </Text>
+                <Text style={styles.upNextArtist} numberOfLines={1}>
+                  {'videoId' in nextVideo ? nextVideo.author : (nextVideo as SoundCloudResult).artist}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.upNextButtons}>
+              <TouchableOpacity style={styles.upNextCancelBtn} onPress={cancelUpNext}>
+                <Text style={styles.upNextCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.upNextPlayBtn} onPress={playNextVideo}>
+                <Ionicons name="play" size={18} color="#fff" />
+                <Text style={styles.upNextPlayText}>Play Now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </View >
   );
 };
@@ -1030,5 +1205,84 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.text,
     fontWeight: '500',
+  },
+  upNextOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  upNextCard: {
+    backgroundColor: Colors.backgroundCard,
+    borderRadius: 16,
+    padding: Spacing.lg,
+    width: '85%',
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  upNextLabel: {
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
+    color: Colors.primary,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
+  },
+  upNextContent: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  upNextThumb: {
+    width: 120,
+    height: 68,
+    borderRadius: 8,
+    backgroundColor: Colors.surface,
+  },
+  upNextInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  upNextTitle: {
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  upNextArtist: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+  },
+  upNextButtons: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  upNextCancelBtn: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    paddingVertical: Spacing.md,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  upNextCancelText: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+  upNextPlayBtn: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  upNextPlayText: {
+    fontSize: FontSizes.md,
+    color: '#fff',
+    fontWeight: '600',
   },
 });
