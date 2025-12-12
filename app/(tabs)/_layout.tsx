@@ -42,7 +42,7 @@ export default function TabLayout() {
         ),
       }}
     >
-      {}
+      { }
       <Tabs.Screen
         name="index"
         options={{
@@ -59,7 +59,7 @@ export default function TabLayout() {
         }}
       />
 
-      {}
+      { }
       <Tabs.Screen
         name="discover"
         options={{
@@ -76,7 +76,7 @@ export default function TabLayout() {
         }}
       />
 
-      {}
+      { }
       <Tabs.Screen
         name="library"
         options={{
@@ -93,7 +93,7 @@ export default function TabLayout() {
         }}
       />
 
-      {}
+      { }
       <Tabs.Screen
         name="settings"
         options={{
@@ -110,11 +110,11 @@ export default function TabLayout() {
         }}
       />
 
-      {}
+      { }
       <Tabs.Screen
         name="explore"
         options={{
-          href: null, 
+          href: null,
         }}
       />
       <Tabs.Screen

@@ -387,7 +387,7 @@ class OnlineSearchServiceClass {
 
         if (combinedFormats.length > 0) {
 
-            combinedFormats.sort((a: any, b: any) => (a.bitrate || 0) - (b.bitrate || 0));
+            combinedFormats.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
             const chosen = combinedFormats[0];
             console.log(`[YouTube] ${clientKey}: Found ${combinedFormats.length} combined video+audio formats`);
             console.log(`[YouTube] ${clientKey}: Using combined format - itag: ${chosen.itag}, mime: ${chosen.mimeType}, audioQuality: ${chosen.audioQuality}`);
@@ -434,7 +434,7 @@ class OnlineSearchServiceClass {
         );
 
         if (videoFormats.length > 0) {
-            videoFormats.sort((a: any, b: any) => (a.bitrate || 0) - (b.bitrate || 0));
+            videoFormats.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
             console.log(`[YouTube] ${clientKey}: Using video format as last resort`);
             return videoFormats[0].url;
         }

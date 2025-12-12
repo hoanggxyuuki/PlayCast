@@ -253,9 +253,16 @@ export const translations = {
     guideLocal: 'Local Files',
     guideLocalDesc: 'Play videos/music stored on your device',
     hideGuide: 'Got it, hide this',
+    smartPlay: 'Smart Play',
+    smartPlayDesc: 'Play videos/music from your url',
+    pasteAnyLink: 'Paste any link',
   },
 
   vi: {
+    pasteAnyLink: 'Dán URL',
+    pasteAnyLinkDesc: 'Dán URL video hoặc âm thanh',
+    smartPlayDesc: 'Phát video/âm thanh từ URL',
+    smartPlay: 'Trình phát thông minh',
     play: 'Phát',
     playFromLink: 'Phát từ Đường dẫn',
     pasteUrlPlaceholder: 'Dán URL',

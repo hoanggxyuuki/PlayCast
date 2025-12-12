@@ -9,8 +9,11 @@ import { QueueProvider } from '@/src/contexts/QueueContext';
 import { SettingsProvider } from '@/src/contexts/SettingsContext';
 import { CustomThemeProvider } from '@/src/contexts/ThemeContext';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import * as NavigationBar from 'expo-navigation-bar';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 
 export const unstable_settings = {
@@ -18,6 +21,12 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setBehaviorAsync('overlay-swipe');
+    }
+  }, []);
   return (
     <SettingsProvider>
       <CustomThemeProvider>
@@ -50,9 +59,9 @@ export default function RootLayout() {
                             }}
                           />
                         </Stack>
-                        {}
+                        { }
                         <MiniPlayer />
-                        <StatusBar style="light" />
+                        <StatusBar style="light" hidden={true} />
                       </ThemeProvider>
                     </OnlineFavoritesProvider>
                   </PlaylistProvider>

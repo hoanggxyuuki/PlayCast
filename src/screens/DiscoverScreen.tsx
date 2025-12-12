@@ -29,7 +29,7 @@ import { usePlaylist } from '../contexts/PlaylistContext';
 import { OnlineSearchResult, OnlineSearchService, SearchPlatform } from '../services/OnlineSearchService';
 import { Channel } from '../types';
 
-type DiscoverTab = 'local' | 'online' | 'link';
+type DiscoverTab = 'local' | 'online' | 'iptv';
 
 interface DiscoverScreenProps {
     initialTab?: 'local' | 'online' | 'link';
@@ -41,7 +41,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
     const SOURCE_OPTIONS = useMemo(() => [
         { id: 'local' as DiscoverTab, title: t('localFiles'), icon: 'folder-open' as const, color: '#4facfe', description: t('playFromDevice') },
         { id: 'online' as DiscoverTab, title: t('online'), icon: 'globe' as const, color: '#f093fb', description: 'YouTube, SoundCloud' },
-        { id: 'link' as DiscoverTab, title: t('addLink'), icon: 'link' as const, color: '#43e97b', description: t('pasteUrl') },
+        { id: 'iptv' as DiscoverTab, title: 'IPTV / M3U', icon: 'tv-outline' as const, color: '#43e97b', description: t('addPlaylistSubtitle') || 'Add channels' },
     ], [t]);
     const { addPlaylistFromUrl, addPlaylist } = usePlaylist();
     const { isFavorite, toggleFavorite } = useOnlineFavorites();
@@ -59,9 +59,9 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
     const [selectedPlatform, setSelectedPlatform] = useState<SearchPlatform>('youtube');
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState<OnlineSearchResult[]>([]);
-    const [linkUrl, setLinkUrl] = useState('');
-    const [linkName, setLinkName] = useState('');
-    const [isAddingLink, setIsAddingLink] = useState(false);
+    const [iptvUrl, setIptvUrl] = useState('');
+    const [iptvName, setIptvName] = useState('');
+    const [isAddingIptv, setIsAddingIptv] = useState(false);
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
     const [showPlayer, setShowPlayer] = useState(false);
 
@@ -199,23 +199,24 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
         }
     }, [searchQuery, selectedPlatform]);
 
-    const handleAddLink = async () => {
-        if (!linkUrl.trim()) {
-            Alert.alert('Error', 'Please enter a URL');
+    const handleAddIptv = async () => {
+        if (!iptvUrl.trim()) {
+            Alert.alert('Error', t('pleaseEnterUrl') || 'Please enter a URL');
             return;
         }
-        setIsAddingLink(true);
+        setIsAddingIptv(true);
         try {
-            await addPlaylistFromUrl(linkUrl, linkName || 'New Playlist', 'm3u');
-            Alert.alert('Success', 'Playlist added!');
-            setLinkUrl('');
-            setLinkName('');
+            await addPlaylistFromUrl(iptvUrl, iptvName || 'IPTV Playlist', 'm3u');
+            Alert.alert(t('success') || 'Success', t('playlistAddedSuccess') || 'Playlist added to library!');
+            setIptvUrl('');
+            setIptvName('');
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to add link');
+            Alert.alert('Error', error.message || 'Failed to add playlist');
         } finally {
-            setIsAddingLink(false);
+            setIsAddingIptv(false);
         }
     };
+
 
     const handlePlayResult = async (result: OnlineSearchResult) => {
         try {
@@ -226,7 +227,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                 streamUrl = await OnlineSearchService.getYouTubeStreamUrl(result.id);
             } else if (result.platform === 'soundcloud' && !streamUrl) {
                 const scData = await OnlineSearchService.getSoundCloudStreamUrl(result.id);
-                streamUrl = scData.streamUrl; 
+                streamUrl = scData.streamUrl;
             }
 
             if (!streamUrl) throw new Error('Could not get stream URL');
@@ -323,9 +324,9 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                                 ))}
                             </View>
 
-                            {}
+                            { }
 
-                            {}
+                            { }
 
                             <View style={styles.searchContainer}>
                                 <Ionicons name="search" size={20} color={Colors.textTertiary} />
@@ -409,42 +410,60 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                         </View>
                     )}
 
-                    {activeTab === 'link' && (
+                    {activeTab === 'iptv' && (
                         <View style={styles.tabContent}>
                             <GlassCard variant="purple" padding="large">
-                                <Text style={styles.cardTitle}>{t('addPlaylistLink')}</Text>
-                                <Text style={styles.cardDesc}>{t('pasteM3UPlaylistURL')}</Text>
+                                <View style={styles.iptvHeader}>
+                                    <Ionicons name="tv-outline" size={48} color="#43e97b" />
+                                    <Text style={styles.cardTitle}>{t('addNewPlaylist') || 'Add IPTV Playlist'}</Text>
+                                    <Text style={styles.cardDesc}>{t('pasteM3UPlaylistURL') || 'Paste M3U/JSON playlist URL from your IPTV provider'}</Text>
+                                </View>
+
                                 <View style={styles.inputGroup}>
-                                    <Text style={styles.inputLabel}>{t('url')} *</Text>
+                                    <Text style={styles.inputLabel}>{t('url') || 'URL'} *</Text>
                                     <TextInput
                                         style={styles.textInput}
                                         placeholder="https://example.com/playlist.m3u"
                                         placeholderTextColor={Colors.textTertiary}
-                                        value={linkUrl}
-                                        onChangeText={setLinkUrl}
+                                        value={iptvUrl}
+                                        onChangeText={setIptvUrl}
                                         autoCapitalize="none"
                                     />
                                 </View>
+
                                 <View style={styles.inputGroup}>
-                                    <Text style={styles.inputLabel}>Name</Text>
+                                    <Text style={styles.inputLabel}>{t('playlistName') || 'Name'}</Text>
                                     <TextInput
                                         style={styles.textInput}
-                                        placeholder="My Playlist"
+                                        placeholder="My IPTV Playlist"
                                         placeholderTextColor={Colors.textTertiary}
-                                        value={linkName}
-                                        onChangeText={setLinkName}
+                                        value={iptvName}
+                                        onChangeText={setIptvName}
                                     />
                                 </View>
-                                <TouchableOpacity style={styles.addButton} onPress={handleAddLink} disabled={isAddingLink}>
-                                    <LinearGradient colors={Gradients.primary as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addButtonGradient}>
-                                        {isAddingLink ? <LoadingSpinner size="small" /> : (
+
+                                <TouchableOpacity style={styles.addButton} onPress={handleAddIptv} disabled={isAddingIptv}>
+                                    <LinearGradient
+                                        colors={['#43e97b', '#38f9d7']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={styles.addButtonGradient}
+                                    >
+                                        {isAddingIptv ? <LoadingSpinner size="small" /> : (
                                             <>
                                                 <Ionicons name="add-circle-outline" size={20} color="#fff" />
-                                                <Text style={styles.addButtonText}>Add Playlist</Text>
+                                                <Text style={styles.addButtonText}>{t('addPlaylist') || 'Add Playlist'}</Text>
                                             </>
                                         )}
                                     </LinearGradient>
                                 </TouchableOpacity>
+
+                                <View style={styles.helpBox}>
+                                    <Ionicons name="information-circle-outline" size={18} color={Colors.textSecondary} />
+                                    <Text style={styles.helpText}>
+                                        {t('whatIsIptv') || 'IPTV/M3U playlists contain TV channel links. Get them from your TV provider or free sources online.'}
+                                    </Text>
+                                </View>
                             </GlassCard>
                         </View>
                     )}
@@ -519,6 +538,10 @@ const styles = StyleSheet.create({
     playUrlButton: { borderRadius: BorderRadius.md, overflow: 'hidden' },
     playUrlButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md },
     playUrlButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
+
+    iptvHeader: { alignItems: 'center', marginBottom: Spacing.md, gap: Spacing.sm },
+    helpBox: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, marginTop: Spacing.md, backgroundColor: 'rgba(255,255,255,0.05)', padding: Spacing.md, borderRadius: BorderRadius.md },
+    helpText: { flex: 1, fontSize: FontSizes.xs, color: Colors.textSecondary, lineHeight: 16 },
 });
 
 export default DiscoverScreen;
