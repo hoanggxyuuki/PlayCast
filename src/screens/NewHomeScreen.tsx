@@ -111,7 +111,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
 
                 // Fetch from SoundCloud proxy (charts/trending)
                 try {
-                    const scResponse = await fetch('http://188.166.216.232:3000/charts?kind=trending&limit=3');
+                    const scResponse = await fetch('https://bidev.nhhoang.io.vn/charts?kind=trending&limit=3');
                     if (scResponse.ok) {
                         const scData = await scResponse.json();
                         const scTracks = (scData.results || []).slice(0, 3).map((r: any) => ({

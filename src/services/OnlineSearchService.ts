@@ -107,7 +107,7 @@ const SOUNDCLOUD_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWe
 const SOUNDCLOUD_CLIENT_ID_REGEX = /client_id\s*:\s*"([0-9a-zA-Z]{32})"/;
 
 // SoundCloud Proxy Server (Singapore VPS) - fallback for blocked IPs
-const SOUNDCLOUD_PROXY_SERVER = 'http://188.166.216.232:3000'; // TODO: Replace with your VPS URL
+const SOUNDCLOUD_PROXY_SERVER = 'https://bidev.nhhoang.io.vn'; // TODO: Replace with your VPS URL
 let soundCloudUseProxy = false; // Will auto-switch to true if direct fails with 403
 
 class OnlineSearchServiceClass {
