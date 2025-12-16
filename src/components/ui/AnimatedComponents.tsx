@@ -287,7 +287,7 @@ export const PulseView: React.FC<PulseViewProps> = ({
     );
 };
 
-// Skeleton loading component
+
 interface SkeletonProps {
     width?: number | string;
     height?: number;
@@ -310,7 +310,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
             })
         );
 
-        // Create infinite loop
+
         const interval = setInterval(() => {
             opacity.value = withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) }, () => {
                 opacity.value = withTiming(0.3, { duration: 800, easing: Easing.inOut(Easing.ease) });
@@ -340,7 +340,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
     );
 };
 
-// Skeleton card placeholder
+
 interface SkeletonCardProps {
     style?: ViewStyle;
 }

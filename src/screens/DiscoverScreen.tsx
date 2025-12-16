@@ -49,7 +49,6 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
 
     const [activeTab, setActiveTab] = useState<DiscoverTab>(initialTab || 'local');
 
-
     useEffect(() => {
         if (initialTab) {
             setActiveTab(initialTab);
@@ -112,14 +111,12 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                                 onPress: async () => {
                                     const playlistName = `My Music (${files.length} tracks)`;
 
-
                                     const channels: Channel[] = files.map((file, index) => ({
                                         id: `local-${Date.now()}-${index}`,
                                         name: file.name?.replace(/\.[^/.]+$/, '') || `Track ${index + 1}`,
                                         url: file.uri,
                                         group: 'Local Files',
                                     }));
-
 
                                     const playlist = {
                                         id: `local-playlist-${Date.now()}`,
@@ -154,7 +151,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
         setSearchResults([]);
 
         try {
-            // Search both platforms simultaneously
+
             const [ytResults, scResults] = await Promise.allSettled([
                 OnlineSearchService.searchYouTube(searchQuery),
                 OnlineSearchService.searchSoundCloud(searchQuery),
@@ -162,7 +159,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
 
             let combinedResults: OnlineSearchResult[] = [];
 
-            // Process YouTube results
+
             if (ytResults.status === 'fulfilled' && ytResults.value) {
                 const ytMapped = ytResults.value.map(r => ({
                     platform: 'youtube' as SearchPlatform,
@@ -176,7 +173,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                 combinedResults = [...combinedResults, ...ytMapped];
             }
 
-            // Process SoundCloud results
+
             if (scResults.status === 'fulfilled' && scResults.value) {
                 const scMapped = scResults.value.map(r => ({
                     platform: 'soundcloud' as SearchPlatform,
@@ -190,7 +187,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                 combinedResults = [...combinedResults, ...scMapped];
             }
 
-            // Interleave results for better mix (YT, SC, YT, SC, ...)
+
             const ytItems = combinedResults.filter(r => r.platform === 'youtube');
             const scItems = combinedResults.filter(r => r.platform === 'soundcloud');
             const interleavedResults: OnlineSearchResult[] = [];
@@ -226,7 +223,6 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
         }
     };
 
-
     const handlePlayResult = async (result: OnlineSearchResult) => {
         try {
             setIsSearching(true);
@@ -250,7 +246,6 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
             };
 
             setSelectedChannel(channel);
-
 
             addToHistory({
                 channelId: channel.id,
@@ -359,7 +354,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                                                         <Ionicons name="play" size={24} color="#fff" />
                                                     </View>
                                                 )}
-                                                {/* Platform Badge */}
+                                                {}
                                                 <View style={[
                                                     styles.platformBadge,
                                                     { backgroundColor: item.platform === 'youtube' ? '#FF0000' : '#FF5500' }

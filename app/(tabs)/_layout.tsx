@@ -56,13 +56,13 @@ export default function TabLayout() {
                 />
               </View>
             )}
-            {/* Glow border */}
+            {}
             <View style={styles.glowBorder} />
           </View>
         ),
       }}
     >
-      {/* Home Tab */}
+      {}
       <Tabs.Screen
         name="index"
         options={{
@@ -85,7 +85,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Discover Tab */}
+      {}
       <Tabs.Screen
         name="discover"
         options={{
@@ -108,7 +108,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Library Tab */}
+      {}
       <Tabs.Screen
         name="library"
         options={{
@@ -131,7 +131,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Settings Tab */}
+      {}
       <Tabs.Screen
         name="settings"
         options={{
@@ -154,7 +154,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Hidden screens */}
+      {}
       <Tabs.Screen name="explore" options={{ href: null }} />
       <Tabs.Screen name="history" options={{ href: null }} />
       <Tabs.Screen name="queue" options={{ href: null }} />

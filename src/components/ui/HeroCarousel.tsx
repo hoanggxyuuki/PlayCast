@@ -129,7 +129,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                         end={{ x: 1, y: 1 }}
                         style={styles.slideContainer}
                     >
-                        {/* Background Icon */}
+                        {}
                         <View style={styles.backgroundIcon}>
                             <Ionicons
                                 name={item.icon || 'musical-notes'}
@@ -138,7 +138,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                             />
                         </View>
 
-                        {/* Content */}
+                        {}
                         <View style={styles.content}>
                             <View style={styles.iconBadge}>
                                 <Ionicons
@@ -150,14 +150,14 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                             <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
                             <Text style={styles.subtitle} numberOfLines={1}>{item.subtitle}</Text>
 
-                            {/* Play hint */}
+                            {}
                             <View style={styles.playHint}>
                                 <Ionicons name="play-circle" size={18} color="rgba(255,255,255,0.9)" />
                                 <Text style={styles.playHintText}>Nhấn để phát</Text>
                             </View>
                         </View>
 
-                        {/* Background Image */}
+                        {}
                         {item.image && (
                             <Image
                                 source={{ uri: item.image }}
@@ -166,7 +166,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                             />
                         )}
 
-                        {/* Shimmer */}
+                        {}
                         <View style={styles.shimmerOverlay} />
                     </LinearGradient>
                 </TouchableOpacity>
@@ -192,7 +192,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                 }}
             />
 
-            {/* Pagination dots */}
+            {}
             {slides.length > 1 && (
                 <View style={styles.pagination}>
                     {slides.map((_, index) => (

@@ -60,9 +60,6 @@ export interface VideoQualityOption {
     qualityLabel?: string;
 }
 
-
-
-
 const INNERTUBE_CLIENTS = {
 
     web: {
@@ -96,25 +93,20 @@ const INNERTUBE_CLIENTS = {
     },
 };
 
-
 const YOUTUBE_SEARCH_PARAMS = 'EgIQAfABAQ==';
-
-
 
 const SOUNDCLOUD_API_V2_BASE = 'https://api-v2.soundcloud.com/';
 const SOUNDCLOUD_DEFAULT_CLIENT_ID = 'a3e059563d7fd3372b49b37f00a00bcf';
 const SOUNDCLOUD_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36';
 const SOUNDCLOUD_CLIENT_ID_REGEX = /client_id\s*:\s*"([0-9a-zA-Z]{32})"/;
 
-// SoundCloud Proxy Server (Singapore VPS) - fallback for blocked IPs
-const SOUNDCLOUD_PROXY_SERVER = 'https://bidev.nhhoang.io.vn'; // TODO: Replace with your VPS URL
-let soundCloudUseProxy = false; // Will auto-switch to true if direct fails with 403
+s
+const SOUNDCLOUD_PROXY_SERVER = 'https://bidev.nhhoang.io.vn'; 
+let soundCloudUseProxy = false; 
 
 class OnlineSearchServiceClass {
     private soundCloudClientId: string | null = null;
     private isWeb = Platform.OS === 'web';
-
-
 
     async getYouTubeVideoDetails(videoId: string): Promise<YouTubeResult> {
         try {
@@ -180,7 +172,6 @@ class OnlineSearchServiceClass {
         return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
     }
 
-
     private buildInnertubeContext(clientKey: keyof typeof INNERTUBE_CLIENTS) {
         const client = INNERTUBE_CLIENTS[clientKey];
         return {
@@ -193,8 +184,6 @@ class OnlineSearchServiceClass {
             },
         };
     }
-
-
 
     async searchYouTube(query: string): Promise<YouTubeResult[]> {
         try {
@@ -290,9 +279,6 @@ class OnlineSearchServiceClass {
         }
     }
 
-
-
-
     async getYouTubeStreamUrl(videoId: string): Promise<string> {
         const clientsToTry: (keyof typeof INNERTUBE_CLIENTS)[] = ['android', 'ios', 'tv', 'web'];
 
@@ -315,7 +301,6 @@ class OnlineSearchServiceClass {
 
     private async _extractStreamFromClient(videoId: string, clientKey: keyof typeof INNERTUBE_CLIENTS): Promise<string | null> {
         const context = this.buildInnertubeContext(clientKey);
-
 
         const requestBody = {
             context: context,
@@ -353,7 +338,6 @@ class OnlineSearchServiceClass {
 
         const data = await response.json();
 
-
         const playabilityStatus = data?.playabilityStatus;
         if (playabilityStatus?.status !== 'OK') {
             const reason = playabilityStatus?.reason || playabilityStatus?.status || 'Unknown error';
@@ -361,13 +345,11 @@ class OnlineSearchServiceClass {
             return null;
         }
 
-
         const streamingData = data?.streamingData;
         if (!streamingData) {
             console.log(`[YouTube] ${clientKey}: No streaming data`);
             return null;
         }
-
 
         const allFormats = [
             ...(streamingData.formats || []),
@@ -378,9 +360,6 @@ class OnlineSearchServiceClass {
             console.log(`[YouTube] ${clientKey}: No formats available`);
             return null;
         }
-
-
-
 
         const combinedFormats = (streamingData.formats || []).filter((f: any) =>
             f.url &&
@@ -398,13 +377,10 @@ class OnlineSearchServiceClass {
             return chosen.url;
         }
 
-
-
         if (streamingData.hlsManifestUrl) {
             console.log(`[YouTube] ${clientKey}: Using HLS manifest`);
             return streamingData.hlsManifestUrl;
         }
-
 
         const audioFormats = allFormats.filter((f: any) =>
             f.url &&
@@ -423,14 +399,12 @@ class OnlineSearchServiceClass {
 
             console.log(`[YouTube] ${clientKey}: Found ${mp4Audio.length} mp4 audio, ${webmAudio.length} webm audio formats`);
 
-
             if (mp4Audio.length > 0) {
                 mp4Audio.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
                 console.log(`[YouTube] ${clientKey}: Using mp4 audio format (may not work with VideoView)`);
                 return mp4Audio[0].url;
             }
         }
-
 
         const videoFormats = allFormats.filter((f: any) =>
             f.url &&
@@ -443,14 +417,10 @@ class OnlineSearchServiceClass {
             return videoFormats[0].url;
         }
 
-
-
-
         const cipherFormats = allFormats.filter((f: any) => f.signatureCipher);
         if (cipherFormats.length > 0) {
             console.log(`[YouTube] ${clientKey}: ${cipherFormats.length} formats require signature decryption (not supported)`);
         }
-
 
         if (streamingData.hlsManifestUrl) {
             console.log(`[YouTube] ${clientKey}: Using HLS manifest`);
@@ -459,7 +429,6 @@ class OnlineSearchServiceClass {
 
         return null;
     }
-
 
     static async getYouTubeQualityOptions(videoId: string): Promise<VideoQualityOption[]> {
         const instance = new OnlineSearchService();
@@ -503,7 +472,6 @@ class OnlineSearchServiceClass {
                 const streamingData = data?.streamingData;
                 if (!streamingData) continue;
 
-
                 const formats = [...(streamingData.formats || [])];
 
                 for (const f of formats) {
@@ -534,8 +502,6 @@ class OnlineSearchServiceClass {
 
         return options;
     }
-
-
 
     private async getSoundCloudClientId(): Promise<string> {
         if (this.soundCloudClientId) {
@@ -597,12 +563,12 @@ class OnlineSearchServiceClass {
     async searchSoundCloud(query: string): Promise<SoundCloudResult[]> {
         console.log(`[SoundCloud] Searching: "${query}" (useProxy: ${soundCloudUseProxy})`);
 
-        // If already using proxy, go directly to proxy
+
         if (soundCloudUseProxy) {
             return this._searchSoundCloudViaProxy(query);
         }
 
-        // Try direct SoundCloud API first
+
         try {
             const clientId = await this.getSoundCloudClientId();
             const searchUrl = `${SOUNDCLOUD_API_V2_BASE}search/tracks?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=20`;
@@ -639,7 +605,7 @@ class OnlineSearchServiceClass {
                 permalinkUrl: track.permalink_url || '',
             }));
         } catch (error: any) {
-            // On network error or timeout, try proxy as fallback
+
             if (error.message.includes('403') || error.message.includes('timeout') || error.message.includes('Network')) {
                 console.log(`[SoundCloud] Direct failed: ${error.message}, trying proxy...`);
                 soundCloudUseProxy = true;
@@ -650,7 +616,7 @@ class OnlineSearchServiceClass {
         }
     }
 
-    // Search via proxy server (Singapore VPS)
+
     private async _searchSoundCloudViaProxy(query: string): Promise<SoundCloudResult[]> {
         try {
             const proxyUrl = `${SOUNDCLOUD_PROXY_SERVER}/search?q=${encodeURIComponent(query)}&limit=20`;
@@ -685,12 +651,12 @@ class OnlineSearchServiceClass {
     async getSoundCloudStreamUrl(trackIdOrUrl: string): Promise<{ streamUrl: string; title: string; thumbnail: string; artist: string; id: string }> {
         console.log(`[SoundCloud] Getting stream for: ${trackIdOrUrl} (useProxy: ${soundCloudUseProxy})`);
 
-        // If already using proxy, go directly to proxy
+
         if (soundCloudUseProxy) {
             return this._getSoundCloudStreamViaProxy(trackIdOrUrl);
         }
 
-        // Try direct SoundCloud API first
+
         try {
             const clientId = await this.getSoundCloudClientId();
             let trackData: any;
@@ -761,7 +727,7 @@ class OnlineSearchServiceClass {
                 id: String(trackData.id)
             };
         } catch (error: any) {
-            // On 403 or network error, try proxy
+
             if (error.message.includes('403') || error.message.includes('timeout') || error.message.includes('Network')) {
                 console.log(`[SoundCloud] Direct failed: ${error.message}, trying proxy...`);
                 soundCloudUseProxy = true;
@@ -773,14 +739,14 @@ class OnlineSearchServiceClass {
         }
     }
 
-    // Get stream via proxy server (Singapore VPS)
+
     private async _getSoundCloudStreamViaProxy(trackIdOrUrl: string): Promise<{ streamUrl: string; title: string; thumbnail: string; artist: string; id: string }> {
         try {
-            // Extract track ID from URL if needed
+
             let trackId = trackIdOrUrl;
             if (trackIdOrUrl.startsWith('http')) {
-                // For URLs, we need to resolve them - proxy expects ID
-                // Try to extract ID from the search results context
+
+
                 console.log('[SoundCloud Proxy] URL passed, extracting track ID is complex - may need adjustment');
             }
 
@@ -813,14 +779,10 @@ class OnlineSearchServiceClass {
         }
     }
 
-
-
     async searchSpotify(_query: string): Promise<SpotifyResult[]> {
         console.log('[Spotify] Not supported without API credentials');
         return [];
     }
-
-
 
     convertToChannel(result: OnlineSearchResult): Channel {
         return {

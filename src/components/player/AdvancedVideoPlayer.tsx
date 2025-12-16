@@ -70,25 +70,22 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showUpNext, setShowUpNext] = useState(false);
   const [upNextCountdown, setUpNextCountdown] = useState(5);
 
-  // Display mode: 'video' shows video, 'audio' shows artwork with blur background
+
   type DisplayMode = 'video' | 'audio';
   const [displayMode, setDisplayMode] = useState<DisplayMode>('video');
 
-  // Internal channel state for queue navigation
+
   const [activeChannel, setActiveChannel] = useState(channel);
 
-  // Internal loop and shuffle mode states (when parent doesn't provide callbacks)
+
   const [internalLoopMode, setInternalLoopMode] = useState<'none' | 'one' | 'all'>(loopMode);
   const [internalShuffleMode, setInternalShuffleMode] = useState(shuffleMode);
   const [showQueueModal, setShowQueueModal] = useState(false);
-
-
 
   const { addToHistory, updateProgress } = useHistory();
   const { queue, playNext: queueNext, playPrevious: queuePrev, hasNext, hasPrevious, addToQueue, isInQueue, shuffleQueue, setCurrentIndex } = useQueue();
   const { settings } = useSettings();
   const insets = useSafeAreaInsets();
-
 
   const videoRef = useRef<VideoRef>(null);
   const controlsTimeout = useRef<NodeJS.Timeout>();
@@ -96,7 +93,6 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   const showControlsRef = useRef(true);
   const currentTimeRef = useRef(0);
-
 
   useEffect(() => {
     ScreenOrientation.unlockAsync();
@@ -115,7 +111,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     };
   }, []);
 
-  // Auto-detect display mode based on content type
+
   useEffect(() => {
     if (channel) {
       const isSoundCloud = channel.group?.toLowerCase() === 'soundcloud' || channel.url.includes('soundcloud');
@@ -124,8 +120,6 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       setDisplayMode(isAudioContent ? 'audio' : 'video');
     }
   }, [channel]);
-
-
 
   useEffect(() => {
     if (!channel) return;
@@ -143,7 +137,6 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     };
   }, [channel, isPlaying, currentTime, duration]);
 
-
   useEffect(() => {
     if (channel) {
       addToHistory({
@@ -159,13 +152,11 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [channel]);
 
-
   useEffect(() => {
     if (showControls && isPlaying) {
       resetControlsTimeout();
     }
   }, [showControls, isPlaying]);
-
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -224,12 +215,10 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     fetchRelatedContent();
   }, [channel]);
 
-
   const onVideoLoad = (data: OnLoadData) => {
     console.log('Video loaded:', data.duration);
     setIsLoading(false);
     setDuration(data.duration);
-
 
     if (settings.continueWatching && startPosition > 0) {
       videoRef.current?.seek(startPosition);
@@ -449,7 +438,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     <View style={styles.container}>
       <StatusBar hidden={isLandscape} />
 
-      {/* Background Blur for Audio Mode */}
+      {}
       {displayMode === 'audio' && channel?.logo && (
         <View style={StyleSheet.absoluteFill}>
           <Image
@@ -465,7 +454,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         </View>
       )}
 
-      {/* Video Container - Hidden in Audio Mode */}
+      {}
       <View style={[styles.videoContainer, displayMode === 'audio' && styles.hiddenVideo]}>
         <Video
           ref={videoRef}
@@ -498,7 +487,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         />
       </View>
 
-      {/* Audio Mode Artwork */}
+      {}
       {displayMode === 'audio' && channel?.logo && (
         <View style={styles.artworkSection}>
           <View style={styles.artworkContainer}>
@@ -511,7 +500,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         </View>
       )}
 
-      {/* Gesture Controls Overlay */}
+      {}
       <GestureControls
         onSeek={(seconds) => {
           const maxTime = duration > 0 ? duration : 999999;
@@ -535,14 +524,14 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         <View style={styles.touchOverlay} />
       </GestureControls>
 
-      {/* Loading/Buffering Indicator */}
+      {}
       {(isLoading || isBuffering) && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF9500" />
         </View>
       )}
 
-      {/* Controls Overlay - Always Visible in Music Mode */}
+      {}
       <Animated.View
         style={[
           styles.controlsOverlay,
@@ -551,13 +540,13 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         ]}
         pointerEvents={displayMode === 'audio' || showControls ? 'box-none' : 'none'}
       >
-        {/* Top Bar */}
+        {}
         <View style={[styles.topBar, { paddingTop: isLandscape ? 10 : insets.top + 10 }]}>
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Ionicons name="close" size={28} color="white" />
           </TouchableOpacity>
 
-          {/* Source Badge */}
+          {}
           <View style={styles.sourceBadge}>
             <Ionicons
               name={activeChannel.group?.toLowerCase() === 'youtube' ? 'logo-youtube' : 'musical-notes'}
@@ -567,7 +556,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
             <Text style={styles.sourceText}>{activeChannel.group || 'PlayCast'}</Text>
           </View>
 
-          {/* Display Mode Toggle */}
+          {}
           <View style={styles.modeToggle}>
             <TouchableOpacity
               style={[styles.toggleBtn, displayMode === 'video' && styles.toggleBtnActive]}
@@ -584,10 +573,10 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           </View>
         </View>
 
-        {/* Landscape Layout: Compact side by side */}
+        {}
         {isLandscape && displayMode === 'audio' ? (
           <View style={styles.landscapeContent}>
-            {/* Left: Artwork */}
+            {}
             <View style={styles.landscapeArtwork}>
               {channel?.logo && (
                 <Image
@@ -598,13 +587,13 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               )}
             </View>
 
-            {/* Right: Compact Controls */}
+            {}
             <View style={styles.landscapeControls}>
-              {/* Track Info */}
+              {}
               <Text style={styles.landscapeTitleText} numberOfLines={1}>{activeChannel.name}</Text>
               <Text style={styles.landscapeArtistText} numberOfLines={1}>{activeChannel.group || 'Unknown Artist'}</Text>
 
-              {/* Progress */}
+              {}
               <View style={styles.landscapeProgress}>
                 <Text style={styles.landscapeTimeText}>{formatTime(currentTime)}</Text>
                 <Slider
@@ -620,7 +609,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 <Text style={styles.landscapeTimeText}>{formatTime(duration)}</Text>
               </View>
 
-              {/* Main Controls Only - No secondary buttons */}
+              {}
               <View style={styles.landscapeMainControls}>
                 <TouchableOpacity onPress={handlePrevious} disabled={!onPrevious && !hasPrevious()}>
                   <Ionicons name="play-back" size={28} color={!onPrevious && !hasPrevious() ? 'rgba(255,255,255,0.3)' : '#FF9500'} />
@@ -634,17 +623,17 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               </View>
             </View>
 
-            {/* Exit Fullscreen Button - Top Right */}
+            {}
             <TouchableOpacity style={styles.landscapeExitBtn} onPress={toggleOrientation}>
               <Ionicons name="contract" size={24} color="white" />
             </TouchableOpacity>
           </View>
         ) : isLandscape && displayMode === 'video' ? (
-          /* Landscape Video Mode - Compact Bottom Bar */
+
           <>
             <View style={{ flex: 1 }} />
             <View style={styles.landscapeVideoControls}>
-              {/* Progress inline */}
+              {}
               <Text style={styles.landscapeTimeText}>{formatTime(currentTime)}</Text>
               <Slider
                 style={styles.landscapeVideoSlider}
@@ -658,24 +647,24 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               />
               <Text style={styles.landscapeTimeText}>{formatTime(duration)}</Text>
 
-              {/* Play/Pause */}
+              {}
               <TouchableOpacity style={styles.landscapeVideoPlayBtn} onPress={togglePlayPause}>
                 <Ionicons name={isPlaying ? 'pause' : 'play'} size={22} color="white" />
               </TouchableOpacity>
 
-              {/* Exit Fullscreen */}
+              {}
               <TouchableOpacity onPress={toggleOrientation}>
                 <Ionicons name="contract" size={22} color="white" />
               </TouchableOpacity>
             </View>
           </>
         ) : (
-          /* Portrait Mode - Full Controls */
+
           <>
             {displayMode === 'video' && <View style={{ flex: 1 }} />}
 
             <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 20 }]}>
-              {/* Track Info */}
+              {}
               <View style={styles.trackInfo}>
                 <View style={styles.trackTitleRow}>
                   <Text style={styles.trackTitle} numberOfLines={1}>{activeChannel.name}</Text>
@@ -702,7 +691,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 <Text style={styles.trackArtist} numberOfLines={1}>{activeChannel.group || 'Unknown Artist'}</Text>
               </View>
 
-              {/* Progress Bar */}
+              {}
               <View style={styles.progressSection}>
                 <Slider
                   style={styles.progressSlider}
@@ -720,7 +709,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 </View>
               </View>
 
-              {/* Main Playback Controls */}
+              {}
               <View style={styles.mainControls}>
                 <TouchableOpacity
                   style={styles.shuffleBtn}
@@ -783,7 +772,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 </TouchableOpacity>
               </View>
 
-              {/* Secondary Actions */}
+              {}
               <View style={styles.secondaryActions}>
                 <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowQueueModal(true)}>
                   <Ionicons name="list" size={22} color={queue.length > 0 ? '#FF9500' : 'rgba(255,255,255,0.6)'} />
@@ -802,8 +791,6 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           </>
         )}
       </Animated.View>
-
-
 
       { }
       <Modal
@@ -935,7 +922,6 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               onPress={async () => {
                 setShowMoreMenu(false);
 
-
                 const isHLSStream = channel.url.includes('.m3u8') ||
                   channel.url.includes('/hls/') ||
                   channel.url.includes('m3u8');
@@ -1006,7 +992,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         onTimerSet={(minutes) => console.log(`Sleep timer set for ${minutes} minutes`)}
       />
 
-      {/* Queue Modal */}
+      {}
       <Modal
         visible={showQueueModal}
         transparent
@@ -1333,7 +1319,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  // Landscape-specific styles
+
   controlsOverlayLandscape: {
     flexDirection: 'column',
   },
@@ -1422,7 +1408,7 @@ const styles = StyleSheet.create({
   landscapeVideoPlayBtn: {
     padding: 8,
   },
-  // Queue Modal styles
+
   queueModalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.9)',
@@ -1497,7 +1483,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   },
-  // Legacy styles kept for modals and error states
+
   errorContainer: {
     flex: 1,
     justifyContent: 'center',

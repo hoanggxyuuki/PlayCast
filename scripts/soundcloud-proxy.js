@@ -1,10 +1,4 @@
-/**
- * SoundCloud Proxy Server for PlayCast
- * Deploy on Singapore VPS to bypass Vietnam IP block
- * 
- * Run with: node soundcloud-proxy.js
- * Or with PM2: pm2 start soundcloud-proxy.js --name soundcloud-proxy
- */
+
 
 const http = require('http');
 const https = require('https');
@@ -12,7 +6,7 @@ const url = require('url');
 
 const PORT = process.env.PORT || 3000;
 
-// CORS headers for app access
+
 const CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -20,7 +14,7 @@ const CORS_HEADERS = {
     'Content-Type': 'application/json',
 };
 
-// SoundCloud config
+
 const SOUNDCLOUD_API_V2 = 'https://api-v2.soundcloud.com';
 const SOUNDCLOUD_MAIN = 'https://soundcloud.com';
 const SOUNDCLOUD_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -29,9 +23,9 @@ const DEFAULT_CLIENT_ID = 'iZIs9mchVcX5lhVRyQGGAYlNPVldzAoX';
 
 let cachedClientId = null;
 let clientIdCacheTime = 0;
-const CLIENT_ID_CACHE_DURATION = 3600000; // 1 hour
+const CLIENT_ID_CACHE_DURATION = 3600000; 
 
-// Helper: Make HTTPS request
+
 function httpsRequest(requestUrl, options = {}) {
     return new Promise((resolve, reject) => {
         const parsed = url.parse(requestUrl);
@@ -71,9 +65,9 @@ function httpsRequest(requestUrl, options = {}) {
     });
 }
 
-// Extract client_id from SoundCloud
+
 async function getClientId() {
-    // Use cache if valid
+
     if (cachedClientId && (Date.now() - clientIdCacheTime) < CLIENT_ID_CACHE_DURATION) {
         return cachedClientId;
     }
@@ -81,13 +75,13 @@ async function getClientId() {
     try {
         console.log('[SoundCloud] Extracting fresh client_id...');
 
-        // Get main page
+
         const mainRes = await httpsRequest(SOUNDCLOUD_MAIN);
         if (mainRes.status !== 200) {
             throw new Error(`Main page returned ${mainRes.status}`);
         }
 
-        // Find script URLs
+
         const scriptRegex = /<script[^>]+src="([^"]+)"/g;
         const scripts = [];
         let match;
@@ -97,7 +91,7 @@ async function getClientId() {
             }
         }
 
-        // Search scripts for client_id (reverse order - newer scripts first)
+
         for (let i = scripts.length - 1; i >= 0; i--) {
             try {
                 const scriptRes = await httpsRequest(scripts[i]);
@@ -122,7 +116,7 @@ async function getClientId() {
     }
 }
 
-// Available genres for charts
+
 const GENRES = [
     'all-music',
     'all-audio',
@@ -158,7 +152,7 @@ const GENRES = [
     'world',
 ];
 
-// Helper: Map tracks from SoundCloud response
+
 function mapTracks(tracks) {
     return (tracks || []).map(track => ({
         id: String(track.id),
@@ -172,19 +166,19 @@ function mapTracks(tracks) {
     }));
 }
 
-// API handlers
+
 const handlers = {
-    // Health check
+
     '/health': async () => ({
         status: 'ok',
         timestamp: new Date().toISOString(),
         endpoints: Object.keys(handlers),
     }),
 
-    // List available genres
+
     '/genres': async () => ({ genres: GENRES }),
 
-    // Search tracks
+
     '/search': async (query) => {
         const q = query.q || '';
         const limit = query.limit || 20;
@@ -205,21 +199,21 @@ const handlers = {
         return { results: mapTracks(data.collection), count: data.collection?.length || 0 };
     },
 
-    // Get charts/trending tracks
-    // kind: 'top' or 'trending'
-    // genre: see GENRES list (default: 'all-music')
-    // region: country code like 'VN', 'US', 'SG' (optional)
+
+
+
+
     '/charts': async (query) => {
-        const kind = query.kind || 'trending'; // 'top' or 'trending'
+        const kind = query.kind || 'trending'; 
         const genre = query.genre || 'all-music';
-        const region = query.region || ''; // e.g., 'VN' for Vietnam
+        const region = query.region || ''; 
         const limit = query.limit || 50;
 
         const clientId = await getClientId();
 
         let chartsUrl = `${SOUNDCLOUD_API_V2}/charts?kind=${kind}&genre=soundcloud%3Agenres%3A${genre}&client_id=${clientId}&limit=${limit}`;
 
-        // Add region filter if specified
+
         if (region) {
             chartsUrl += `&region=soundcloud%3Aregions%3A${region.toUpperCase()}`;
         }
@@ -255,7 +249,7 @@ const handlers = {
         };
     },
 
-    // Get related/recommended tracks for a track
+
     '/related': async (query) => {
         const trackId = query.id;
         const limit = query.limit || 20;
@@ -276,7 +270,7 @@ const handlers = {
         return { results: mapTracks(data.collection), count: data.collection?.length || 0 };
     },
 
-    // Get user's tracks
+
     '/user/tracks': async (query) => {
         const userId = query.id;
         const limit = query.limit || 20;
@@ -297,12 +291,12 @@ const handlers = {
         return { results: mapTracks(data.collection), count: data.collection?.length || 0 };
     },
 
-    // Discover/explore new music (mixed selection)
+
     '/discover': async (query) => {
         const clientId = await getClientId();
         const limit = query.limit || 20;
 
-        // Get a mix of trending from different genres
+
         const genres = ['hiphoprap', 'pop', 'electronic', 'rbsoul'];
         const allTracks = [];
 
@@ -324,7 +318,7 @@ const handlers = {
             }
         }
 
-        // Shuffle and limit
+
         const shuffled = allTracks.sort(() => Math.random() - 0.5).slice(0, limit);
 
         return {
@@ -341,7 +335,7 @@ const handlers = {
         };
     },
 
-    // Get stream URL
+
     '/stream': async (query) => {
         const trackId = query.id;
 
@@ -351,7 +345,7 @@ const handlers = {
 
         const clientId = await getClientId();
 
-        // Get track info
+
         const trackUrl = `${SOUNDCLOUD_API_V2}/tracks/${trackId}?client_id=${clientId}`;
         const trackRes = await httpsRequest(trackUrl);
 
@@ -362,7 +356,7 @@ const handlers = {
         const track = JSON.parse(trackRes.body);
         const media = track.media?.transcodings || [];
 
-        // Find progressive (direct) stream
+
         let streamInfo = media.find(m => m.format?.protocol === 'progressive');
         if (!streamInfo) {
             streamInfo = media.find(m => m.format?.protocol === 'hls');
@@ -372,7 +366,7 @@ const handlers = {
             throw new Error('No stream URL found');
         }
 
-        // Resolve stream URL
+
         const resolveUrl = `${streamInfo.url}?client_id=${clientId}`;
         const resolveRes = await httpsRequest(resolveUrl);
 
@@ -392,9 +386,9 @@ const handlers = {
     },
 };
 
-// HTTP Server
+
 const server = http.createServer(async (req, res) => {
-    // Handle CORS preflight
+
     if (req.method === 'OPTIONS') {
         res.writeHead(204, CORS_HEADERS);
         res.end();

@@ -90,13 +90,13 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         }
     }, [pasteUrl]);
 
-    // Fetch trending tracks from YouTube and SoundCloud
+
     useEffect(() => {
         const fetchTrending = async () => {
             try {
                 const tracks: Array<{ id: string; title: string; artist: string; thumbnail: string; platform: 'youtube' | 'soundcloud' }> = [];
 
-                // Fetch from YouTube (trending music)
+
                 try {
                     const ytResults = await OnlineSearchService.searchYouTube('trending music vn');
                     const ytTracks = ytResults.slice(0, 3).map(r => ({
@@ -111,7 +111,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                     console.log('[Trending] YouTube fetch failed:', e);
                 }
 
-                // Fetch from SoundCloud proxy (charts/trending)
+
                 try {
                     const scResponse = await fetch('https://bidev.nhhoang.io.vn/charts?kind=trending&limit=3');
                     if (scResponse.ok) {
@@ -129,7 +129,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                     console.log('[Trending] SoundCloud fetch failed:', e);
                 }
 
-                // Shuffle and set
+
                 const shuffled = tracks.sort(() => Math.random() - 0.5);
                 setTrendingTracks(shuffled);
             } catch (error) {
@@ -150,7 +150,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         setSelectedChannel(null);
     };
 
-    // Play trending track with proper stream URL extraction
+
     const handlePlayTrendingTrack = async (track: { id: string; title: string; artist: string; thumbnail: string; platform: 'youtube' | 'soundcloud' }) => {
         if (isPlayingTrending) return;
 
@@ -185,7 +185,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         }
     };
 
-    // Pulse animation for loading state
+
     useEffect(() => {
         if (isLoadingUrl) {
             Animated.loop(
@@ -199,20 +199,20 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         }
     }, [isLoadingUrl, pulseAnim]);
 
-    // Focus animation for input
+
     useEffect(() => {
         Animated.spring(focusAnim, {
             toValue: isInputFocused ? 1 : 0,
             tension: 100,
             friction: 10,
-            useNativeDriver: false, // Need JS for borderColor
+            useNativeDriver: false, 
         }).start();
     }, [isInputFocused, focusAnim]);
 
-    // Quick search suggestions
+
     const searchSuggestions = ['Nhạc trẻ 2024', 'Lofi chill', 'EDM remix', 'Rap Việt', 'Ballad hay'];
 
-    // Check if input is a URL
+
     const isUrl = (text: string) => {
         return text.startsWith('http://') || text.startsWith('https://') ||
             text.includes('youtube.com') || text.includes('youtu.be') ||
@@ -228,7 +228,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         setIsLoadingUrl(true);
 
         try {
-            // If it looks like a URL, handle as link
+
             if (isUrl(input)) {
                 const detected = LinkDetectionService.detectLinkType(input);
 
@@ -256,10 +256,10 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                     throw new Error('Link không được hỗ trợ');
                 }
             } else {
-                // It's a search query - search on YouTube and SoundCloud
+
                 const results: Array<{ id: string; title: string; artist: string; thumbnail: string; platform: 'youtube' | 'soundcloud'; duration?: number }> = [];
 
-                // Search both platforms
+
                 const [ytResults, scResults] = await Promise.allSettled([
                     OnlineSearchService.searchYouTube(input),
                     OnlineSearchService.searchSoundCloud(input),
@@ -289,7 +289,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                     results.push(...scMapped);
                 }
 
-                // Interleave results
+
                 const ytItems = results.filter(r => r.platform === 'youtube');
                 const scItems = results.filter(r => r.platform === 'soundcloud');
                 const interleaved: typeof results = [];
@@ -310,7 +310,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         }
     };
 
-    // Play a search result
+
     const handlePlaySearchResult = async (result: typeof searchResults[0]) => {
         setShowSearchResults(false);
         setIsLoadingUrl(true);
@@ -345,9 +345,8 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         }
     };
 
-
     const renderHero = () => {
-        // Create slides from trending tracks
+
         const slides: CarouselSlide[] = trendingTracks.length > 0
             ? trendingTracks.map((track) => ({
                 id: `trending-${track.platform}-${track.id}`,
@@ -376,7 +375,6 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                 },
             ];
 
-
         if (currentItem) {
             slides.unshift({
                 id: 'now-playing',
@@ -387,28 +385,27 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             });
         }
 
-        // Handle slide press - play the track
+
         const handleSlidePress = (slide: CarouselSlide) => {
-            // Check if it's a trending track
+
             const trendingMatch = trendingTracks.find(t => slide.id === `trending-${t.platform}-${t.id}`);
             if (trendingMatch) {
                 handlePlayTrendingTrack(trendingMatch);
                 return;
             }
 
-            // Check if it's now-playing slide
+
             if (slide.id === 'now-playing' && currentItem) {
                 handlePlayChannel(currentItem.channel);
                 return;
             }
 
-            // Otherwise navigate to discover
+
             onNavigateToOnline?.();
         };
 
         return <HeroCarousel slides={slides} onSlidePress={handleSlidePress} />;
     };
-
 
     const renderContinueWatching = () => {
         if (recentHistory.length === 0) return null;
@@ -460,7 +457,6 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         );
     };
 
-
     const renderPlaylists = () => {
         if (playlists.length === 0) return null;
 
@@ -502,13 +498,12 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         );
     };
 
-
     const renderSmartInput = () => {
         const inputHint = pasteUrl.trim()
             ? (isUrl(pasteUrl) ? '🔗 Link detected - will play' : '🔍 Will search YouTube & SoundCloud')
             : '';
 
-        // Animated border color
+
         const borderColor = focusAnim.interpolate({
             inputRange: [0, 1],
             outputRange: ['rgba(102, 126, 234, 0.2)', 'rgba(102, 126, 234, 0.8)'],
@@ -517,7 +512,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         return (
             <View style={styles.smartInputContainer}>
                 <FadeInView delay={100} direction="up">
-                    {/* Modern AI-like input */}
+                    {}
                     <Animated.View style={[
                         styles.aiInputContainer,
                         {
@@ -532,7 +527,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                             end={{ x: 1, y: 1 }}
                             style={styles.aiInputGradient}
                         >
-                            {/* Glow effect when loading or focused */}
+                            {}
                             {(isLoadingUrl || isInputFocused) && (
                                 <View style={[styles.glowEffect, isInputFocused && !isLoadingUrl && { backgroundColor: 'rgba(102, 126, 234, 0.05)' }]} />
                             )}
@@ -588,14 +583,14 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                                 )}
                             </View>
 
-                            {/* Hint text */}
+                            {}
                             {inputHint ? (
                                 <Text style={styles.aiInputHint}>{inputHint}</Text>
                             ) : null}
                         </LinearGradient>
                     </Animated.View>
 
-                    {/* Quick suggestion chips */}
+                    {}
                     {!pasteUrl.trim() && !isLoadingUrl && (
                         <ScrollView
                             horizontal
@@ -619,7 +614,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                         </ScrollView>
                     )}
 
-                    {/* Loading status */}
+                    {}
                     {isLoadingUrl && (
                         <View style={styles.loadingStatus}>
                             <View style={styles.loadingDot} />
@@ -630,7 +625,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                     )}
                 </FadeInView>
 
-                {/* Search Results Modal */}
+                {}
                 <Modal
                     visible={showSearchResults}
                     animationType="slide"
@@ -639,7 +634,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                 >
                     <View style={styles.searchResultsOverlay}>
                         <View style={styles.searchResultsContainer}>
-                            {/* Header */}
+                            {}
                             <View style={styles.searchResultsHeader}>
                                 <Text style={styles.searchResultsTitle}>
                                     Kết quả cho "{pasteUrl}"
@@ -652,7 +647,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                                 </TouchableOpacity>
                             </View>
 
-                            {/* Results list */}
+                            {}
                             <FlatList
                                 data={searchResults}
                                 keyExtractor={(item) => `${item.platform}-${item.id}`}
@@ -702,7 +697,6 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             </View>
         );
     };
-
 
     const renderGuidanceSection = () => {
         if (!showGuide) return null;
@@ -758,7 +752,6 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             </View>
         );
     };
-
 
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
@@ -857,7 +850,6 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         </View>
     );
 };
-
 
 const getPlaylistGradient = (name: string): string[] => {
     const gradients = [
@@ -1240,7 +1232,7 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.lg,
     },
 
-    // New AI-like input styles
+
     aiInputContainer: {
         borderRadius: BorderRadius.xl,
         overflow: 'hidden',
@@ -1308,7 +1300,7 @@ const styles = StyleSheet.create({
         color: Colors.textSecondary,
     },
 
-    // Suggestion chips styles
+
     suggestionsContainer: {
         marginTop: Spacing.md,
     },
@@ -1332,7 +1324,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
 
-    // Search results modal styles
+
     searchResultsOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.8)',
