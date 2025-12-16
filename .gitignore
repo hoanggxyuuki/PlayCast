@@ -48,3 +48,6 @@ app-example
 # npm lock file
 package-lock.json
 yarn.lock
+
+# yt-dlp
+yt-dlp

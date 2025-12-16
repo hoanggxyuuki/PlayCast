@@ -29,6 +29,7 @@ import { useQueue } from '../contexts/QueueContext';
 import { useCustomTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
 import { DetectedLink, LinkDetectionService } from '../services/LinkDetectionService';
+import { OnlineSearchService } from '../services/OnlineSearchService';
 import { Channel } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -67,6 +68,8 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     const [isLoadingUrl, setIsLoadingUrl] = useState(false);
     const [showGuide, setShowGuide] = useState(true);
     const [detectedLink, setDetectedLink] = useState<DetectedLink | null>(null);
+    const [trendingTracks, setTrendingTracks] = useState<Array<{ id: string; title: string; artist: string; thumbnail: string; platform: 'youtube' | 'soundcloud' }>>([]);
+    const [isPlayingTrending, setIsPlayingTrending] = useState(false);
     const { addPlaylistFromUrl } = usePlaylist();
 
     const recentHistory = getRecentlyWatched(10);
@@ -81,6 +84,56 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         }
     }, [pasteUrl]);
 
+    // Fetch trending tracks from YouTube and SoundCloud
+    useEffect(() => {
+        const fetchTrending = async () => {
+            try {
+                const tracks: Array<{ id: string; title: string; artist: string; thumbnail: string; platform: 'youtube' | 'soundcloud' }> = [];
+
+                // Fetch from YouTube (trending music)
+                try {
+                    const ytResults = await OnlineSearchService.searchYouTube('trending music');
+                    const ytTracks = ytResults.slice(0, 3).map(r => ({
+                        id: r.videoId,
+                        title: r.title,
+                        artist: r.author,
+                        thumbnail: r.thumbnail,
+                        platform: 'youtube' as const,
+                    }));
+                    tracks.push(...ytTracks);
+                } catch (e) {
+                    console.log('[Trending] YouTube fetch failed:', e);
+                }
+
+                // Fetch from SoundCloud proxy (charts/trending)
+                try {
+                    const scResponse = await fetch('http://188.166.216.232:3000/charts?kind=trending&limit=3');
+                    if (scResponse.ok) {
+                        const scData = await scResponse.json();
+                        const scTracks = (scData.results || []).slice(0, 3).map((r: any) => ({
+                            id: r.id,
+                            title: r.title,
+                            artist: r.artist,
+                            thumbnail: r.thumbnail,
+                            platform: 'soundcloud' as const,
+                        }));
+                        tracks.push(...scTracks);
+                    }
+                } catch (e) {
+                    console.log('[Trending] SoundCloud fetch failed:', e);
+                }
+
+                // Shuffle and set
+                const shuffled = tracks.sort(() => Math.random() - 0.5);
+                setTrendingTracks(shuffled);
+            } catch (error) {
+                console.log('[Trending] Failed to fetch trending:', error);
+            }
+        };
+
+        fetchTrending();
+    }, []);
+
     const handlePlayChannel = (channel: Channel) => {
         setSelectedChannel(channel);
         setShowPlayer(true);
@@ -89,6 +142,41 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     const handleClosePlayer = () => {
         setShowPlayer(false);
         setSelectedChannel(null);
+    };
+
+    // Play trending track with proper stream URL extraction
+    const handlePlayTrendingTrack = async (track: { id: string; title: string; artist: string; thumbnail: string; platform: 'youtube' | 'soundcloud' }) => {
+        if (isPlayingTrending) return;
+
+        setIsPlayingTrending(true);
+        try {
+            let streamUrl = '';
+
+            if (track.platform === 'youtube') {
+                streamUrl = await OnlineSearchService.getYouTubeStreamUrl(track.id);
+            } else if (track.platform === 'soundcloud') {
+                const scData = await OnlineSearchService.getSoundCloudStreamUrl(track.id);
+                streamUrl = scData.streamUrl;
+            }
+
+            if (!streamUrl) throw new Error('Could not get stream URL');
+
+            const channel: Channel = {
+                id: `${track.platform}-${track.id}`,
+                name: track.title,
+                url: streamUrl,
+                logo: track.thumbnail,
+                group: track.platform === 'youtube' ? 'YouTube' : 'SoundCloud',
+            };
+
+            setSelectedChannel(channel);
+            setShowPlayer(true);
+        } catch (error: any) {
+            console.error('[Trending] Play error:', error);
+            Alert.alert('Playback Error', error.message || 'Failed to play this track');
+        } finally {
+            setIsPlayingTrending(false);
+        }
     };
 
     const handleSmartLink = async () => {
@@ -151,37 +239,34 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
 
 
     const renderHero = () => {
-
-        const slides: CarouselSlide[] = [
-            {
-                id: '1',
-                title: `${t('welcomeBack')} 👋`,
-                subtitle: t('yourMedia'),
-                gradient: ['#667eea', '#764ba2'],
-                icon: 'play-circle',
-            },
-            {
-                id: '2',
-                title: t('youtubeAndSoundcloud'),
-                subtitle: t('findYourContent'),
-                gradient: ['#f093fb', '#f5576c'],
-                icon: 'logo-youtube',
-            },
-            {
-                id: '3',
-                title: 'IPTV',
-                subtitle: t('m3uPlaylist'),
-                gradient: ['#4facfe', '#00f2fe'],
-                icon: 'tv',
-            },
-            {
-                id: '4',
-                title: t('backgroundPlayback'),
-                subtitle: t('backgroundDesc'),
-                gradient: ['#43e97b', '#38f9d7'],
-                icon: 'headset',
-            },
-        ];
+        // Create slides from trending tracks
+        const slides: CarouselSlide[] = trendingTracks.length > 0
+            ? trendingTracks.map((track) => ({
+                id: `trending-${track.platform}-${track.id}`,
+                title: track.title.length > 40 ? track.title.substring(0, 37) + '...' : track.title,
+                subtitle: `${track.artist} • ${track.platform === 'youtube' ? '🎬 YouTube' : '🎵 SoundCloud'}`,
+                image: track.thumbnail,
+                gradient: track.platform === 'youtube'
+                    ? ['#FF0000', '#CC0000']
+                    : ['#FF5500', '#FF3300'],
+                icon: track.platform === 'youtube' ? 'logo-youtube' : 'musical-notes',
+            }))
+            : [
+                {
+                    id: '1',
+                    title: `${t('welcomeBack')} 👋`,
+                    subtitle: t('yourMedia'),
+                    gradient: ['#667eea', '#764ba2'],
+                    icon: 'play-circle',
+                },
+                {
+                    id: '2',
+                    title: t('youtubeAndSoundcloud'),
+                    subtitle: t('findYourContent'),
+                    gradient: ['#f093fb', '#f5576c'],
+                    icon: 'logo-youtube',
+                },
+            ];
 
 
         if (currentItem) {
@@ -191,14 +276,29 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                 subtitle: currentItem.channel.name,
                 gradient: ['#764ba2', '#667eea'],
                 icon: 'musical-notes',
-                action: {
-                    label: t('continueWatching'),
-                    onPress: () => handlePlayChannel(currentItem.channel),
-                },
             });
         }
 
-        return <HeroCarousel slides={slides} autoPlayInterval={5000} />;
+        // Handle slide press - play the track
+        const handleSlidePress = (slide: CarouselSlide) => {
+            // Check if it's a trending track
+            const trendingMatch = trendingTracks.find(t => slide.id === `trending-${t.platform}-${t.id}`);
+            if (trendingMatch) {
+                handlePlayTrendingTrack(trendingMatch);
+                return;
+            }
+
+            // Check if it's now-playing slide
+            if (slide.id === 'now-playing' && currentItem) {
+                handlePlayChannel(currentItem.channel);
+                return;
+            }
+
+            // Otherwise navigate to discover
+            onNavigateToOnline?.();
+        };
+
+        return <HeroCarousel slides={slides} onSlidePress={handleSlidePress} />;
     };
 
 

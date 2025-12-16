@@ -1,15 +1,15 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-    Animated,
     Dimensions,
+    FlatList,
     Image,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { BorderRadius, FontSizes, Gradients, Spacing } from '../../constants/theme';
 
@@ -68,174 +68,134 @@ const DEFAULT_SLIDES: CarouselSlide[] = [
 
 export const HeroCarousel: React.FC<HeroCarouselProps> = ({
     slides = DEFAULT_SLIDES,
-    autoPlayInterval = 4000,
+    autoPlayInterval = 0, // Disabled by default now
     onSlidePress,
 }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
-    const fadeAnim = useRef(new Animated.Value(1)).current;
-    const slideAnim = useRef(new Animated.Value(0)).current;
-    const scaleAnim = useRef(new Animated.Value(1)).current;
+    const flatListRef = useRef<FlatList>(null);
+    const ITEM_WIDTH = SCREEN_WIDTH - Spacing.md * 2;
 
-    useEffect(() => {
-        if (slides.length <= 1) return;
+    const handleScroll = (event: any) => {
+        const offsetX = event.nativeEvent.contentOffset.x;
+        const index = Math.round(offsetX / ITEM_WIDTH);
+        if (index >= 0 && index < slides.length && index !== currentIndex) {
+            setCurrentIndex(index);
+        }
+    };
 
-        const interval = setInterval(() => {
+    const renderSlide = ({ item, index }: { item: CarouselSlide; index: number }) => {
+        const gradientColors = item.gradient || Gradients.primary;
 
-            Animated.parallel([
-                Animated.timing(fadeAnim, {
-                    toValue: 0,
-                    duration: 300,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(slideAnim, {
-                    toValue: -30,
-                    duration: 300,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(scaleAnim, {
-                    toValue: 0.95,
-                    duration: 300,
-                    useNativeDriver: true,
-                }),
-            ]).start(() => {
-
-                setCurrentIndex((prev) => (prev + 1) % slides.length);
-                slideAnim.setValue(30);
-
-
-                Animated.parallel([
-                    Animated.spring(fadeAnim, {
-                        toValue: 1,
-                        tension: 50,
-                        friction: 7,
-                        useNativeDriver: true,
-                    }),
-                    Animated.spring(slideAnim, {
-                        toValue: 0,
-                        tension: 50,
-                        friction: 7,
-                        useNativeDriver: true,
-                    }),
-                    Animated.spring(scaleAnim, {
-                        toValue: 1,
-                        tension: 50,
-                        friction: 7,
-                        useNativeDriver: true,
-                    }),
-                ]).start();
-            });
-        }, autoPlayInterval);
-
-        return () => clearInterval(interval);
-    }, [slides.length, autoPlayInterval, fadeAnim, slideAnim, scaleAnim]);
-
-    const currentSlide = slides[currentIndex];
-    const gradientColors = currentSlide.gradient || Gradients.primary;
-
-    return (
-        <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => onSlidePress?.(currentSlide)}
-        >
-            <LinearGradient
-                colors={gradientColors as [string, string, ...string[]]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.container}
+        return (
+            <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => onSlidePress?.(item)}
+                style={{ width: ITEM_WIDTH }}
             >
-                <Animated.View
-                    style={[
-                        styles.contentContainer,
-                        {
-                            opacity: fadeAnim,
-                            transform: [
-                                { translateX: slideAnim },
-                                { scale: scaleAnim },
-                            ],
-                        },
-                    ]}
+                <LinearGradient
+                    colors={gradientColors as [string, string, ...string[]]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.slideContainer}
                 >
-                    {}
+                    {/* Background Icon */}
                     <View style={styles.backgroundIcon}>
                         <Ionicons
-                            name={currentSlide.icon || 'musical-notes'}
+                            name={item.icon || 'musical-notes'}
                             size={140}
                             color="rgba(255,255,255,0.12)"
                         />
                     </View>
 
-                    {}
+                    {/* Content */}
                     <View style={styles.content}>
                         <View style={styles.iconBadge}>
                             <Ionicons
-                                name={currentSlide.icon || 'play-circle'}
+                                name={item.icon || 'play-circle'}
                                 size={24}
                                 color="#fff"
                             />
                         </View>
-                        <Text style={styles.title}>{currentSlide.title}</Text>
-                        <Text style={styles.subtitle}>{currentSlide.subtitle}</Text>
+                        <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+                        <Text style={styles.subtitle} numberOfLines={1}>{item.subtitle}</Text>
 
-                        {currentSlide.action && (
-                            <TouchableOpacity
-                                style={styles.actionButton}
-                                onPress={currentSlide.action.onPress}
-                            >
-                                <Text style={styles.actionText}>{currentSlide.action.label}</Text>
-                                <Ionicons name="arrow-forward" size={16} color="#fff" />
-                            </TouchableOpacity>
-                        )}
+                        {/* Play hint */}
+                        <View style={styles.playHint}>
+                            <Ionicons name="play-circle" size={20} color="rgba(255,255,255,0.9)" />
+                            <Text style={styles.playHintText}>Nhấn để phát</Text>
+                        </View>
                     </View>
 
-                    {}
-                    {currentSlide.image && (
+                    {/* Background Image */}
+                    {item.image && (
                         <Image
-                            source={{ uri: currentSlide.image }}
+                            source={{ uri: item.image }}
                             style={styles.image}
                             resizeMode="cover"
                         />
                     )}
-                </Animated.View>
 
-                {}
-                {slides.length > 1 && (
-                    <View style={styles.pagination}>
-                        {slides.map((_, index) => (
-                            <TouchableOpacity
-                                key={index}
-                                onPress={() => setCurrentIndex(index)}
-                            >
-                                <Animated.View
-                                    style={[
-                                        styles.dot,
-                                        index === currentIndex && styles.dotActive,
-                                    ]}
-                                />
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                )}
+                    {/* Shimmer */}
+                    <View style={styles.shimmerOverlay} />
+                </LinearGradient>
+            </TouchableOpacity>
+        );
+    };
 
-                {}
-                <View style={styles.shimmerOverlay} />
-            </LinearGradient>
-        </TouchableOpacity>
+    return (
+        <View style={styles.container}>
+            <FlatList
+                ref={flatListRef}
+                data={slides}
+                renderItem={renderSlide}
+                keyExtractor={(item, index) => `${item.id}-${index}`}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                snapToInterval={ITEM_WIDTH}
+                decelerationRate="fast"
+                snapToAlignment="start"
+                contentContainerStyle={{ paddingHorizontal: Spacing.md }}
+            />
+
+            {/* Pagination dots */}
+            {slides.length > 1 && (
+                <View style={styles.pagination}>
+                    {slides.map((_, index) => (
+                        <TouchableOpacity
+                            key={index}
+                            onPress={() => {
+                                setCurrentIndex(index);
+                                flatListRef.current?.scrollToIndex({ index, animated: true });
+                            }}
+                        >
+                            <View
+                                style={[
+                                    styles.dot,
+                                    index === currentIndex && styles.dotActive,
+                                ]}
+                            />
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            )}
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        marginHorizontal: Spacing.md,
         marginTop: Spacing.md,
         marginBottom: Spacing.lg,
+    },
+    slideContainer: {
         borderRadius: BorderRadius.xl,
         overflow: 'hidden',
         height: 180,
-        ...({ shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 10 }),
-    },
-    contentContainer: {
-        flex: 1,
         padding: Spacing.lg,
+        ...({ shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 10 }),
     },
     backgroundIcon: {
         position: 'absolute',
@@ -245,6 +205,7 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
         justifyContent: 'center',
+        zIndex: 1,
     },
     iconBadge: {
         width: 44,
@@ -260,44 +221,44 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#fff',
         marginBottom: 4,
-        textShadowColor: 'rgba(0,0,0,0.2)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
+        textShadowColor: 'rgba(0,0,0,0.6)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
     subtitle: {
         fontSize: FontSizes.md,
-        color: 'rgba(255,255,255,0.9)',
-        fontWeight: '500',
+        color: 'rgba(255,255,255,0.95)',
+        fontWeight: '600',
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
     },
-    image: {
-        ...StyleSheet.absoluteFillObject,
-        opacity: 0.4,
-    },
-    actionButton: {
+    playHint: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.xs,
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        marginTop: Spacing.md,
+        backgroundColor: 'rgba(0,0,0,0.3)',
         paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.sm,
+        paddingVertical: Spacing.xs,
         borderRadius: BorderRadius.full,
         alignSelf: 'flex-start',
-        marginTop: Spacing.md,
     },
-    actionText: {
+    playHintText: {
         fontSize: FontSizes.sm,
         fontWeight: '600',
-        color: '#fff',
+        color: 'rgba(255,255,255,0.9)',
+    },
+    image: {
+        ...StyleSheet.absoluteFillObject,
+        opacity: 0.25,
     },
     pagination: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         gap: 8,
-        position: 'absolute',
-        bottom: Spacing.md,
-        left: 0,
-        right: 0,
+        marginTop: Spacing.sm,
     },
     dot: {
         width: 8,
@@ -312,6 +273,5 @@ const styles = StyleSheet.create({
     shimmerOverlay: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'transparent',
-
     },
 });

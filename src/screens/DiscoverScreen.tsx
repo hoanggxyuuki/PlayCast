@@ -154,11 +154,17 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
         setSearchResults([]);
 
         try {
-            let results: OnlineSearchResult[] = [];
+            // Search both platforms simultaneously
+            const [ytResults, scResults] = await Promise.allSettled([
+                OnlineSearchService.searchYouTube(searchQuery),
+                OnlineSearchService.searchSoundCloud(searchQuery),
+            ]);
 
-            if (selectedPlatform === 'youtube') {
-                const ytResults = await OnlineSearchService.searchYouTube(searchQuery);
-                results = ytResults.map(r => ({
+            let combinedResults: OnlineSearchResult[] = [];
+
+            // Process YouTube results
+            if (ytResults.status === 'fulfilled' && ytResults.value) {
+                const ytMapped = ytResults.value.map(r => ({
                     platform: 'youtube' as SearchPlatform,
                     id: r.videoId,
                     title: r.title,
@@ -167,9 +173,12 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                     duration: r.duration,
                     viewCount: r.viewCount,
                 }));
-            } else if (selectedPlatform === 'soundcloud') {
-                const scResults = await OnlineSearchService.searchSoundCloud(searchQuery);
-                results = scResults.map(r => ({
+                combinedResults = [...combinedResults, ...ytMapped];
+            }
+
+            // Process SoundCloud results
+            if (scResults.status === 'fulfilled' && scResults.value) {
+                const scMapped = scResults.value.map(r => ({
                     platform: 'soundcloud' as SearchPlatform,
                     id: r.id,
                     title: r.title,
@@ -178,26 +187,26 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                     duration: r.duration / 1000,
                     viewCount: r.playbackCount,
                 }));
-            } else if (selectedPlatform === 'spotify') {
-                const spResults = await OnlineSearchService.searchSpotify(searchQuery);
-                results = spResults.map(r => ({
-                    platform: 'spotify' as SearchPlatform,
-                    id: r.id,
-                    title: r.title,
-                    artist: r.artist,
-                    thumbnail: r.thumbnail,
-                    duration: r.duration / 1000,
-                    streamUrl: r.previewUrl,
-                }));
+                combinedResults = [...combinedResults, ...scMapped];
             }
 
-            setSearchResults(results);
+            // Interleave results for better mix (YT, SC, YT, SC, ...)
+            const ytItems = combinedResults.filter(r => r.platform === 'youtube');
+            const scItems = combinedResults.filter(r => r.platform === 'soundcloud');
+            const interleavedResults: OnlineSearchResult[] = [];
+            const maxLen = Math.max(ytItems.length, scItems.length);
+            for (let i = 0; i < maxLen; i++) {
+                if (ytItems[i]) interleavedResults.push(ytItems[i]);
+                if (scItems[i]) interleavedResults.push(scItems[i]);
+            }
+
+            setSearchResults(interleavedResults);
         } catch (error: any) {
             Alert.alert('Search Error', error.message || 'Failed to search');
         } finally {
             setIsSearching(false);
         }
-    }, [searchQuery, selectedPlatform]);
+    }, [searchQuery]);
 
     const handleAddIptv = async () => {
         if (!iptvUrl.trim()) {
@@ -305,34 +314,11 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
 
                     {activeTab === 'online' && (
                         <View style={styles.tabContent}>
-                            <View style={styles.platformSelector}>
-                                {(['youtube', 'soundcloud'] as SearchPlatform[]).map((p) => (
-                                    <TouchableOpacity
-                                        key={p}
-                                        style={[styles.platformChip, selectedPlatform === p && styles.platformChipActive]}
-                                        onPress={() => { setSelectedPlatform(p); setSearchResults([]); }}
-                                    >
-                                        <Ionicons
-                                            name={p === 'youtube' ? 'logo-youtube' : 'cloudy'}
-                                            size={16}
-                                            color={selectedPlatform === p ? '#fff' : Colors.textSecondary}
-                                        />
-                                        <Text style={[styles.platformText, selectedPlatform === p && styles.platformTextActive]}>
-                                            {p.charAt(0).toUpperCase() + p.slice(1)}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
-                            { }
-
-                            { }
-
                             <View style={styles.searchContainer}>
                                 <Ionicons name="search" size={20} color={Colors.textTertiary} />
                                 <TextInput
                                     style={styles.searchInput}
-                                    placeholder={`Search ${selectedPlatform}...`}
+                                    placeholder="Search YouTube & SoundCloud..."
                                     placeholderTextColor={Colors.textTertiary}
                                     value={searchQuery}
                                     onChangeText={setSearchQuery}
@@ -365,13 +351,26 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                                     scrollEnabled={false}
                                     renderItem={({ item }) => (
                                         <TouchableOpacity style={styles.resultCard} onPress={() => handlePlayResult(item)}>
-                                            {item.thumbnail ? (
-                                                <Image source={{ uri: item.thumbnail }} style={styles.resultThumb} />
-                                            ) : (
-                                                <View style={[styles.resultThumb, styles.resultThumbPlaceholder]}>
-                                                    <Ionicons name="play" size={24} color="#fff" />
+                                            <View style={styles.resultThumbContainer}>
+                                                {item.thumbnail ? (
+                                                    <Image source={{ uri: item.thumbnail }} style={styles.resultThumb} />
+                                                ) : (
+                                                    <View style={[styles.resultThumb, styles.resultThumbPlaceholder]}>
+                                                        <Ionicons name="play" size={24} color="#fff" />
+                                                    </View>
+                                                )}
+                                                {/* Platform Badge */}
+                                                <View style={[
+                                                    styles.platformBadge,
+                                                    { backgroundColor: item.platform === 'youtube' ? '#FF0000' : '#FF5500' }
+                                                ]}>
+                                                    <Ionicons
+                                                        name={item.platform === 'youtube' ? 'logo-youtube' : 'cloudy'}
+                                                        size={12}
+                                                        color="#fff"
+                                                    />
                                                 </View>
-                                            )}
+                                            </View>
                                             <View style={styles.resultInfo}>
                                                 <Text style={styles.resultTitle} numberOfLines={2}>{item.title}</Text>
                                                 <Text style={styles.resultArtist} numberOfLines={1}>{item.artist}</Text>
@@ -516,6 +515,15 @@ const styles = StyleSheet.create({
     resultCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.backgroundCard, borderRadius: BorderRadius.md, padding: Spacing.md, marginBottom: Spacing.sm, gap: Spacing.md },
     resultThumb: { width: 80, height: 60, borderRadius: BorderRadius.sm, backgroundColor: Colors.surface },
     resultThumbPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+    resultThumbContainer: { position: 'relative' },
+    platformBadge: {
+        position: 'absolute',
+        bottom: 4,
+        left: 4,
+        borderRadius: 4,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
     resultInfo: { flex: 1 },
     resultTitle: { fontSize: FontSizes.md, fontWeight: '600', color: Colors.text, marginBottom: 2 },
     resultArtist: { fontSize: FontSizes.sm, color: Colors.textSecondary },

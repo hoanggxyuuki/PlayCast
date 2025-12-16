@@ -1,6 +1,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -8,6 +9,7 @@ import {
   Alert,
   Animated,
   Dimensions,
+  FlatList,
   Image,
   Modal,
   Share,
@@ -67,9 +69,22 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showUpNext, setShowUpNext] = useState(false);
   const [upNextCountdown, setUpNextCountdown] = useState(5);
 
+  // Display mode: 'video' shows video, 'audio' shows artwork with blur background
+  type DisplayMode = 'video' | 'audio';
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('video');
+
+  // Internal channel state for queue navigation
+  const [activeChannel, setActiveChannel] = useState(channel);
+
+  // Internal loop and shuffle mode states (when parent doesn't provide callbacks)
+  const [internalLoopMode, setInternalLoopMode] = useState<'none' | 'one' | 'all'>(loopMode);
+  const [internalShuffleMode, setInternalShuffleMode] = useState(shuffleMode);
+  const [showQueueModal, setShowQueueModal] = useState(false);
+
+
 
   const { addToHistory, updateProgress } = useHistory();
-  const { playNext: queueNext, playPrevious: queuePrev, hasNext, hasPrevious } = useQueue();
+  const { queue, playNext: queueNext, playPrevious: queuePrev, hasNext, hasPrevious, addToQueue, isInQueue, shuffleQueue, setCurrentIndex } = useQueue();
   const { settings } = useSettings();
   const insets = useSafeAreaInsets();
 
@@ -79,6 +94,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const progressInterval = useRef<NodeJS.Timeout>();
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   const showControlsRef = useRef(true);
+  const currentTimeRef = useRef(0);
 
 
   useEffect(() => {
@@ -97,6 +113,17 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       subscription?.remove();
     };
   }, []);
+
+  // Auto-detect display mode based on content type
+  useEffect(() => {
+    if (channel) {
+      const isSoundCloud = channel.group?.toLowerCase() === 'soundcloud' || channel.url.includes('soundcloud');
+      const isSpotify = channel.group?.toLowerCase() === 'spotify';
+      const isAudioContent = isSoundCloud || isSpotify;
+      setDisplayMode(isAudioContent ? 'audio' : 'video');
+    }
+  }, [channel]);
+
 
 
   useEffect(() => {
@@ -210,6 +237,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const onVideoProgress = (data: OnProgressData) => {
     setCurrentTime(data.currentTime);
+    currentTimeRef.current = data.currentTime;
   };
 
   const onVideoBuffer = (data: OnBufferData) => {
@@ -347,6 +375,10 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       const prev = queuePrev();
       if (prev) {
         console.log('Playing previous:', prev.name);
+        setActiveChannel(prev);
+        setCurrentTime(0);
+        setIsLoading(true);
+        setIsPlaying(true);
       }
     }
   };
@@ -358,6 +390,10 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       const next = queueNext();
       if (next) {
         console.log('Playing next:', next.name);
+        setActiveChannel(next);
+        setCurrentTime(0);
+        setIsLoading(true);
+        setIsPlaying(true);
       }
     }
   };
@@ -412,76 +448,82 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     <View style={styles.container}>
       <StatusBar hidden={isLandscape} />
 
-      { }
-      <View style={styles.videoContainer}>
+      {/* Background Blur for Audio Mode */}
+      {displayMode === 'audio' && channel?.logo && (
+        <View style={StyleSheet.absoluteFill}>
+          <Image
+            source={{ uri: activeChannel.logo }}
+            style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
+            blurRadius={50}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={['rgba(30,20,10,0.4)', 'rgba(30,20,10,0.7)', 'rgba(20,15,10,0.95)']}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+      )}
+
+      {/* Video Container - Hidden in Audio Mode */}
+      <View style={[styles.videoContainer, displayMode === 'audio' && styles.hiddenVideo]}>
         <Video
           ref={videoRef}
-          source={{ uri: channel.url }}
+          source={{ uri: activeChannel.url }}
           style={styles.video}
           resizeMode="contain"
           paused={!isPlaying}
           rate={playbackSpeed}
           volume={1.0}
           muted={false}
-          repeat={false}
-
-          audioOnly={channel.url.includes('soundcloud') || channel.group?.toLowerCase() === 'soundcloud'}
-          poster={channel.logo}
+          repeat={loopMode === 'one'}
+          audioOnly={displayMode === 'audio'}
+          poster={activeChannel.logo}
           posterResizeMode="contain"
-
           pictureInPicture={true}
           playInBackground={true}
           playWhenInactive={true}
-
           controls={false}
           showNotificationControls={true}
           metadata={{
-            title: channel.name,
-            artist: channel.group || 'PlayCast',
-            imageUri: channel.logo,
+            title: activeChannel.name,
+            artist: activeChannel.group || 'PlayCast',
+            imageUri: activeChannel.logo,
           }}
-
           onLoad={onVideoLoad}
           onProgress={onVideoProgress}
           onBuffer={onVideoBuffer}
           onError={onVideoError}
           onEnd={onVideoEnd}
         />
-
-        { }
-        {channel.logo && (channel.url.includes('soundcloud') || channel.group?.toLowerCase() === 'soundcloud') && (
-          <View style={styles.audioArtworkContainer}>
-            <Image
-              source={{ uri: channel.logo }}
-              style={styles.audioArtwork}
-              blurRadius={20}
-            />
-            <View style={styles.audioArtworkOverlay} />
-            <Image
-              source={{ uri: channel.logo }}
-              style={styles.audioArtworkMain}
-              resizeMode="contain"
-            />
-          </View>
-        )}
       </View>
 
-      { }
+      {/* Audio Mode Artwork */}
+      {displayMode === 'audio' && channel?.logo && (
+        <View style={styles.artworkSection}>
+          <View style={styles.artworkContainer}>
+            <Image
+              source={{ uri: activeChannel.logo }}
+              style={styles.artwork}
+              resizeMode="cover"
+            />
+          </View>
+        </View>
+      )}
+
+      {/* Gesture Controls Overlay */}
       <GestureControls
         onSeek={(seconds) => {
-          const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
+          const maxTime = duration > 0 ? duration : 999999;
+          const newTime = Math.max(0, Math.min(maxTime, currentTimeRef.current + seconds));
+          console.log(`[Seek] currentRef: ${currentTimeRef.current}, seconds: ${seconds}, newTime: ${newTime}, duration: ${duration}`);
           videoRef.current?.seek(newTime);
+          currentTimeRef.current = newTime;
           setCurrentTime(newTime);
           showControlsAnimated();
         }}
-        onVolumeChange={(delta) => {
-          console.log('Volume change:', delta);
-        }}
-        onBrightnessChange={(delta) => {
-          console.log('Brightness change:', delta);
-        }}
+        onVolumeChange={(delta) => console.log('Volume change:', delta)}
+        onBrightnessChange={(delta) => console.log('Brightness change:', delta)}
         onSingleTap={() => {
-          console.log('[Player] Single tap - showControlsRef:', showControlsRef.current);
           if (showControlsRef.current) {
             hideControls();
           } else {
@@ -492,168 +534,275 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         <View style={styles.touchOverlay} />
       </GestureControls>
 
-      { }
-      {
-        (isLoading || isBuffering) && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>
-              {isBuffering ? 'Buffering...' : 'Loading video...'}
-            </Text>
+      {/* Loading/Buffering Indicator */}
+      {(isLoading || isBuffering) && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF9500" />
+        </View>
+      )}
+
+      {/* Controls Overlay - Always Visible in Music Mode */}
+      <Animated.View
+        style={[
+          styles.controlsOverlay,
+          { opacity: displayMode === 'audio' ? 1 : controlsOpacity },
+          isLandscape && styles.controlsOverlayLandscape
+        ]}
+        pointerEvents={displayMode === 'audio' || showControls ? 'box-none' : 'none'}
+      >
+        {/* Top Bar */}
+        <View style={[styles.topBar, { paddingTop: isLandscape ? 10 : insets.top + 10 }]}>
+          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+            <Ionicons name="close" size={28} color="white" />
+          </TouchableOpacity>
+
+          {/* Source Badge */}
+          <View style={styles.sourceBadge}>
+            <Ionicons
+              name={activeChannel.group?.toLowerCase() === 'youtube' ? 'logo-youtube' : 'musical-notes'}
+              size={16}
+              color="#FF0000"
+            />
+            <Text style={styles.sourceText}>{activeChannel.group || 'PlayCast'}</Text>
           </View>
-        )
-      }
 
-      { }
-      {
-        showControls && (
-          <Animated.View style={[styles.controlsContainer, { opacity: controlsOpacity }]}>
-            { }
-            <View style={[styles.topBar, { paddingTop: isLandscape ? Spacing.md : insets.top + Spacing.md }]}>
-              <TouchableOpacity style={styles.iconButton} onPress={handleClose}>
-                <Ionicons name="close" size={28} color={Colors.text} />
-              </TouchableOpacity>
+          {/* Display Mode Toggle */}
+          <View style={styles.modeToggle}>
+            <TouchableOpacity
+              style={[styles.toggleBtn, displayMode === 'video' && styles.toggleBtnActive]}
+              onPress={() => setDisplayMode('video')}
+            >
+              <Text style={[styles.toggleText, displayMode === 'video' && styles.toggleTextActive]}>Video</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toggleBtn, displayMode === 'audio' && styles.toggleBtnActive]}
+              onPress={() => setDisplayMode('audio')}
+            >
+              <Text style={[styles.toggleText, displayMode === 'audio' && styles.toggleTextActive]}>Hình ảnh</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-              <View style={styles.topInfo}>
-                <Text style={styles.channelName} numberOfLines={1}>
-                  {channel.name}
-                </Text>
-                {channel.group && !isLandscape && (
-                  <Text style={styles.channelGroup}>{channel.group}</Text>
-                )}
-              </View>
-
-              <TouchableOpacity style={styles.iconButton} onPress={toggleOrientation}>
-                <Ionicons
-                  name={isLandscape ? 'contract' : 'expand'}
-                  size={24}
-                  color={Colors.text}
+        {/* Landscape Layout: Compact side by side */}
+        {isLandscape && displayMode === 'audio' ? (
+          <View style={styles.landscapeContent}>
+            {/* Left: Artwork */}
+            <View style={styles.landscapeArtwork}>
+              {channel?.logo && (
+                <Image
+                  source={{ uri: channel.logo }}
+                  style={styles.landscapeArtworkImage}
+                  resizeMode="cover"
                 />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={() => setShowMoreMenu(true)}
-              >
-                <Ionicons name="ellipsis-vertical" size={24} color={Colors.text} />
-              </TouchableOpacity>
+              )}
             </View>
 
-            { }
-            <View style={styles.centerControls}>
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={handlePrevious}
-                disabled={!onPrevious && !hasPrevious()}
-              >
-                <Ionicons
-                  name="play-skip-back"
-                  size={isLandscape ? 36 : 40}
-                  color={!onPrevious && !hasPrevious() ? Colors.textTertiary : Colors.text}
-                />
-              </TouchableOpacity>
+            {/* Right: Compact Controls */}
+            <View style={styles.landscapeControls}>
+              {/* Track Info */}
+              <Text style={styles.landscapeTitleText} numberOfLines={1}>{activeChannel.name}</Text>
+              <Text style={styles.landscapeArtistText} numberOfLines={1}>{activeChannel.group || 'Unknown Artist'}</Text>
 
-              <TouchableOpacity
-                style={[styles.controlButton, styles.playButton]}
-                onPress={togglePlayPause}
-              >
-                <Ionicons
-                  name={isPlaying ? 'pause' : 'play'}
-                  size={isLandscape ? 44 : 50}
-                  color={Colors.text}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={handleNext}
-                disabled={!onNext && !hasNext()}
-              >
-                <Ionicons
-                  name="play-skip-forward"
-                  size={isLandscape ? 36 : 40}
-                  color={!onNext && !hasNext() ? Colors.textTertiary : Colors.text}
-                />
-              </TouchableOpacity>
-            </View>
-
-            { }
-            <View style={[styles.bottomBar, { paddingBottom: isLandscape ? Spacing.md : insets.bottom + Spacing.md }]}>
-              { }
-              <View style={styles.progressContainer}>
-                <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+              {/* Progress */}
+              <View style={styles.landscapeProgress}>
+                <Text style={styles.landscapeTimeText}>{formatTime(currentTime)}</Text>
                 <Slider
-                  style={styles.progressBar}
+                  style={styles.landscapeSlider}
                   minimumValue={0}
                   maximumValue={duration || 100}
                   value={currentTime}
                   onValueChange={handleSeek}
-                  minimumTrackTintColor={Colors.primary}
-                  maximumTrackTintColor="rgba(255, 255, 255, 0.3)"
-                  thumbTintColor={Colors.primary}
+                  minimumTrackTintColor="#FF9500"
+                  maximumTrackTintColor="rgba(255,255,255,0.3)"
+                  thumbTintColor="#FF9500"
                 />
-                <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                <Text style={styles.landscapeTimeText}>{formatTime(duration)}</Text>
               </View>
 
-              { }
-              <View style={styles.bottomControls}>
-                { }
-                {onShuffleModeChange && (
-                  <TouchableOpacity
-                    style={styles.modeButton}
-                    onPress={() => onShuffleModeChange(!shuffleMode)}
-                  >
-                    <Ionicons
-                      name="shuffle"
-                      size={22}
-                      color={shuffleMode ? Colors.primary : Colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                )}
-
-                { }
-                {playlistInfo && playlistInfo.total > 1 && (
-                  <View style={styles.playlistInfoContainer}>
-                    <Text style={styles.playlistInfoText}>
-                      {playlistInfo.current} / {playlistInfo.total}
-                    </Text>
-                  </View>
-                )}
-
-                { }
-                {onLoopModeChange && (
-                  <TouchableOpacity
-                    style={styles.modeButton}
-                    onPress={() => {
-                      const modes: Array<'none' | 'one' | 'all'> = ['none', 'one', 'all'];
-                      const currentIndex = modes.indexOf(loopMode);
-                      const nextMode = modes[(currentIndex + 1) % modes.length];
-                      onLoopModeChange(nextMode);
-                    }}
-                  >
-                    <Ionicons
-                      name={loopMode === 'one' ? 'repeat-outline' : 'repeat'}
-                      size={22}
-                      color={loopMode !== 'none' ? Colors.primary : Colors.textSecondary}
-                    />
-                    {loopMode === 'one' && (
-                      <Text style={styles.loopOneIndicator}>1</Text>
-                    )}
-                  </TouchableOpacity>
-                )}
-
-                { }
-                {sleepTimerRemaining && (
-                  <View style={styles.sleepTimerIndicator}>
-                    <Ionicons name="moon" size={16} color={Colors.primary} />
-                    <Text style={styles.sleepTimerText}>{sleepTimerRemaining}</Text>
-                  </View>
-                )}
+              {/* Main Controls Only - No secondary buttons */}
+              <View style={styles.landscapeMainControls}>
+                <TouchableOpacity onPress={handlePrevious} disabled={!onPrevious && !hasPrevious()}>
+                  <Ionicons name="play-back" size={28} color={!onPrevious && !hasPrevious() ? 'rgba(255,255,255,0.3)' : '#FF9500'} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.landscapePlayBtn} onPress={togglePlayPause}>
+                  <Ionicons name={isPlaying ? 'pause' : 'play'} size={28} color="#1a1a1a" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleNext} disabled={!onNext && !hasNext()}>
+                  <Ionicons name="play-forward" size={28} color={!onNext && !hasNext() ? 'rgba(255,255,255,0.3)' : '#FF9500'} />
+                </TouchableOpacity>
               </View>
             </View>
-          </Animated.View>
-        )
-      }
+
+            {/* Exit Fullscreen Button - Top Right */}
+            <TouchableOpacity style={styles.landscapeExitBtn} onPress={toggleOrientation}>
+              <Ionicons name="contract" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
+        ) : isLandscape && displayMode === 'video' ? (
+          /* Landscape Video Mode - Compact Bottom Bar */
+          <>
+            <View style={{ flex: 1 }} />
+            <View style={styles.landscapeVideoControls}>
+              {/* Progress inline */}
+              <Text style={styles.landscapeTimeText}>{formatTime(currentTime)}</Text>
+              <Slider
+                style={styles.landscapeVideoSlider}
+                minimumValue={0}
+                maximumValue={duration || 100}
+                value={currentTime}
+                onValueChange={handleSeek}
+                minimumTrackTintColor="#FF9500"
+                maximumTrackTintColor="rgba(255,255,255,0.3)"
+                thumbTintColor="#FF9500"
+              />
+              <Text style={styles.landscapeTimeText}>{formatTime(duration)}</Text>
+
+              {/* Play/Pause */}
+              <TouchableOpacity style={styles.landscapeVideoPlayBtn} onPress={togglePlayPause}>
+                <Ionicons name={isPlaying ? 'pause' : 'play'} size={22} color="white" />
+              </TouchableOpacity>
+
+              {/* Exit Fullscreen */}
+              <TouchableOpacity onPress={toggleOrientation}>
+                <Ionicons name="contract" size={22} color="white" />
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          /* Portrait Mode - Full Controls */
+          <>
+            {displayMode === 'video' && <View style={{ flex: 1 }} />}
+
+            <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 20 }]}>
+              {/* Track Info */}
+              <View style={styles.trackInfo}>
+                <View style={styles.trackTitleRow}>
+                  <Text style={styles.trackTitle} numberOfLines={1}>{activeChannel.name}</Text>
+                  <View style={styles.trackActions}>
+                    <TouchableOpacity
+                      style={styles.trackActionBtn}
+                      onPress={() => {
+                        if (!isInQueue(activeChannel.id)) {
+                          addToQueue(activeChannel);
+                        }
+                      }}
+                    >
+                      <Ionicons
+                        name={isInQueue(activeChannel.id) ? "checkmark-circle" : "add-circle-outline"}
+                        size={28}
+                        color={isInQueue(activeChannel.id) ? "#FF9500" : "rgba(255,255,255,0.7)"}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.trackActionBtn} onPress={() => setShowMoreMenu(true)}>
+                      <Ionicons name="ellipsis-horizontal" size={24} color="rgba(255,255,255,0.7)" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <Text style={styles.trackArtist} numberOfLines={1}>{activeChannel.group || 'Unknown Artist'}</Text>
+              </View>
+
+              {/* Progress Bar */}
+              <View style={styles.progressSection}>
+                <Slider
+                  style={styles.progressSlider}
+                  minimumValue={0}
+                  maximumValue={duration || 100}
+                  value={currentTime}
+                  onValueChange={handleSeek}
+                  minimumTrackTintColor="#FF9500"
+                  maximumTrackTintColor="rgba(255,255,255,0.3)"
+                  thumbTintColor="#FF9500"
+                />
+                <View style={styles.timeRow}>
+                  <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+                  <Text style={styles.timeText}>-{formatTime(duration - currentTime)}</Text>
+                </View>
+              </View>
+
+              {/* Main Playback Controls */}
+              <View style={styles.mainControls}>
+                <TouchableOpacity
+                  style={styles.shuffleBtn}
+                  onPress={() => {
+                    if (onShuffleModeChange) {
+                      onShuffleModeChange(!shuffleMode);
+                    } else {
+                      const newShuffle = !internalShuffleMode;
+                      setInternalShuffleMode(newShuffle);
+                      if (newShuffle && queue.length > 1) {
+                        shuffleQueue();
+                      }
+                    }
+                  }}
+                >
+                  <Ionicons name="shuffle" size={24} color={(shuffleMode || internalShuffleMode) ? '#FF9500' : 'rgba(255,255,255,0.6)'} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.skipBtn}
+                  onPress={handlePrevious}
+                  disabled={!onPrevious && !hasPrevious()}
+                >
+                  <Ionicons name="play-back" size={36} color={!onPrevious && !hasPrevious() ? 'rgba(255,255,255,0.3)' : '#FF9500'} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.playBtn} onPress={togglePlayPause}>
+                  <Ionicons name={isPlaying ? 'pause' : 'play'} size={36} color="#1a1a1a" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.skipBtn}
+                  onPress={handleNext}
+                  disabled={!onNext && !hasNext()}
+                >
+                  <Ionicons name="play-forward" size={36} color={!onNext && !hasNext() ? 'rgba(255,255,255,0.3)' : '#FF9500'} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.repeatBtn}
+                  onPress={() => {
+                    const modes: Array<'none' | 'one' | 'all'> = ['none', 'one', 'all'];
+                    if (onLoopModeChange) {
+                      const currentIdx = modes.indexOf(loopMode);
+                      const nextMode = modes[(currentIdx + 1) % modes.length];
+                      onLoopModeChange(nextMode);
+                    } else {
+                      const currentIdx = modes.indexOf(internalLoopMode);
+                      const nextMode = modes[(currentIdx + 1) % modes.length];
+                      setInternalLoopMode(nextMode);
+                    }
+                  }}
+                >
+                  <Ionicons
+                    name="repeat"
+                    size={24}
+                    color={(loopMode !== 'none' || internalLoopMode !== 'none') ? '#FF9500' : 'rgba(255,255,255,0.6)'}
+                  />
+                  {(loopMode === 'one' || internalLoopMode === 'one') && <Text style={styles.repeatOneText}>1</Text>}
+                </TouchableOpacity>
+              </View>
+
+              {/* Secondary Actions */}
+              <View style={styles.secondaryActions}>
+                <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowQueueModal(true)}>
+                  <Ionicons name="list" size={22} color={queue.length > 0 ? '#FF9500' : 'rgba(255,255,255,0.6)'} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowSpeedMenu(true)}>
+                  <Text style={styles.speedBtnText}>{playbackSpeed}x</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.secondaryBtn} onPress={toggleOrientation}>
+                  <Ionicons name="expand" size={22} color="rgba(255,255,255,0.6)" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowSleepTimer(true)}>
+                  <Ionicons name="moon-outline" size={22} color={sleepTimerRemaining ? '#FF9500' : 'rgba(255,255,255,0.6)'} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </>
+        )}
+      </Animated.View>
+
+
 
       { }
       <Modal
@@ -856,6 +1005,66 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         onTimerSet={(minutes) => console.log(`Sleep timer set for ${minutes} minutes`)}
       />
 
+      {/* Queue Modal */}
+      <Modal
+        visible={showQueueModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowQueueModal(false)}
+      >
+        <View style={styles.queueModalContainer}>
+          <View style={styles.queueModalContent}>
+            <View style={styles.queueModalHeader}>
+              <Text style={styles.queueModalTitle}>Queue ({queue.length})</Text>
+              <TouchableOpacity onPress={() => setShowQueueModal(false)}>
+                <Ionicons name="close" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
+
+            {queue.length === 0 ? (
+              <View style={styles.queueEmptyState}>
+                <Ionicons name="musical-notes-outline" size={48} color="rgba(255,255,255,0.3)" />
+                <Text style={styles.queueEmptyText}>Queue is empty</Text>
+                <Text style={styles.queueEmptySubtext}>Add tracks using the + button</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={queue}
+                keyExtractor={(item) => `${item.channel.id}-${item.position}`}
+                renderItem={({ item, index }) => (
+                  <TouchableOpacity
+                    style={[styles.queueItem, activeChannel.id === item.channel.id && styles.queueItemActive]}
+                    onPress={() => {
+                      setCurrentIndex(index);
+                      setActiveChannel(item.channel);
+                      setCurrentTime(0);
+                      setIsLoading(true);
+                      setIsPlaying(true);
+                      setShowQueueModal(false);
+                    }}
+                  >
+                    {item.channel.logo ? (
+                      <Image source={{ uri: item.channel.logo }} style={styles.queueItemThumb} />
+                    ) : (
+                      <View style={[styles.queueItemThumb, styles.queueItemThumbPlaceholder]}>
+                        <Ionicons name="musical-note" size={18} color="#FF9500" />
+                      </View>
+                    )}
+                    <View style={styles.queueItemInfo}>
+                      <Text style={styles.queueItemTitle} numberOfLines={1}>{item.channel.name}</Text>
+                      <Text style={styles.queueItemArtist} numberOfLines={1}>{item.channel.group || 'Unknown'}</Text>
+                    </View>
+                    {activeChannel.id === item.channel.id && (
+                      <Ionicons name="volume-high" size={18} color="#FF9500" />
+                    )}
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
       { }
       <Modal
         visible={showQualityMenu}
@@ -934,10 +1143,16 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#1a1a1a',
   },
   videoContainer: {
     flex: 1,
+  },
+  hiddenVideo: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
   },
   video: {
     flex: 1,
@@ -947,39 +1162,341 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 5,
   },
-  audioArtworkContainer: {
-    ...StyleSheet.absoluteFillObject,
+  artworkSection: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    paddingHorizontal: 30,
   },
-  audioArtwork: {
-    ...StyleSheet.absoluteFillObject,
+  artworkContainer: {
+    width: Dimensions.get('window').width * 0.85,
+    height: Dimensions.get('window').width * 0.85,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.5,
+    shadowRadius: 25,
+    elevation: 20,
+  },
+  artwork: {
     width: '100%',
     height: '100%',
-  },
-  audioArtworkOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  audioArtworkMain: {
-    width: 200,
-    height: 200,
-    borderRadius: 12,
   },
   loadingContainer: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     zIndex: 50,
   },
-  loadingText: {
-    marginTop: Spacing.md,
-    fontSize: FontSizes.lg,
-    color: Colors.text,
+  controlsOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  closeButton: {
+    padding: 8,
+  },
+  sourceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  sourceText: {
+    color: 'white',
+    fontSize: 13,
     fontWeight: '600',
   },
+  modeToggle: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 20,
+    padding: 3,
+  },
+  toggleBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 17,
+  },
+  toggleBtnActive: {
+    backgroundColor: 'rgba(80,80,80,0.8)',
+  },
+  toggleText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  toggleTextActive: {
+    color: 'white',
+  },
+  bottomSection: {
+    paddingHorizontal: 24,
+  },
+  trackInfo: {
+    marginBottom: 20,
+  },
+  trackTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  trackTitle: {
+    flex: 1,
+    color: 'white',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  trackActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  trackActionBtn: {
+    padding: 4,
+  },
+  trackArtist: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 16,
+    marginTop: 4,
+  },
+  progressSection: {
+    marginBottom: 20,
+  },
+  progressSlider: {
+    width: '100%',
+    height: 40,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -8,
+  },
+  timeText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+  },
+  mainControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 30,
+    paddingHorizontal: 10,
+  },
+  shuffleBtn: {
+    padding: 8,
+  },
+  skipBtn: {
+    padding: 8,
+  },
+  playBtn: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  repeatBtn: {
+    padding: 8,
+    position: 'relative',
+  },
+  repeatOneText: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#FF9500',
+  },
+  secondaryActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  secondaryBtn: {
+    padding: 12,
+  },
+  speedBtnText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Landscape-specific styles
+  controlsOverlayLandscape: {
+    flexDirection: 'column',
+  },
+  landscapeContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+    gap: 40,
+  },
+  landscapeArtwork: {
+    width: 180,
+    height: 180,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  landscapeArtworkImage: {
+    width: '100%',
+    height: '100%',
+  },
+  landscapeControls: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  landscapeTitleText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  landscapeArtistText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+    marginBottom: 15,
+  },
+  landscapeProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 15,
+  },
+  landscapeSlider: {
+    flex: 1,
+    height: 30,
+  },
+  landscapeTimeText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 11,
+    width: 40,
+  },
+  landscapeMainControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 30,
+  },
+  landscapePlayBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  landscapeExitBtn: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    padding: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+  },
+  landscapeVideoControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    gap: 15,
+  },
+  landscapeVideoSlider: {
+    flex: 1,
+    height: 30,
+  },
+  landscapeVideoPlayBtn: {
+    padding: 8,
+  },
+  // Queue Modal styles
+  queueModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'flex-end',
+  },
+  queueModalContent: {
+    backgroundColor: '#1a1a1a',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    paddingBottom: 30,
+  },
+  queueModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  queueModalTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  queueEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  queueEmptyText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 16,
+    marginTop: 12,
+  },
+  queueEmptySubtext: {
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 13,
+    marginTop: 6,
+  },
+  queueItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    paddingHorizontal: 16,
+  },
+  queueItemActive: {
+    backgroundColor: 'rgba(255,149,0,0.15)',
+  },
+  queueItemThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 6,
+  },
+  queueItemThumbPlaceholder: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  queueItemInfo: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 8,
+  },
+  queueItemTitle: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  queueItemArtist: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  // Legacy styles kept for modals and error states
   errorContainer: {
     flex: 1,
     justifyContent: 'center',

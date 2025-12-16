@@ -51,7 +51,7 @@ export interface OnlineSearchResult {
 
 export interface VideoQualityOption {
     itag: number;
-    quality: string; 
+    quality: string;
     mimeType: string;
     bitrate: number;
     url: string;
@@ -105,6 +105,10 @@ const SOUNDCLOUD_API_V2_BASE = 'https://api-v2.soundcloud.com/';
 const SOUNDCLOUD_DEFAULT_CLIENT_ID = 'a3e059563d7fd3372b49b37f00a00bcf';
 const SOUNDCLOUD_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36';
 const SOUNDCLOUD_CLIENT_ID_REGEX = /client_id\s*:\s*"([0-9a-zA-Z]{32})"/;
+
+// SoundCloud Proxy Server (Singapore VPS) - fallback for blocked IPs
+const SOUNDCLOUD_PROXY_SERVER = 'http://188.166.216.232:3000'; // TODO: Replace with your VPS URL
+let soundCloudUseProxy = false; // Will auto-switch to true if direct fails with 403
 
 class OnlineSearchServiceClass {
     private soundCloudClientId: string | null = null;
@@ -381,8 +385,8 @@ class OnlineSearchServiceClass {
         const combinedFormats = (streamingData.formats || []).filter((f: any) =>
             f.url &&
             !f.signatureCipher &&
-            f.mimeType?.includes('video/') && 
-            f.audioQuality 
+            f.mimeType?.includes('video/') &&
+            f.audioQuality
         );
 
         if (combinedFormats.length > 0) {
@@ -403,9 +407,9 @@ class OnlineSearchServiceClass {
 
 
         const audioFormats = allFormats.filter((f: any) =>
-            f.url && 
-            f.mimeType?.includes('audio/') && 
-            !f.signatureCipher 
+            f.url &&
+            f.mimeType?.includes('audio/') &&
+            !f.signatureCipher
         );
 
         if (audioFormats.length > 0) {
@@ -591,9 +595,15 @@ class OnlineSearchServiceClass {
     }
 
     async searchSoundCloud(query: string): Promise<SoundCloudResult[]> {
-        try {
-            console.log(`[SoundCloud] Searching: "${query}"`);
+        console.log(`[SoundCloud] Searching: "${query}" (useProxy: ${soundCloudUseProxy})`);
 
+        // If already using proxy, go directly to proxy
+        if (soundCloudUseProxy) {
+            return this._searchSoundCloudViaProxy(query);
+        }
+
+        // Try direct SoundCloud API first
+        try {
             const clientId = await this.getSoundCloudClientId();
             const searchUrl = `${SOUNDCLOUD_API_V2_BASE}search/tracks?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=20`;
 
@@ -601,8 +611,14 @@ class OnlineSearchServiceClass {
                 headers: { 'User-Agent': SOUNDCLOUD_USER_AGENT }
             }, 15000);
 
+            if (response.status === 403) {
+                console.log('[SoundCloud] Got 403, switching to proxy server...');
+                soundCloudUseProxy = true;
+                return this._searchSoundCloudViaProxy(query);
+            }
+
             if (!response.ok) {
-                if (response.status === 401 || response.status === 403) {
+                if (response.status === 401) {
                     this.soundCloudClientId = null;
                 }
                 throw new Error(`API returned ${response.status}`);
@@ -611,7 +627,7 @@ class OnlineSearchServiceClass {
             const data = await response.json();
             const tracks = data.collection || [];
 
-            console.log(`[SoundCloud] Found ${tracks.length} tracks`);
+            console.log(`[SoundCloud] Found ${tracks.length} tracks (direct)`);
 
             return tracks.map((track: any) => ({
                 id: String(track.id),
@@ -623,12 +639,58 @@ class OnlineSearchServiceClass {
                 permalinkUrl: track.permalink_url || '',
             }));
         } catch (error: any) {
+            // On network error or timeout, try proxy as fallback
+            if (error.message.includes('403') || error.message.includes('timeout') || error.message.includes('Network')) {
+                console.log(`[SoundCloud] Direct failed: ${error.message}, trying proxy...`);
+                soundCloudUseProxy = true;
+                return this._searchSoundCloudViaProxy(query);
+            }
             console.error(`[SoundCloud] Search error: ${error.message}`);
             throw new Error(`SoundCloud search failed: ${error.message}`);
         }
     }
 
+    // Search via proxy server (Singapore VPS)
+    private async _searchSoundCloudViaProxy(query: string): Promise<SoundCloudResult[]> {
+        try {
+            const proxyUrl = `${SOUNDCLOUD_PROXY_SERVER}/search?q=${encodeURIComponent(query)}&limit=20`;
+            console.log(`[SoundCloud Proxy] Searching via ${SOUNDCLOUD_PROXY_SERVER}...`);
+
+            const response = await this.fetchWithTimeout(proxyUrl, {}, 15000);
+
+            if (!response.ok) {
+                throw new Error(`Proxy returned ${response.status}`);
+            }
+
+            const data = await response.json();
+            const tracks = data.results || [];
+
+            console.log(`[SoundCloud Proxy] Found ${tracks.length} tracks`);
+
+            return tracks.map((track: any) => ({
+                id: String(track.id),
+                title: track.title || 'Unknown',
+                artist: track.artist || 'Unknown',
+                thumbnail: track.thumbnail || '',
+                duration: track.duration || 0,
+                playbackCount: track.playbackCount || 0,
+                permalinkUrl: track.permalinkUrl || '',
+            }));
+        } catch (error: any) {
+            console.error(`[SoundCloud Proxy] Search error: ${error.message}`);
+            throw new Error(`SoundCloud search failed (proxy): ${error.message}`);
+        }
+    }
+
     async getSoundCloudStreamUrl(trackIdOrUrl: string): Promise<{ streamUrl: string; title: string; thumbnail: string; artist: string; id: string }> {
+        console.log(`[SoundCloud] Getting stream for: ${trackIdOrUrl} (useProxy: ${soundCloudUseProxy})`);
+
+        // If already using proxy, go directly to proxy
+        if (soundCloudUseProxy) {
+            return this._getSoundCloudStreamViaProxy(trackIdOrUrl);
+        }
+
+        // Try direct SoundCloud API first
         try {
             const clientId = await this.getSoundCloudClientId();
             let trackData: any;
@@ -643,6 +705,12 @@ class OnlineSearchServiceClass {
                     headers: { 'User-Agent': SOUNDCLOUD_USER_AGENT }
                 }, 15000);
 
+                if (resolveRes.status === 403) {
+                    console.log('[SoundCloud] Got 403, switching to proxy server...');
+                    soundCloudUseProxy = true;
+                    return this._getSoundCloudStreamViaProxy(trackIdOrUrl);
+                }
+
                 if (!resolveRes.ok) throw new Error(`Resolve failed: ${resolveRes.status}`);
                 trackData = await resolveRes.json();
             } else {
@@ -650,6 +718,12 @@ class OnlineSearchServiceClass {
                 const trackRes = await this.fetchWithTimeout(this.proxyUrl(trackUrl), {
                     headers: { 'User-Agent': SOUNDCLOUD_USER_AGENT }
                 }, 15000);
+
+                if (trackRes.status === 403) {
+                    console.log('[SoundCloud] Got 403, switching to proxy server...');
+                    soundCloudUseProxy = true;
+                    return this._getSoundCloudStreamViaProxy(trackIdOrUrl);
+                }
 
                 if (!trackRes.ok) throw new Error(`Track fetch failed: ${trackRes.status}`);
                 trackData = await trackRes.json();
@@ -667,12 +741,18 @@ class OnlineSearchServiceClass {
                 headers: { 'User-Agent': SOUNDCLOUD_USER_AGENT }
             }, 15000);
 
+            if (streamRes.status === 403) {
+                console.log('[SoundCloud] Stream 403, switching to proxy server...');
+                soundCloudUseProxy = true;
+                return this._getSoundCloudStreamViaProxy(trackIdOrUrl);
+            }
+
             if (!streamRes.ok) throw new Error(`Stream info failed: ${streamRes.status}`);
 
             const streamInfo = await streamRes.json();
             if (!streamInfo.url) throw new Error('No stream URL in response');
 
-            console.log('[SoundCloud] Got stream URL and metadata');
+            console.log('[SoundCloud] Got stream URL and metadata (direct)');
             return {
                 streamUrl: streamInfo.url,
                 title: trackData.title,
@@ -681,9 +761,55 @@ class OnlineSearchServiceClass {
                 id: String(trackData.id)
             };
         } catch (error: any) {
+            // On 403 or network error, try proxy
+            if (error.message.includes('403') || error.message.includes('timeout') || error.message.includes('Network')) {
+                console.log(`[SoundCloud] Direct failed: ${error.message}, trying proxy...`);
+                soundCloudUseProxy = true;
+                return this._getSoundCloudStreamViaProxy(trackIdOrUrl);
+            }
             console.error(`[SoundCloud] Stream error: ${error.message}`);
             this.soundCloudClientId = null;
             throw new Error(`Could not get SoundCloud stream: ${error.message}`);
+        }
+    }
+
+    // Get stream via proxy server (Singapore VPS)
+    private async _getSoundCloudStreamViaProxy(trackIdOrUrl: string): Promise<{ streamUrl: string; title: string; thumbnail: string; artist: string; id: string }> {
+        try {
+            // Extract track ID from URL if needed
+            let trackId = trackIdOrUrl;
+            if (trackIdOrUrl.startsWith('http')) {
+                // For URLs, we need to resolve them - proxy expects ID
+                // Try to extract ID from the search results context
+                console.log('[SoundCloud Proxy] URL passed, extracting track ID is complex - may need adjustment');
+            }
+
+            const proxyUrl = `${SOUNDCLOUD_PROXY_SERVER}/stream?id=${encodeURIComponent(trackId)}`;
+            console.log(`[SoundCloud Proxy] Getting stream via ${SOUNDCLOUD_PROXY_SERVER}...`);
+
+            const response = await this.fetchWithTimeout(proxyUrl, {}, 15000);
+
+            if (!response.ok) {
+                throw new Error(`Proxy returned ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            console.log('[SoundCloud Proxy] Got stream URL and metadata');
+            return {
+                streamUrl: data.streamUrl,
+                title: data.title || 'SoundCloud Track',
+                thumbnail: data.thumbnail || '',
+                artist: data.artist || 'SoundCloud',
+                id: trackId
+            };
+        } catch (error: any) {
+            console.error(`[SoundCloud Proxy] Stream error: ${error.message}`);
+            throw new Error(`Could not get SoundCloud stream (proxy): ${error.message}`);
         }
     }
 

@@ -42,7 +42,7 @@ interface LibraryScreenProps {
 export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChannels }) => {
     const { playlists, deletePlaylist, getFavoriteChannels } = usePlaylist();
     const { history, clearHistory, removeFromHistory } = useHistory();
-    const { queue, currentItem, removeFromQueue, clearQueue, playFromQueue } = useQueue();
+    const { queue, currentIndex, removeFromQueue, clearQueue, setCurrentIndex } = useQueue();
     const { favorites: onlineFavorites, youtubeFavorites, soundcloudFavorites, removeFavorite } = useOnlineFavorites();
     const { t } = useTranslation();
     const { currentTheme } = useCustomTheme();
@@ -307,9 +307,9 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
                     keyExtractor={(item) => `${item.channel.id}-${item.position}`}
                     contentContainerStyle={styles.listContent}
                     renderItem={({ item }) => {
-                        const isPlaying = currentItem?.channel.id === item.channel.id;
+                        const isPlaying = currentIndex === item.position;
                         return (
-                            <TouchableOpacity style={[styles.queueItem, isPlaying && styles.queueItemPlaying]} onPress={() => playFromQueue(item.position)}>
+                            <TouchableOpacity style={[styles.queueItem, isPlaying && styles.queueItemPlaying]} onPress={() => { setCurrentIndex(item.position); handlePlayChannel(item.channel); }}>
                                 {item.channel.logo ? (
                                     <Image source={{ uri: item.channel.logo }} style={styles.queueThumb} />
                                 ) : (
@@ -321,7 +321,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
                                     <Text style={styles.queueName} numberOfLines={1}>{item.channel.name}</Text>
                                     {item.channel.group && <Text style={styles.queueGroup}>{item.channel.group}</Text>}
                                 </View>
-                                <TouchableOpacity style={styles.removeButton} onPress={() => removeFromQueue(item.position)}>
+                                <TouchableOpacity style={styles.removeButton} onPress={() => removeFromQueue(item.channel.id)}>
                                     <Ionicons name="close" size={20} color={Colors.textTertiary} />
                                 </TouchableOpacity>
                             </TouchableOpacity>
@@ -383,7 +383,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
                         <View style={styles.channelInfo}>
                             <Text style={styles.channelName} numberOfLines={1}>{item.title}</Text>
                             <View style={styles.onlineMeta}>
-                                {}
+                                { }
                                 <Text style={styles.onlineArtist}>{item.artist}</Text>
                             </View>
                         </View>
