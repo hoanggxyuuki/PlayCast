@@ -1,10 +1,11 @@
 
-import { Colors, Layout } from '@/src/constants/theme';
+import { Colors, Shadows } from '@/src/constants/theme';
 import { useTranslation } from '@/src/i18n/useTranslation';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Tabs } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -13,45 +14,70 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary,
+        tabBarActiveTintColor: '#fff',
         tabBarInactiveTintColor: Colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: Colors.background,
+          position: 'absolute',
+          bottom: 20,
+          left: 20,
+          right: 20,
+          height: 70,
+          borderRadius: 35,
+          backgroundColor: 'transparent',
           borderTopWidth: 0,
-          paddingBottom: 8,
-          paddingTop: 12,
-          height: Layout.tabBarHeight,
           elevation: 0,
-          shadowOpacity: 0,
+          shadowColor: '#764ba2',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.4,
+          shadowRadius: 24,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '600',
-          marginTop: 4,
+          marginTop: 2,
         },
         tabBarBackground: () => (
-          <View style={StyleSheet.absoluteFill}>
-            <LinearGradient
-              colors={['transparent', Colors.background]}
-              style={styles.tabBarGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 0.3 }}
-            />
-            <View style={styles.tabBarBackground} />
+          <View style={styles.tabBarContainer}>
+            {Platform.OS === 'ios' ? (
+              <BlurView intensity={80} tint="dark" style={styles.blurView}>
+                <LinearGradient
+                  colors={['rgba(30, 30, 60, 0.9)', 'rgba(15, 15, 35, 0.95)']}
+                  style={StyleSheet.absoluteFill}
+                />
+              </BlurView>
+            ) : (
+              <View style={styles.androidBackground}>
+                <LinearGradient
+                  colors={['rgba(30, 30, 60, 0.98)', 'rgba(15, 15, 35, 0.98)']}
+                  style={StyleSheet.absoluteFill}
+                />
+              </View>
+            )}
+            {/* Glow border */}
+            <View style={styles.glowBorder} />
           </View>
         ),
       }}
     >
-      { }
+      {/* Home Tab */}
       <Tabs.Screen
         name="index"
         options={{
           title: t('home'),
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconContainer : undefined}>
+            <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
+              {focused && (
+                <LinearGradient
+                  colors={['#667eea', '#764ba2']}
+                  style={styles.iconGlow}
+                />
+              )}
               <Ionicons
                 name={focused ? 'home' : 'home-outline'}
-                size={24}
+                size={22}
                 color={color}
               />
             </View>
@@ -59,16 +85,22 @@ export default function TabLayout() {
         }}
       />
 
-      { }
+      {/* Discover Tab */}
       <Tabs.Screen
         name="discover"
         options={{
           title: t('discover'),
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconContainer : undefined}>
+            <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
+              {focused && (
+                <LinearGradient
+                  colors={['#f093fb', '#f5576c']}
+                  style={styles.iconGlow}
+                />
+              )}
               <Ionicons
                 name={focused ? 'compass' : 'compass-outline'}
-                size={24}
+                size={22}
                 color={color}
               />
             </View>
@@ -76,16 +108,22 @@ export default function TabLayout() {
         }}
       />
 
-      { }
+      {/* Library Tab */}
       <Tabs.Screen
         name="library"
         options={{
           title: t('library'),
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconContainer : undefined}>
+            <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
+              {focused && (
+                <LinearGradient
+                  colors={['#4facfe', '#00f2fe']}
+                  style={styles.iconGlow}
+                />
+              )}
               <Ionicons
                 name={focused ? 'library' : 'library-outline'}
-                size={24}
+                size={22}
                 color={color}
               />
             </View>
@@ -93,16 +131,22 @@ export default function TabLayout() {
         }}
       />
 
-      { }
+      {/* Settings Tab */}
       <Tabs.Screen
         name="settings"
         options={{
           title: t('settings'),
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconContainer : undefined}>
+            <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
+              {focused && (
+                <LinearGradient
+                  colors={['#43e97b', '#38f9d7']}
+                  style={styles.iconGlow}
+                />
+              )}
               <Ionicons
                 name={focused ? 'settings' : 'settings-outline'}
-                size={24}
+                size={22}
                 color={color}
               />
             </View>
@@ -110,57 +154,53 @@ export default function TabLayout() {
         }}
       />
 
-      { }
-      <Tabs.Screen
-        name="explore"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="queue"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="local-network"
-        options={{
-          href: null,
-        }}
-      />
+      {/* Hidden screens */}
+      <Tabs.Screen name="explore" options={{ href: null }} />
+      <Tabs.Screen name="history" options={{ href: null }} />
+      <Tabs.Screen name="queue" options={{ href: null }} />
+      <Tabs.Screen name="search" options={{ href: null }} />
+      <Tabs.Screen name="local-network" options={{ href: null }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  tabBarBackground: {
+  tabBarContainer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.background,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderRadius: 35,
+    overflow: 'hidden',
   },
-  tabBarGradient: {
+  blurView: {
     ...StyleSheet.absoluteFillObject,
-    height: 20,
-    top: -20,
+    borderRadius: 35,
+    overflow: 'hidden',
   },
-  activeIconContainer: {
-    backgroundColor: 'rgba(118, 75, 162, 0.15)',
-    borderRadius: 12,
-    padding: 6,
-    marginBottom: -4,
+  androidBackground: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 35,
+    overflow: 'hidden',
+  },
+  glowBorder: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 35,
+    borderWidth: 1,
+    borderColor: 'rgba(102, 126, 234, 0.3)',
+  },
+  iconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  iconWrapperActive: {
+    ...Shadows.glow,
+  },
+  iconGlow: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 20,
+    opacity: 0.9,
   },
 });
+

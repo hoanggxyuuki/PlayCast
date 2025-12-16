@@ -73,7 +73,9 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     const [isPlayingTrending, setIsPlayingTrending] = useState(false);
     const [searchResults, setSearchResults] = useState<Array<{ id: string; title: string; artist: string; thumbnail: string; platform: 'youtube' | 'soundcloud'; duration?: number }>>([]);
     const [showSearchResults, setShowSearchResults] = useState(false);
+    const [isInputFocused, setIsInputFocused] = useState(false);
     const pulseAnim = useRef(new Animated.Value(1)).current;
+    const focusAnim = useRef(new Animated.Value(0)).current;
     const { addPlaylistFromUrl } = usePlaylist();
 
     const recentHistory = getRecentlyWatched(10);
@@ -196,6 +198,19 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             pulseAnim.setValue(1);
         }
     }, [isLoadingUrl, pulseAnim]);
+
+    // Focus animation for input
+    useEffect(() => {
+        Animated.spring(focusAnim, {
+            toValue: isInputFocused ? 1 : 0,
+            tension: 100,
+            friction: 10,
+            useNativeDriver: false, // Need JS for borderColor
+        }).start();
+    }, [isInputFocused, focusAnim]);
+
+    // Quick search suggestions
+    const searchSuggestions = ['Nhạc trẻ 2024', 'Lofi chill', 'EDM remix', 'Rap Việt', 'Ballad hay'];
 
     // Check if input is a URL
     const isUrl = (text: string) => {
@@ -493,23 +508,33 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             ? (isUrl(pasteUrl) ? '🔗 Link detected - will play' : '🔍 Will search YouTube & SoundCloud')
             : '';
 
+        // Animated border color
+        const borderColor = focusAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['rgba(102, 126, 234, 0.2)', 'rgba(102, 126, 234, 0.8)'],
+        });
+
         return (
             <View style={styles.smartInputContainer}>
                 <FadeInView delay={100} direction="up">
                     {/* Modern AI-like input */}
                     <Animated.View style={[
                         styles.aiInputContainer,
-                        { transform: [{ scale: pulseAnim }] }
+                        {
+                            transform: [{ scale: pulseAnim }],
+                            borderColor: borderColor,
+                            borderWidth: 1.5,
+                        }
                     ]}>
                         <LinearGradient
-                            colors={isLoadingUrl ? ['#667eea', '#764ba2'] : ['#1a1a2e', '#16213e']}
+                            colors={isLoadingUrl ? ['#667eea', '#764ba2'] : (isInputFocused ? ['#1e1e3a', '#252545'] : ['#1a1a2e', '#16213e'])}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             style={styles.aiInputGradient}
                         >
-                            {/* Glow effect when loading */}
-                            {isLoadingUrl && (
-                                <View style={styles.glowEffect} />
+                            {/* Glow effect when loading or focused */}
+                            {(isLoadingUrl || isInputFocused) && (
+                                <View style={[styles.glowEffect, isInputFocused && !isLoadingUrl && { backgroundColor: 'rgba(102, 126, 234, 0.05)' }]} />
                             )}
 
                             <View style={styles.aiInputRow}>
@@ -519,7 +544,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                                     <Ionicons
                                         name={pasteUrl.trim() && isUrl(pasteUrl) ? "link" : "search"}
                                         size={22}
-                                        color="rgba(255,255,255,0.7)"
+                                        color={isInputFocused ? "#667eea" : "rgba(255,255,255,0.7)"}
                                         style={{ marginRight: 12 }}
                                     />
                                 )}
@@ -535,6 +560,8 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                                     onSubmitEditing={handleSmartInput}
                                     returnKeyType="search"
                                     editable={!isLoadingUrl}
+                                    onFocus={() => setIsInputFocused(true)}
+                                    onBlur={() => setIsInputFocused(false)}
                                 />
 
                                 {pasteUrl.length > 0 && !isLoadingUrl && (
@@ -567,6 +594,30 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                             ) : null}
                         </LinearGradient>
                     </Animated.View>
+
+                    {/* Quick suggestion chips */}
+                    {!pasteUrl.trim() && !isLoadingUrl && (
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.suggestionsContainer}
+                            contentContainerStyle={styles.suggestionsContent}
+                        >
+                            {searchSuggestions.map((suggestion, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={styles.suggestionChip}
+                                    onPress={() => {
+                                        setPasteUrl(suggestion);
+                                        handleSmartInput();
+                                    }}
+                                >
+                                    <Ionicons name="trending-up" size={14} color={Colors.primary} />
+                                    <Text style={styles.suggestionText}>{suggestion}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    )}
 
                     {/* Loading status */}
                     {isLoadingUrl && (
@@ -1255,6 +1306,30 @@ const styles = StyleSheet.create({
     loadingText: {
         fontSize: FontSizes.sm,
         color: Colors.textSecondary,
+    },
+
+    // Suggestion chips styles
+    suggestionsContainer: {
+        marginTop: Spacing.md,
+    },
+    suggestionsContent: {
+        gap: Spacing.sm,
+    },
+    suggestionChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        backgroundColor: 'rgba(102, 126, 234, 0.15)',
+        borderRadius: BorderRadius.full,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderWidth: 1,
+        borderColor: 'rgba(102, 126, 234, 0.3)',
+    },
+    suggestionText: {
+        fontSize: FontSizes.sm,
+        color: Colors.text,
+        fontWeight: '500',
     },
 
     // Search results modal styles

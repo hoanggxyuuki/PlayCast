@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useState } from 'react';
 import {
+    Animated,
     Dimensions,
     FlatList,
     Image,
@@ -68,96 +69,127 @@ const DEFAULT_SLIDES: CarouselSlide[] = [
 
 export const HeroCarousel: React.FC<HeroCarouselProps> = ({
     slides = DEFAULT_SLIDES,
-    autoPlayInterval = 0, // Disabled by default now
+    autoPlayInterval = 0,
     onSlidePress,
 }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const scrollX = useRef(new Animated.Value(0)).current;
     const flatListRef = useRef<FlatList>(null);
-    const ITEM_WIDTH = SCREEN_WIDTH - Spacing.md * 2;
 
-    const handleScroll = (event: any) => {
-        const offsetX = event.nativeEvent.contentOffset.x;
-        const index = Math.round(offsetX / ITEM_WIDTH);
-        if (index >= 0 && index < slides.length && index !== currentIndex) {
-            setCurrentIndex(index);
+    const ITEM_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
+    const ITEM_SPACING = Spacing.sm;
+
+    const handleScroll = Animated.event(
+        [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+        {
+            useNativeDriver: true,
+            listener: (event: any) => {
+                const offsetX = event.nativeEvent.contentOffset.x;
+                const index = Math.round(offsetX / (ITEM_WIDTH + ITEM_SPACING));
+                if (index >= 0 && index < slides.length && index !== currentIndex) {
+                    setCurrentIndex(index);
+                }
+            }
         }
-    };
+    );
 
     const renderSlide = ({ item, index }: { item: CarouselSlide; index: number }) => {
         const gradientColors = item.gradient || Gradients.primary;
 
-        return (
-            <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => onSlidePress?.(item)}
-                style={{ width: ITEM_WIDTH }}
-            >
-                <LinearGradient
-                    colors={gradientColors as [string, string, ...string[]]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.slideContainer}
-                >
-                    {/* Background Icon */}
-                    <View style={styles.backgroundIcon}>
-                        <Ionicons
-                            name={item.icon || 'musical-notes'}
-                            size={140}
-                            color="rgba(255,255,255,0.12)"
-                        />
-                    </View>
+        const inputRange = [
+            (index - 1) * (ITEM_WIDTH + ITEM_SPACING),
+            index * (ITEM_WIDTH + ITEM_SPACING),
+            (index + 1) * (ITEM_WIDTH + ITEM_SPACING),
+        ];
 
-                    {/* Content */}
-                    <View style={styles.content}>
-                        <View style={styles.iconBadge}>
+        const scale = scrollX.interpolate({
+            inputRange,
+            outputRange: [0.92, 1, 0.92],
+            extrapolate: 'clamp',
+        });
+
+        const opacity = scrollX.interpolate({
+            inputRange,
+            outputRange: [0.7, 1, 0.7],
+            extrapolate: 'clamp',
+        });
+
+        return (
+            <Animated.View style={[
+                { width: ITEM_WIDTH, marginRight: ITEM_SPACING },
+                { transform: [{ scale }], opacity }
+            ]}>
+                <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => onSlidePress?.(item)}
+                >
+                    <LinearGradient
+                        colors={gradientColors as [string, string, ...string[]]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.slideContainer}
+                    >
+                        {/* Background Icon */}
+                        <View style={styles.backgroundIcon}>
                             <Ionicons
-                                name={item.icon || 'play-circle'}
-                                size={24}
-                                color="#fff"
+                                name={item.icon || 'musical-notes'}
+                                size={140}
+                                color="rgba(255,255,255,0.12)"
                             />
                         </View>
-                        <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
-                        <Text style={styles.subtitle} numberOfLines={1}>{item.subtitle}</Text>
 
-                        {/* Play hint */}
-                        <View style={styles.playHint}>
-                            <Ionicons name="play-circle" size={20} color="rgba(255,255,255,0.9)" />
-                            <Text style={styles.playHintText}>Nhấn để phát</Text>
+                        {/* Content */}
+                        <View style={styles.content}>
+                            <View style={styles.iconBadge}>
+                                <Ionicons
+                                    name={item.icon || 'play-circle'}
+                                    size={24}
+                                    color="#fff"
+                                />
+                            </View>
+                            <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+                            <Text style={styles.subtitle} numberOfLines={1}>{item.subtitle}</Text>
+
+                            {/* Play hint */}
+                            <View style={styles.playHint}>
+                                <Ionicons name="play-circle" size={18} color="rgba(255,255,255,0.9)" />
+                                <Text style={styles.playHintText}>Nhấn để phát</Text>
+                            </View>
                         </View>
-                    </View>
 
-                    {/* Background Image */}
-                    {item.image && (
-                        <Image
-                            source={{ uri: item.image }}
-                            style={styles.image}
-                            resizeMode="cover"
-                        />
-                    )}
+                        {/* Background Image */}
+                        {item.image && (
+                            <Image
+                                source={{ uri: item.image }}
+                                style={styles.image}
+                                resizeMode="cover"
+                            />
+                        )}
 
-                    {/* Shimmer */}
-                    <View style={styles.shimmerOverlay} />
-                </LinearGradient>
-            </TouchableOpacity>
+                        {/* Shimmer */}
+                        <View style={styles.shimmerOverlay} />
+                    </LinearGradient>
+                </TouchableOpacity>
+            </Animated.View>
         );
     };
 
     return (
         <View style={styles.container}>
-            <FlatList
+            <Animated.FlatList
                 ref={flatListRef}
                 data={slides}
                 renderItem={renderSlide}
                 keyExtractor={(item, index) => `${item.id}-${index}`}
                 horizontal
-                pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
-                snapToInterval={ITEM_WIDTH}
+                snapToInterval={ITEM_WIDTH + ITEM_SPACING}
                 decelerationRate="fast"
-                snapToAlignment="start"
-                contentContainerStyle={{ paddingHorizontal: Spacing.md }}
+                contentContainerStyle={{
+                    paddingHorizontal: Spacing.lg,
+                }}
             />
 
             {/* Pagination dots */}

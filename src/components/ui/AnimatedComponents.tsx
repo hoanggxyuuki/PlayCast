@@ -287,6 +287,85 @@ export const PulseView: React.FC<PulseViewProps> = ({
     );
 };
 
+// Skeleton loading component
+interface SkeletonProps {
+    width?: number | string;
+    height?: number;
+    borderRadius?: number;
+    style?: ViewStyle;
+}
+
+export const Skeleton: React.FC<SkeletonProps> = ({
+    width = '100%',
+    height = 20,
+    borderRadius = 8,
+    style,
+}) => {
+    const opacity = useSharedValue(0.3);
+
+    useEffect(() => {
+        opacity.value = withDelay(0,
+            withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) }, () => {
+                opacity.value = withTiming(0.3, { duration: 800, easing: Easing.inOut(Easing.ease) });
+            })
+        );
+
+        // Create infinite loop
+        const interval = setInterval(() => {
+            opacity.value = withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) }, () => {
+                opacity.value = withTiming(0.3, { duration: 800, easing: Easing.inOut(Easing.ease) });
+            });
+        }, 1600);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        opacity: opacity.value,
+    }));
+
+    return (
+        <Animated.View
+            style={[
+                {
+                    width,
+                    height,
+                    borderRadius,
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                },
+                style,
+                animatedStyle,
+            ]}
+        />
+    );
+};
+
+// Skeleton card placeholder
+interface SkeletonCardProps {
+    style?: ViewStyle;
+}
+
+export const SkeletonCard: React.FC<SkeletonCardProps> = ({ style }) => {
+    return (
+        <Animated.View
+            entering={FadeIn.duration(300)}
+            style={[
+                {
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: 16,
+                    padding: 16,
+                    gap: 12,
+                },
+                style,
+            ]}
+        >
+            <Skeleton width={60} height={60} borderRadius={12} />
+            <Skeleton width="80%" height={16} />
+            <Skeleton width="60%" height={12} />
+        </Animated.View>
+    );
+};
+
 export {
     Animated, BounceIn,
     Easing, FadeIn,
