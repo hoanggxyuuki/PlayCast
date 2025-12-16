@@ -1,0 +1,550 @@
+
+import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+    Alert,
+    FlatList,
+    Image,
+    Keyboard,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdvancedVideoPlayer } from '../components/player/AdvancedVideoPlayer';
+import { LoadingSpinner } from '../components/ui';
+import { GlassCard } from '../components/ui/GlassCard';
+import { BorderRadius, Colors, FontSizes, Gradients, Layout, Spacing } from '../constants/theme';
+import { useHistory } from '../contexts/HistoryContext';
+import { useTranslation } from '../i18n/useTranslation';
+
+import { OnlineFavorite, useOnlineFavorites } from '../contexts/OnlineFavoritesContext';
+import { usePlaylist } from '../contexts/PlaylistContext';
+import { OnlineSearchResult, OnlineSearchService, SearchPlatform } from '../services/OnlineSearchService';
+import { Channel } from '../types';
+
+type DiscoverTab = 'local' | 'online' | 'iptv';
+
+interface DiscoverScreenProps {
+    initialTab?: 'local' | 'online' | 'link';
+}
+
+export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) => {
+    const { t } = useTranslation();
+
+    const SOURCE_OPTIONS = useMemo(() => [
+        { id: 'local' as DiscoverTab, title: t('localFiles'), icon: 'folder-open' as const, color: '#4facfe', description: t('playFromDevice') },
+        { id: 'online' as DiscoverTab, title: t('online'), icon: 'globe' as const, color: '#f093fb', description: 'YouTube, SoundCloud' },
+        { id: 'iptv' as DiscoverTab, title: 'IPTV / M3U', icon: 'tv-outline' as const, color: '#43e97b', description: t('addPlaylistSubtitle') || 'Add channels' },
+    ], [t]);
+    const { addPlaylistFromUrl, addPlaylist } = usePlaylist();
+    const { isFavorite, toggleFavorite } = useOnlineFavorites();
+    const { addToHistory } = useHistory();
+
+    const [activeTab, setActiveTab] = useState<DiscoverTab>(initialTab || 'local');
+
+    useEffect(() => {
+        if (initialTab) {
+            setActiveTab(initialTab);
+        }
+    }, [initialTab]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedPlatform, setSelectedPlatform] = useState<SearchPlatform>('youtube');
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchResults, setSearchResults] = useState<OnlineSearchResult[]>([]);
+    const [iptvUrl, setIptvUrl] = useState('');
+    const [iptvName, setIptvName] = useState('');
+    const [isAddingIptv, setIsAddingIptv] = useState(false);
+    const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+    const [showPlayer, setShowPlayer] = useState(false);
+
+    const handlePickLocalFile = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: ['video/*', 'audio/*'],
+                copyToCacheDirectory: true,
+                multiple: true,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const files = result.assets;
+
+                if (files.length === 1) {
+                    const file = files[0];
+                    const channel: Channel = {
+                        id: `local-${Date.now()}`,
+                        name: file.name || 'Local Media',
+                        url: file.uri,
+                        group: 'Local Files',
+                    };
+                    setSelectedChannel(channel);
+                    setShowPlayer(true);
+                } else {
+
+                    Alert.alert(
+                        'Create Playlist',
+                        `You selected ${files.length} files. Create a playlist?`,
+                        [
+                            { text: 'Cancel', style: 'cancel' },
+                            {
+                                text: 'Play First',
+                                onPress: () => {
+                                    const file = files[0];
+                                    const channel: Channel = {
+                                        id: `local-${Date.now()}`,
+                                        name: file.name || 'Local Media',
+                                        url: file.uri,
+                                        group: 'Local Files',
+                                    };
+                                    setSelectedChannel(channel);
+                                    setShowPlayer(true);
+                                },
+                            },
+                            {
+                                text: 'Create Playlist',
+                                onPress: async () => {
+                                    const playlistName = `My Music (${files.length} tracks)`;
+
+                                    const channels: Channel[] = files.map((file, index) => ({
+                                        id: `local-${Date.now()}-${index}`,
+                                        name: file.name?.replace(/\.[^/.]+$/, '') || `Track ${index + 1}`,
+                                        url: file.uri,
+                                        group: 'Local Files',
+                                    }));
+
+                                    const playlist = {
+                                        id: `local-playlist-${Date.now()}`,
+                                        name: playlistName,
+                                        url: 'local',
+                                        type: 'm3u' as const,
+                                        channels,
+                                        createdAt: new Date(),
+                                        updatedAt: new Date(),
+                                        description: `${files.length} local files`,
+                                    };
+
+                                    await addPlaylist(playlist);
+                                    Alert.alert('Success', `Created "${playlistName}" in Library!`);
+                                },
+                            },
+                        ]
+                    );
+                }
+            }
+        } catch (error) {
+            console.error('Error picking file:', error);
+            Alert.alert('Error', 'Failed to pick file');
+        }
+    };
+
+    const handleOnlineSearch = useCallback(async () => {
+        if (!searchQuery.trim()) return;
+
+        Keyboard.dismiss();
+        setIsSearching(true);
+        setSearchResults([]);
+
+        try {
+
+            const [ytResults, scResults] = await Promise.allSettled([
+                OnlineSearchService.searchYouTube(searchQuery),
+                OnlineSearchService.searchSoundCloud(searchQuery),
+            ]);
+
+            let combinedResults: OnlineSearchResult[] = [];
+
+
+            if (ytResults.status === 'fulfilled' && ytResults.value) {
+                const ytMapped = ytResults.value.map(r => ({
+                    platform: 'youtube' as SearchPlatform,
+                    id: r.videoId,
+                    title: r.title,
+                    artist: r.author,
+                    thumbnail: r.thumbnail,
+                    duration: r.duration,
+                    viewCount: r.viewCount,
+                }));
+                combinedResults = [...combinedResults, ...ytMapped];
+            }
+
+
+            if (scResults.status === 'fulfilled' && scResults.value) {
+                const scMapped = scResults.value.map(r => ({
+                    platform: 'soundcloud' as SearchPlatform,
+                    id: r.id,
+                    title: r.title,
+                    artist: r.artist,
+                    thumbnail: r.thumbnail,
+                    duration: r.duration / 1000,
+                    viewCount: r.playbackCount,
+                }));
+                combinedResults = [...combinedResults, ...scMapped];
+            }
+
+
+            const ytItems = combinedResults.filter(r => r.platform === 'youtube');
+            const scItems = combinedResults.filter(r => r.platform === 'soundcloud');
+            const interleavedResults: OnlineSearchResult[] = [];
+            const maxLen = Math.max(ytItems.length, scItems.length);
+            for (let i = 0; i < maxLen; i++) {
+                if (ytItems[i]) interleavedResults.push(ytItems[i]);
+                if (scItems[i]) interleavedResults.push(scItems[i]);
+            }
+
+            setSearchResults(interleavedResults);
+        } catch (error: any) {
+            Alert.alert('Search Error', error.message || 'Failed to search');
+        } finally {
+            setIsSearching(false);
+        }
+    }, [searchQuery]);
+
+    const handleAddIptv = async () => {
+        if (!iptvUrl.trim()) {
+            Alert.alert('Error', t('pleaseEnterUrl') || 'Please enter a URL');
+            return;
+        }
+        setIsAddingIptv(true);
+        try {
+            await addPlaylistFromUrl(iptvUrl, iptvName || 'IPTV Playlist', 'm3u');
+            Alert.alert(t('success') || 'Success', t('playlistAddedSuccess') || 'Playlist added to library!');
+            setIptvUrl('');
+            setIptvName('');
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to add playlist');
+        } finally {
+            setIsAddingIptv(false);
+        }
+    };
+
+    const handlePlayResult = async (result: OnlineSearchResult) => {
+        try {
+            setIsSearching(true);
+            let streamUrl = result.streamUrl;
+
+            if (result.platform === 'youtube' && !streamUrl) {
+                streamUrl = await OnlineSearchService.getYouTubeStreamUrl(result.id);
+            } else if (result.platform === 'soundcloud' && !streamUrl) {
+                const scData = await OnlineSearchService.getSoundCloudStreamUrl(result.id);
+                streamUrl = scData.streamUrl;
+            }
+
+            if (!streamUrl) throw new Error('Could not get stream URL');
+
+            const channel: Channel = {
+                id: `${result.platform}-${result.id}`,
+                name: result.title,
+                url: streamUrl,
+                logo: result.thumbnail,
+                group: result.platform.charAt(0).toUpperCase() + result.platform.slice(1),
+            };
+
+            setSelectedChannel(channel);
+
+            addToHistory({
+                channelId: channel.id,
+                channelName: channel.name,
+                channelUrl: channel.url,
+                logo: channel.logo,
+                lastWatchedAt: new Date(),
+                progress: 0,
+                duration: result.duration || 0,
+                currentTime: 0,
+            });
+
+            setShowPlayer(true);
+        } catch (error: any) {
+            Alert.alert('Playback Error', error.message || 'Failed to play');
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            <SafeAreaView style={styles.safeArea} edges={['top']}>
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>{t('discover')}</Text>
+                    <Text style={styles.headerSubtitle}>{t('findYourContent')}</Text>
+                </View>
+
+                <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                    <View style={styles.sourceCards}>
+                        {SOURCE_OPTIONS.map((source) => (
+                            <TouchableOpacity
+                                key={source.id}
+                                style={[styles.sourceCard, activeTab === source.id && styles.sourceCardActive]}
+                                onPress={() => setActiveTab(source.id)}
+                            >
+                                <View style={[styles.sourceIcon, { backgroundColor: `${source.color}20` }]}>
+                                    <Ionicons name={source.icon} size={24} color={source.color} />
+                                </View>
+                                <Text style={styles.sourceTitle}>{source.title}</Text>
+                                <Text style={styles.sourceDesc}>{source.description}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    {activeTab === 'local' && (
+                        <View style={styles.tabContent}>
+                            <GlassCard variant="purple" padding="large" style={styles.centerCard}>
+                                <Ionicons name="folder-open" size={64} color={Colors.accent} />
+                                <Text style={styles.cardTitle}>{t('browseLocalFiles')}</Text>
+                                <Text style={styles.cardDesc}>{t('selectVideoOrAudioFiles')}</Text>
+                                <TouchableOpacity style={styles.actionButton} onPress={handlePickLocalFile}>
+                                    <LinearGradient colors={Gradients.accent as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionButtonGradient}>
+                                        <Ionicons name="folder-open-outline" size={20} color="#fff" />
+                                        <Text style={styles.actionButtonText}>{t('browseFiles')}</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </GlassCard>
+                        </View>
+                    )}
+
+                    {activeTab === 'online' && (
+                        <View style={styles.tabContent}>
+                            <View style={styles.searchContainer}>
+                                <Ionicons name="search" size={20} color={Colors.textTertiary} />
+                                <TextInput
+                                    style={styles.searchInput}
+                                    placeholder="Search YouTube & SoundCloud..."
+                                    placeholderTextColor={Colors.textTertiary}
+                                    value={searchQuery}
+                                    onChangeText={setSearchQuery}
+                                    onSubmitEditing={handleOnlineSearch}
+                                    returnKeyType="search"
+                                />
+                                {searchQuery.length > 0 && (
+                                    <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                        <Ionicons name="close-circle" size={20} color={Colors.textTertiary} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            <TouchableOpacity style={styles.searchButton} onPress={handleOnlineSearch} disabled={isSearching}>
+                                <LinearGradient colors={Gradients.secondary as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.searchButtonGradient}>
+                                    <Ionicons name="search" size={20} color="#fff" />
+                                    <Text style={styles.searchButtonText}>Search</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+
+                            {isSearching ? (
+                                <View style={styles.loadingContainer}>
+                                    <LoadingSpinner text="Searching..." size="large" />
+                                </View>
+                            ) : searchResults.length > 0 ? (
+                                <FlatList
+                                    data={searchResults}
+                                    keyExtractor={(item) => `${item.platform}-${item.id}`}
+                                    style={styles.resultsList}
+                                    scrollEnabled={false}
+                                    renderItem={({ item }) => (
+                                        <TouchableOpacity style={styles.resultCard} onPress={() => handlePlayResult(item)}>
+                                            <View style={styles.resultThumbContainer}>
+                                                {item.thumbnail ? (
+                                                    <Image source={{ uri: item.thumbnail }} style={styles.resultThumb} />
+                                                ) : (
+                                                    <View style={[styles.resultThumb, styles.resultThumbPlaceholder]}>
+                                                        <Ionicons name="play" size={24} color="#fff" />
+                                                    </View>
+                                                )}
+                                                {}
+                                                <View style={[
+                                                    styles.platformBadge,
+                                                    { backgroundColor: item.platform === 'youtube' ? '#FF0000' : '#FF5500' }
+                                                ]}>
+                                                    <Ionicons
+                                                        name={item.platform === 'youtube' ? 'logo-youtube' : 'cloudy'}
+                                                        size={12}
+                                                        color="#fff"
+                                                    />
+                                                </View>
+                                            </View>
+                                            <View style={styles.resultInfo}>
+                                                <Text style={styles.resultTitle} numberOfLines={2}>{item.title}</Text>
+                                                <Text style={styles.resultArtist} numberOfLines={1}>{item.artist}</Text>
+                                                {item.duration > 0 && (
+                                                    <Text style={styles.resultDuration}>{OnlineSearchService.formatDuration(item.duration)}</Text>
+                                                )}
+                                            </View>
+                                            <TouchableOpacity
+                                                style={[styles.favoriteBtn, isFavorite(item.id) && styles.favoriteBtnActive]}
+                                                onPress={(e) => {
+                                                    e.stopPropagation();
+                                                    const favItem: Omit<OnlineFavorite, 'addedAt'> = {
+                                                        id: item.id,
+                                                        platform: item.platform as 'youtube' | 'soundcloud',
+                                                        title: item.title,
+                                                        artist: item.artist,
+                                                        thumbnail: item.thumbnail,
+                                                        duration: item.duration,
+                                                        viewCount: item.viewCount,
+                                                        videoId: item.platform === 'youtube' ? item.id : undefined,
+                                                    };
+                                                    toggleFavorite(favItem);
+                                                }}
+                                            >
+                                                <Ionicons
+                                                    name={isFavorite(item.id) ? 'heart' : 'heart-outline'}
+                                                    size={22}
+                                                    color={isFavorite(item.id) ? '#FF4B6E' : Colors.textSecondary}
+                                                />
+                                            </TouchableOpacity>
+                                            <Ionicons name="play-circle" size={32} color={Colors.primary} />
+                                        </TouchableOpacity>
+                                    )}
+                                />
+                            ) : null}
+                        </View>
+                    )}
+
+                    {activeTab === 'iptv' && (
+                        <View style={styles.tabContent}>
+                            <GlassCard variant="purple" padding="large">
+                                <View style={styles.iptvHeader}>
+                                    <Ionicons name="tv-outline" size={48} color="#43e97b" />
+                                    <Text style={styles.cardTitle}>{t('addNewPlaylist') || 'Add IPTV Playlist'}</Text>
+                                    <Text style={styles.cardDesc}>{t('pasteM3UPlaylistURL') || 'Paste M3U/JSON playlist URL from your IPTV provider'}</Text>
+                                </View>
+
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.inputLabel}>{t('url') || 'URL'} *</Text>
+                                    <TextInput
+                                        style={styles.textInput}
+                                        placeholder="https://example.com/playlist.m3u"
+                                        placeholderTextColor={Colors.textTertiary}
+                                        value={iptvUrl}
+                                        onChangeText={setIptvUrl}
+                                        autoCapitalize="none"
+                                    />
+                                </View>
+
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.inputLabel}>{t('playlistName') || 'Name'}</Text>
+                                    <TextInput
+                                        style={styles.textInput}
+                                        placeholder="My IPTV Playlist"
+                                        placeholderTextColor={Colors.textTertiary}
+                                        value={iptvName}
+                                        onChangeText={setIptvName}
+                                    />
+                                </View>
+
+                                <TouchableOpacity style={styles.addButton} onPress={handleAddIptv} disabled={isAddingIptv}>
+                                    <LinearGradient
+                                        colors={['#43e97b', '#38f9d7']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={styles.addButtonGradient}
+                                    >
+                                        {isAddingIptv ? <LoadingSpinner size="small" /> : (
+                                            <>
+                                                <Ionicons name="add-circle-outline" size={20} color="#fff" />
+                                                <Text style={styles.addButtonText}>{t('addPlaylist') || 'Add Playlist'}</Text>
+                                            </>
+                                        )}
+                                    </LinearGradient>
+                                </TouchableOpacity>
+
+                                <View style={styles.helpBox}>
+                                    <Ionicons name="information-circle-outline" size={18} color={Colors.textSecondary} />
+                                    <Text style={styles.helpText}>
+                                        {t('whatIsIptv') || 'IPTV/M3U playlists contain TV channel links. Get them from your TV provider or free sources online.'}
+                                    </Text>
+                                </View>
+                            </GlassCard>
+                        </View>
+                    )}
+
+                    <View style={{ height: Layout.tabBarHeight + 20 }} />
+                </ScrollView>
+            </SafeAreaView>
+
+            {selectedChannel && (
+                <Modal visible={showPlayer} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowPlayer(false)}>
+                    <AdvancedVideoPlayer channel={selectedChannel} onClose={() => { setShowPlayer(false); setSelectedChannel(null); }} />
+                </Modal>
+            )}
+        </View>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    safeArea: { flex: 1 },
+    header: { paddingHorizontal: Layout.screenPadding, paddingVertical: Spacing.lg },
+    headerTitle: { fontSize: FontSizes.xxxl, fontWeight: '700', color: Colors.text },
+    headerSubtitle: { fontSize: FontSizes.md, color: Colors.textSecondary, marginTop: Spacing.xs },
+    scrollView: { flex: 1 },
+    sourceCards: { flexDirection: 'row', paddingHorizontal: Layout.screenPadding, gap: Spacing.sm, marginBottom: Spacing.lg },
+    sourceCard: { flex: 1, backgroundColor: Colors.backgroundCard, borderRadius: BorderRadius.lg, padding: Spacing.md, alignItems: 'center', borderWidth: 2, borderColor: 'transparent' },
+    sourceCardActive: { borderColor: Colors.primary, backgroundColor: 'rgba(118, 75, 162, 0.15)' },
+    sourceIcon: { width: 48, height: 48, borderRadius: BorderRadius.md, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+    sourceTitle: { fontSize: FontSizes.sm, fontWeight: '600', color: Colors.text, textAlign: 'center' },
+    sourceDesc: { fontSize: FontSizes.xs, color: Colors.textTertiary, textAlign: 'center', marginTop: 2 },
+    tabContent: { paddingHorizontal: Layout.screenPadding },
+    centerCard: { alignItems: 'center', gap: Spacing.md },
+    cardTitle: { fontSize: FontSizes.lg, fontWeight: '600', color: Colors.text, textAlign: 'center' },
+    cardDesc: { fontSize: FontSizes.sm, color: Colors.textSecondary, textAlign: 'center' },
+    actionButton: { marginTop: Spacing.md, borderRadius: BorderRadius.full, overflow: 'hidden' },
+    actionButtonGradient: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md },
+    actionButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
+    platformSelector: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+    platformChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: BorderRadius.full, backgroundColor: Colors.backgroundCard, borderWidth: 1, borderColor: Colors.border },
+    platformChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+    platformText: { fontSize: FontSizes.sm, fontWeight: '500', color: Colors.textSecondary },
+    platformTextActive: { color: '#fff' },
+    searchContainer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.backgroundCard, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginBottom: Spacing.md },
+    searchInput: { flex: 1, fontSize: FontSizes.md, color: Colors.text, paddingVertical: Spacing.sm },
+    searchButton: { borderRadius: BorderRadius.md, overflow: 'hidden', marginBottom: Spacing.lg },
+    searchButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md },
+    searchButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
+    loadingContainer: { paddingVertical: Spacing.xxl, alignItems: 'center' },
+    resultsList: { marginTop: Spacing.sm },
+    resultCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.backgroundCard, borderRadius: BorderRadius.md, padding: Spacing.md, marginBottom: Spacing.sm, gap: Spacing.md },
+    resultThumb: { width: 80, height: 60, borderRadius: BorderRadius.sm, backgroundColor: Colors.surface },
+    resultThumbPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+    resultThumbContainer: { position: 'relative' },
+    platformBadge: {
+        position: 'absolute',
+        bottom: 4,
+        left: 4,
+        borderRadius: 4,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    resultInfo: { flex: 1 },
+    resultTitle: { fontSize: FontSizes.md, fontWeight: '600', color: Colors.text, marginBottom: 2 },
+    resultArtist: { fontSize: FontSizes.sm, color: Colors.textSecondary },
+    resultDuration: { fontSize: FontSizes.xs, color: Colors.textTertiary, marginTop: 2 },
+    inputGroup: { width: '100%', marginTop: Spacing.md },
+    inputLabel: { fontSize: FontSizes.sm, fontWeight: '500', color: Colors.textSecondary, marginBottom: Spacing.xs },
+    textInput: { backgroundColor: Colors.surface, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, fontSize: FontSizes.md, color: Colors.text, borderWidth: 1, borderColor: Colors.border },
+    addButton: { marginTop: Spacing.lg, borderRadius: BorderRadius.md, overflow: 'hidden' },
+    addButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md },
+    addButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
+    favoriteBtn: { padding: Spacing.sm, marginRight: Spacing.xs },
+    favoriteBtnActive: { backgroundColor: 'rgba(255, 75, 110, 0.15)', borderRadius: BorderRadius.full },
+
+    pasteUrlCard: { marginBottom: Spacing.lg },
+    pasteUrlHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
+    pasteUrlTitle: { fontSize: FontSizes.md, fontWeight: '600', color: Colors.text },
+    pasteUrlInputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: Colors.border, marginBottom: Spacing.md },
+    pasteUrlInput: { flex: 1, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, fontSize: FontSizes.md, color: Colors.text },
+    clearPasteBtn: { paddingHorizontal: Spacing.sm },
+    playUrlButton: { borderRadius: BorderRadius.md, overflow: 'hidden' },
+    playUrlButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md },
+    playUrlButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
+
+    iptvHeader: { alignItems: 'center', marginBottom: Spacing.md, gap: Spacing.sm },
+    helpBox: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, marginTop: Spacing.md, backgroundColor: 'rgba(255,255,255,0.05)', padding: Spacing.md, borderRadius: BorderRadius.md },
+    helpText: { flex: 1, fontSize: FontSizes.xs, color: Colors.textSecondary, lineHeight: 16 },
+});
+
+export default DiscoverScreen;

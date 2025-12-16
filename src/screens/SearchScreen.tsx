@@ -1,0 +1,237 @@
+
+import React, { useMemo, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChannelItem } from '../components/channel/ChannelItem';
+import { Chip, EmptyState, Input, List } from '../components/ui';
+import { Colors, FontSizes, Spacing } from '../constants/theme';
+import { usePlaylist } from '../contexts/PlaylistContext';
+import { useTranslation } from '../i18n/useTranslation';
+
+type FilterType = 'all' | 'favorites' | 'recent';
+type SortType = 'name' | 'recent' | 'popular';
+
+export const SearchScreen = () => {
+  const { t } = useTranslation();
+  const { playlists, favorites, isFavorite, toggleFavorite } = usePlaylist();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [sortBy, setSortBy] = useState<SortType>('name');
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+
+
+  const allChannels = useMemo(() => {
+    return playlists.flatMap(p => p.channels);
+  }, [playlists]);
+
+
+  const allGroups = useMemo(() => {
+    const groups = new Set<string>();
+    allChannels.forEach(channel => {
+      if (channel.group) groups.add(channel.group);
+    });
+    return Array.from(groups).sort();
+  }, [allChannels]);
+
+
+  const filteredChannels = useMemo(() => {
+    let channels = allChannels;
+
+
+    if (activeFilter === 'favorites') {
+      channels = channels.filter(c => isFavorite(c.id));
+    }
+
+
+    if (selectedGroups.length > 0) {
+      channels = channels.filter(c => c.group && selectedGroups.includes(c.group));
+    }
+
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      channels = channels.filter(
+        c =>
+          c.name.toLowerCase().includes(query) ||
+          (c.group && c.group.toLowerCase().includes(query))
+      );
+    }
+
+
+    channels = [...channels].sort((a, b) => {
+      if (sortBy === 'name') {
+        return a.name.localeCompare(b.name);
+      }
+
+      return 0;
+    });
+
+    return channels;
+  }, [allChannels, searchQuery, activeFilter, selectedGroups, sortBy, isFavorite]);
+
+  const toggleGroup = (group: string) => {
+    setSelectedGroups(prev =>
+      prev.includes(group) ? prev.filter(g => g !== group) : [...prev, group]
+    );
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setActiveFilter('all');
+    setSelectedGroups([]);
+    setSortBy('name');
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {}
+      <View style={styles.searchSection}>
+        <Input
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder={t('searchChannels')}
+          leftIcon="search"
+          rightIcon={searchQuery.length > 0 ? "close-circle" : undefined}
+          onRightIconPress={searchQuery.length > 0 ? () => setSearchQuery('') : undefined}
+          autoFocus
+          containerStyle={styles.searchBar}
+        />
+
+        {}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterChips}
+        >
+          <Chip
+            title={t('all')}
+            selected={activeFilter === 'all'}
+            onPress={() => setActiveFilter('all')}
+            variant="filter"
+          />
+
+          <Chip
+            title={t('favorites')}
+            selected={activeFilter === 'favorites'}
+            onPress={() => setActiveFilter('favorites')}
+            variant="filter"
+            icon="heart"
+          />
+
+          {allGroups.map(group => (
+            <Chip
+              key={group}
+              title={group}
+              selected={selectedGroups.includes(group)}
+              onPress={() => toggleGroup(group)}
+              variant="category"
+            />
+          ))}
+        </ScrollView>
+
+        {}
+        <View style={styles.resultsBar}>
+          <Text style={styles.resultsText}>
+            {filteredChannels.length} {t('channels')}
+          </Text>
+          {(selectedGroups.length > 0 || activeFilter !== 'all' || searchQuery) && (
+            <Chip
+              title={t('clear')}
+              onPress={clearFilters}
+              variant="ghost"
+              size="small"
+            />
+          )}
+        </View>
+      </View>
+
+      {}
+      {filteredChannels.length === 0 ? (
+        <EmptyState
+          icon="search-outline"
+          title={t('noChannelsFound')}
+          description={t('tryDifferentSearch')}
+        />
+      ) : (
+        <List
+          data={filteredChannels}
+          renderItem={({ item }) => (
+            <ChannelItem
+              channel={item}
+              onPress={() => {
+
+                console.log('Play channel:', item.name);
+              }}
+              isFavorite={isFavorite(item.id)}
+              onToggleFavorite={() => toggleFavorite(item.id)}
+            />
+          )}
+          keyExtractor={item => item.id}
+          emptyState={{
+            icon: 'search-outline',
+            title: t('noChannelsFound'),
+            description: t('tryDifferentSearch'),
+          }}
+          contentContainerStyle={styles.list}
+          estimatedItemSize={80} 
+        />
+      )}
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  searchSection: {
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  searchBar: {
+    marginBottom: Spacing.md,
+  },
+  searchInput: {
+
+  },
+  filterChips: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  chip: {
+
+  },
+  chipActive: {
+
+  },
+  chipText: {
+
+  },
+  chipTextActive: {
+
+  },
+  resultsBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.md,
+  },
+  resultsText: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+  },
+  clearText: {
+
+  },
+  list: {
+    padding: Spacing.md,
+  },
+});
