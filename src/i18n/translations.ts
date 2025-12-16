@@ -2,7 +2,8 @@
 
 export const translations = {
   en: {
-
+    image: "Image",
+    searchmusicorlink: 'Search music or link',
     home: 'Home',
     discover: 'Discover',
     library: 'Library',
@@ -259,6 +260,8 @@ export const translations = {
   },
 
   vi: {
+    image: "Hình ảnh",
+    searchmusicorlink: 'Tìm nhạc hoặc dán link',
     pasteAnyLink: 'Dán URL',
     pasteAnyLinkDesc: 'Dán URL video hoặc âm thanh',
     smartPlayDesc: 'Phát video/âm thanh từ URL',

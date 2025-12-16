@@ -1,9 +1,11 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
+    Animated,
     Dimensions,
     FlatList,
     Image,
@@ -19,8 +21,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdvancedVideoPlayer } from '../components/player/AdvancedVideoPlayer';
 import { WebViewPlayer } from '../components/player/WebViewPlayer';
-import { AnimatedPressable, FadeInView } from '../components/ui/AnimatedComponents';
-import { GlassCard } from '../components/ui/GlassCard';
+import { FadeInView } from '../components/ui/AnimatedComponents';
 import { CarouselSlide, HeroCarousel } from '../components/ui/HeroCarousel';
 import { BorderRadius, Colors, FontSizes, Gradients, Layout, Shadows, Spacing } from '../constants/theme';
 import { useHistory } from '../contexts/HistoryContext';
@@ -70,6 +71,9 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     const [detectedLink, setDetectedLink] = useState<DetectedLink | null>(null);
     const [trendingTracks, setTrendingTracks] = useState<Array<{ id: string; title: string; artist: string; thumbnail: string; platform: 'youtube' | 'soundcloud' }>>([]);
     const [isPlayingTrending, setIsPlayingTrending] = useState(false);
+    const [searchResults, setSearchResults] = useState<Array<{ id: string; title: string; artist: string; thumbnail: string; platform: 'youtube' | 'soundcloud'; duration?: number }>>([]);
+    const [showSearchResults, setShowSearchResults] = useState(false);
+    const pulseAnim = useRef(new Animated.Value(1)).current;
     const { addPlaylistFromUrl } = usePlaylist();
 
     const recentHistory = getRecentlyWatched(10);
@@ -92,7 +96,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
 
                 // Fetch from YouTube (trending music)
                 try {
-                    const ytResults = await OnlineSearchService.searchYouTube('trending music');
+                    const ytResults = await OnlineSearchService.searchYouTube('trending music vn');
                     const ytTracks = ytResults.slice(0, 3).map(r => ({
                         id: r.videoId,
                         title: r.title,
@@ -179,59 +183,148 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
         }
     };
 
-    const handleSmartLink = async () => {
-        const url = pasteUrl.trim();
-        if (!url) {
-            Alert.alert('Error', t('pleaseEnterUrl') || 'Please paste a URL');
-            return;
+    // Pulse animation for loading state
+    useEffect(() => {
+        if (isLoadingUrl) {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, { toValue: 1.02, duration: 600, useNativeDriver: true }),
+                    Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+                ])
+            ).start();
+        } else {
+            pulseAnim.setValue(1);
         }
+    }, [isLoadingUrl, pulseAnim]);
 
-        const detected = LinkDetectionService.detectLinkType(url);
+    // Check if input is a URL
+    const isUrl = (text: string) => {
+        return text.startsWith('http://') || text.startsWith('https://') ||
+            text.includes('youtube.com') || text.includes('youtu.be') ||
+            text.includes('soundcloud.com') || text.includes('.m3u') ||
+            text.includes('.mp4') || text.includes('.mp3');
+    };
+
+    const handleSmartInput = async () => {
+        const input = pasteUrl.trim();
+        if (!input) return;
+
         Keyboard.dismiss();
         setIsLoadingUrl(true);
 
         try {
-            if (detected.type === 'iptv_playlist') {
-                await addPlaylistFromUrl(url, 'IPTV Playlist', 'm3u');
-                Alert.alert(
-                    t('success') || 'Success',
-                    t('playlistAddedSuccess') || 'Playlist added to library!'
-                );
-                setPasteUrl('');
-                setDetectedLink(null);
-            } else if (detected.type === 'webview') {
-                setWebViewUrl(url);
-                setWebViewTitle(detected.platformName || 'Web Content');
-                setShowWebView(true);
-                setPasteUrl('');
-                setDetectedLink(null);
-            } else if (detected.isPlayable) {
-                const result = await LinkDetectionService.handlePlayableLink(detected);
+            // If it looks like a URL, handle as link
+            if (isUrl(input)) {
+                const detected = LinkDetectionService.detectLinkType(input);
 
-                if (result.success && result.streamUrl) {
-                    const channel: Channel = {
-                        id: `smart-${Date.now()}`,
-                        name: result.title || 'Media',
-                        url: result.streamUrl,
-                        logo: result.thumbnail,
-                        group: LinkDetectionService.getLinkTypeLabel(result.type),
-                    };
-                    setSelectedChannel(channel);
-                    setShowPlayer(true);
+                if (detected.type === 'iptv_playlist') {
+                    await addPlaylistFromUrl(input, 'IPTV Playlist', 'm3u');
+                    Alert.alert('Thành công!', 'Đã thêm playlist vào thư viện');
                     setPasteUrl('');
-                    setDetectedLink(null);
+                } else if (detected.isPlayable) {
+                    const result = await LinkDetectionService.handlePlayableLink(detected);
+                    if (result.success && result.streamUrl) {
+                        const channel: Channel = {
+                            id: `smart-${Date.now()}`,
+                            name: result.title || 'Media',
+                            url: result.streamUrl,
+                            logo: result.thumbnail,
+                            group: 'Smart Play',
+                        };
+                        setSelectedChannel(channel);
+                        setShowPlayer(true);
+                        setPasteUrl('');
+                    } else {
+                        throw new Error(result.error || 'Không thể phát');
+                    }
                 } else {
-                    throw new Error(result.error || 'Failed to play');
+                    throw new Error('Link không được hỗ trợ');
                 }
             } else {
-                Alert.alert(
-                    'Unknown Link',
-                    'This link type is not supported. Try YouTube, SoundCloud, M3U playlist, or direct video URLs.'
-                );
+                // It's a search query - search on YouTube and SoundCloud
+                const results: Array<{ id: string; title: string; artist: string; thumbnail: string; platform: 'youtube' | 'soundcloud'; duration?: number }> = [];
+
+                // Search both platforms
+                const [ytResults, scResults] = await Promise.allSettled([
+                    OnlineSearchService.searchYouTube(input),
+                    OnlineSearchService.searchSoundCloud(input),
+                ]);
+
+                if (ytResults.status === 'fulfilled' && ytResults.value) {
+                    const ytMapped = ytResults.value.slice(0, 5).map(r => ({
+                        id: r.videoId,
+                        title: r.title,
+                        artist: r.author,
+                        thumbnail: r.thumbnail,
+                        platform: 'youtube' as const,
+                        duration: r.duration,
+                    }));
+                    results.push(...ytMapped);
+                }
+
+                if (scResults.status === 'fulfilled' && scResults.value) {
+                    const scMapped = scResults.value.slice(0, 5).map(r => ({
+                        id: r.id,
+                        title: r.title,
+                        artist: r.artist,
+                        thumbnail: r.thumbnail,
+                        platform: 'soundcloud' as const,
+                        duration: r.duration ? r.duration / 1000 : undefined,
+                    }));
+                    results.push(...scMapped);
+                }
+
+                // Interleave results
+                const ytItems = results.filter(r => r.platform === 'youtube');
+                const scItems = results.filter(r => r.platform === 'soundcloud');
+                const interleaved: typeof results = [];
+                const maxLen = Math.max(ytItems.length, scItems.length);
+                for (let i = 0; i < maxLen; i++) {
+                    if (ytItems[i]) interleaved.push(ytItems[i]);
+                    if (scItems[i]) interleaved.push(scItems[i]);
+                }
+
+                setSearchResults(interleaved);
+                setShowSearchResults(true);
             }
         } catch (error: any) {
-            console.error('Smart link error:', error);
-            Alert.alert('Error', error.message || 'Failed to process link');
+            console.error('Smart input error:', error);
+            Alert.alert('Lỗi', error.message || 'Không thể xử lý');
+        } finally {
+            setIsLoadingUrl(false);
+        }
+    };
+
+    // Play a search result
+    const handlePlaySearchResult = async (result: typeof searchResults[0]) => {
+        setShowSearchResults(false);
+        setIsLoadingUrl(true);
+
+        try {
+            let streamUrl = '';
+
+            if (result.platform === 'youtube') {
+                streamUrl = await OnlineSearchService.getYouTubeStreamUrl(result.id);
+            } else {
+                const scData = await OnlineSearchService.getSoundCloudStreamUrl(result.id);
+                streamUrl = scData.streamUrl;
+            }
+
+            if (!streamUrl) throw new Error('Không lấy được stream');
+
+            const channel: Channel = {
+                id: `${result.platform}-${result.id}`,
+                name: result.title,
+                url: streamUrl,
+                logo: result.thumbnail,
+                group: result.platform === 'youtube' ? 'YouTube' : 'SoundCloud',
+            };
+
+            setSelectedChannel(channel);
+            setShowPlayer(true);
+            setPasteUrl('');
+        } catch (error: any) {
+            Alert.alert('Lỗi', error.message || 'Không thể phát');
         } finally {
             setIsLoadingUrl(false);
         }
@@ -395,99 +488,169 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     };
 
 
-    const renderSmartInput = () => (
-        <View style={styles.smartInputContainer}>
-            <FadeInView delay={100} direction="up">
-                <GlassCard variant="purple" padding="large">
-                    <View style={styles.smartInputHeader}>
-                        <Ionicons name="flash" size={24} color={Colors.primary} />
-                        <Text style={styles.smartInputTitle}>
-                            {t('smartPlay') || 'Smart Play'}
-                        </Text>
-                    </View>
+    const renderSmartInput = () => {
+        const inputHint = pasteUrl.trim()
+            ? (isUrl(pasteUrl) ? '🔗 Link detected - will play' : '🔍 Will search YouTube & SoundCloud')
+            : '';
 
-                    <Text style={styles.smartInputDesc}>
-                        {t('smartPlayDesc') || 'Paste any link - YouTube, SoundCloud, M3U playlist, or video URL'}
-                    </Text>
+        return (
+            <View style={styles.smartInputContainer}>
+                <FadeInView delay={100} direction="up">
+                    {/* Modern AI-like input */}
+                    <Animated.View style={[
+                        styles.aiInputContainer,
+                        { transform: [{ scale: pulseAnim }] }
+                    ]}>
+                        <LinearGradient
+                            colors={isLoadingUrl ? ['#667eea', '#764ba2'] : ['#1a1a2e', '#16213e']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.aiInputGradient}
+                        >
+                            {/* Glow effect when loading */}
+                            {isLoadingUrl && (
+                                <View style={styles.glowEffect} />
+                            )}
 
-                    <View style={styles.inputWrapper}>
-                        <TextInput
-                            style={styles.smartInput}
-                            placeholder={t('pasteAnyLink') || 'Paste any link here...'}
-                            placeholderTextColor={Colors.textTertiary}
-                            value={pasteUrl}
-                            onChangeText={setPasteUrl}
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            multiline={false}
-                        />
-                        {pasteUrl.length > 0 && (
-                            <TouchableOpacity
-                                onPress={() => { setPasteUrl(''); setDetectedLink(null); }}
-                                style={styles.clearBtn}
-                            >
-                                <Ionicons name="close-circle" size={20} color={Colors.textTertiary} />
-                            </TouchableOpacity>
-                        )}
-                    </View>
+                            <View style={styles.aiInputRow}>
+                                {isLoadingUrl ? (
+                                    <ActivityIndicator size="small" color="#fff" style={{ marginRight: 12 }} />
+                                ) : (
+                                    <Ionicons
+                                        name={pasteUrl.trim() && isUrl(pasteUrl) ? "link" : "search"}
+                                        size={22}
+                                        color="rgba(255,255,255,0.7)"
+                                        style={{ marginRight: 12 }}
+                                    />
+                                )}
 
-                    {detectedLink && detectedLink.type !== 'unknown' && (
-                        <View style={styles.detectedType}>
-                            <Ionicons
-                                name={LinkDetectionService.getLinkTypeIcon(detectedLink.type) as any}
-                                size={16}
-                                color={LinkDetectionService.getLinkTypeColor(detectedLink.type)}
-                            />
-                            <Text style={[styles.detectedTypeText, { color: LinkDetectionService.getLinkTypeColor(detectedLink.type) }]}>
-                                {LinkDetectionService.getLinkTypeLabel(detectedLink.type)}
+                                <TextInput
+                                    style={styles.aiInput}
+                                    placeholder={t('searchmusicorlink')}
+                                    placeholderTextColor="rgba(255,255,255,0.4)"
+                                    value={pasteUrl}
+                                    onChangeText={setPasteUrl}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    onSubmitEditing={handleSmartInput}
+                                    returnKeyType="search"
+                                    editable={!isLoadingUrl}
+                                />
+
+                                {pasteUrl.length > 0 && !isLoadingUrl && (
+                                    <TouchableOpacity
+                                        onPress={() => setPasteUrl('')}
+                                        style={styles.aiClearBtn}
+                                    >
+                                        <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.5)" />
+                                    </TouchableOpacity>
+                                )}
+
+                                {pasteUrl.trim().length > 0 && !isLoadingUrl && (
+                                    <TouchableOpacity
+                                        onPress={handleSmartInput}
+                                        style={styles.aiSendBtn}
+                                    >
+                                        <LinearGradient
+                                            colors={['#667eea', '#764ba2']}
+                                            style={styles.aiSendBtnGradient}
+                                        >
+                                            <Ionicons name="arrow-forward" size={18} color="#fff" />
+                                        </LinearGradient>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            {/* Hint text */}
+                            {inputHint ? (
+                                <Text style={styles.aiInputHint}>{inputHint}</Text>
+                            ) : null}
+                        </LinearGradient>
+                    </Animated.View>
+
+                    {/* Loading status */}
+                    {isLoadingUrl && (
+                        <View style={styles.loadingStatus}>
+                            <View style={styles.loadingDot} />
+                            <Text style={styles.loadingText}>
+                                {isUrl(pasteUrl) ? 'Đang lấy stream...' : 'Đang tìm kiếm...'}
                             </Text>
-                            {detectedLink.type === 'iptv_playlist' && (
-                                <Text style={styles.detectedAction}>→ Add to Library</Text>
-                            )}
-                            {detectedLink.isPlayable && (
-                                <Text style={styles.detectedAction}>→ Play</Text>
-                            )}
                         </View>
                     )}
+                </FadeInView>
 
-                    <AnimatedPressable
-                        style={[styles.smartPlayBtn, !pasteUrl.trim() && styles.smartPlayBtnDisabled]}
-                        onPress={handleSmartLink}
-                        disabled={isLoadingUrl || !pasteUrl.trim()}
-                    >
-                        <LinearGradient
-                            colors={pasteUrl.trim() ? Gradients.primary as [string, string] : ['#444', '#333']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.smartPlayBtnGradient}
-                        >
-                            {isLoadingUrl ? (
-                                <Ionicons name="hourglass" size={20} color="#fff" />
-                            ) : (
-                                <>
-                                    <Ionicons name="flash" size={20} color="#fff" />
-                                    <Text style={styles.smartPlayBtnText}>
-                                        {detectedLink?.type === 'iptv_playlist'
-                                            ? (t('addToLibrary') || 'Add to Library')
-                                            : detectedLink?.type === 'webview'
-                                                ? `Open ${detectedLink.platformName || 'Link'}`
-                                                : (t('playNow') || 'Play Now')}
-                                    </Text>
-                                </>
-                            )}
-                        </LinearGradient>
-                    </AnimatedPressable>
+                {/* Search Results Modal */}
+                <Modal
+                    visible={showSearchResults}
+                    animationType="slide"
+                    transparent={true}
+                    onRequestClose={() => setShowSearchResults(false)}
+                >
+                    <View style={styles.searchResultsOverlay}>
+                        <View style={styles.searchResultsContainer}>
+                            {/* Header */}
+                            <View style={styles.searchResultsHeader}>
+                                <Text style={styles.searchResultsTitle}>
+                                    Kết quả cho "{pasteUrl}"
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={() => setShowSearchResults(false)}
+                                    style={styles.searchResultsClose}
+                                >
+                                    <Ionicons name="close" size={24} color={Colors.text} />
+                                </TouchableOpacity>
+                            </View>
 
-                    <View style={styles.examplesRow}>
-                        <Text style={styles.examplesLabel}>Examples:</Text>
-                        <Text style={styles.exampleText}>youtube.com/watch?v=...</Text>
-                        <Text style={styles.exampleText}>soundcloud.com/artist/track</Text>
-                        <Text style={styles.exampleText}>iptv.example.com/playlist.m3u</Text>
+                            {/* Results list */}
+                            <FlatList
+                                data={searchResults}
+                                keyExtractor={(item) => `${item.platform}-${item.id}`}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity
+                                        style={styles.searchResultItem}
+                                        onPress={() => handlePlaySearchResult(item)}
+                                    >
+                                        <Image
+                                            source={{ uri: item.thumbnail }}
+                                            style={styles.searchResultThumb}
+                                        />
+                                        <View style={styles.searchResultInfo}>
+                                            <Text style={styles.searchResultTitle} numberOfLines={2}>
+                                                {item.title}
+                                            </Text>
+                                            <View style={styles.searchResultMeta}>
+                                                <View style={[
+                                                    styles.platformBadge,
+                                                    { backgroundColor: item.platform === 'youtube' ? '#FF0000' : '#FF5500' }
+                                                ]}>
+                                                    <Ionicons
+                                                        name={item.platform === 'youtube' ? 'logo-youtube' : 'musical-notes'}
+                                                        size={10}
+                                                        color="#fff"
+                                                    />
+                                                </View>
+                                                <Text style={styles.searchResultArtist} numberOfLines={1}>
+                                                    {item.artist}
+                                                </Text>
+                                                {item.duration && (
+                                                    <Text style={styles.searchResultDuration}>
+                                                        {Math.floor(item.duration / 60)}:{String(Math.floor(item.duration % 60)).padStart(2, '0')}
+                                                    </Text>
+                                                )}
+                                            </View>
+                                        </View>
+                                        <Ionicons name="play-circle" size={32} color={Colors.primary} />
+                                    </TouchableOpacity>
+                                )}
+                                contentContainerStyle={{ padding: Spacing.md }}
+                                ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
+                            />
+                        </View>
                     </View>
-                </GlassCard>
-            </FadeInView>
-        </View>
-    );
+                </Modal>
+            </View>
+        );
+    };
 
 
     const renderGuidanceSection = () => {
@@ -1025,99 +1188,147 @@ const styles = StyleSheet.create({
         paddingHorizontal: Layout.screenPadding,
         marginBottom: Spacing.lg,
     },
-    smartInputHeader: {
+
+    // New AI-like input styles
+    aiInputContainer: {
+        borderRadius: BorderRadius.xl,
+        overflow: 'hidden',
+        ...Shadows.large,
+    },
+    aiInputGradient: {
+        borderRadius: BorderRadius.xl,
+        padding: Spacing.md,
+        borderWidth: 1,
+        borderColor: 'rgba(102, 126, 234, 0.3)',
+    },
+    aiInputRow: {
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    aiInput: {
+        flex: 1,
+        fontSize: FontSizes.md,
+        color: '#fff',
+        paddingVertical: Spacing.sm,
+    },
+    aiClearBtn: {
+        padding: Spacing.xs,
+        marginRight: Spacing.xs,
+    },
+    aiSendBtn: {
+        marginLeft: Spacing.xs,
+    },
+    aiSendBtnGradient: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    aiInputHint: {
+        fontSize: FontSizes.xs,
+        color: 'rgba(255,255,255,0.6)',
+        marginTop: Spacing.sm,
+    },
+    glowEffect: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        borderRadius: BorderRadius.xl,
+        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+    },
+    loadingStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: Spacing.md,
         gap: Spacing.sm,
-        marginBottom: Spacing.sm,
     },
-    smartInputTitle: {
-        fontSize: FontSizes.xl,
-        fontWeight: '700',
-        color: Colors.text,
+    loadingDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#667eea',
     },
-    smartInputDesc: {
+    loadingText: {
         fontSize: FontSizes.sm,
         color: Colors.textSecondary,
-        marginBottom: Spacing.md,
     },
-    inputWrapper: {
+
+    // Search results modal styles
+    searchResultsOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'flex-end',
+    },
+    searchResultsContainer: {
+        backgroundColor: Colors.background,
+        borderTopLeftRadius: BorderRadius.xl,
+        borderTopRightRadius: BorderRadius.xl,
+        maxHeight: '80%',
+    },
+    searchResultsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: Spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border,
+    },
+    searchResultsTitle: {
+        fontSize: FontSizes.lg,
+        fontWeight: '600',
+        color: Colors.text,
+        flex: 1,
+    },
+    searchResultsClose: {
+        padding: Spacing.xs,
+    },
+    searchResultItem: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: Colors.surface,
         borderRadius: BorderRadius.md,
-        borderWidth: 1,
-        borderColor: Colors.border,
-        marginBottom: Spacing.md,
-    },
-    smartInput: {
-        flex: 1,
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.md,
-        fontSize: FontSizes.md,
-        color: Colors.text,
-    },
-    clearBtn: {
         padding: Spacing.sm,
+        gap: Spacing.sm,
     },
-    detectedType: {
+    searchResultThumb: {
+        width: 60,
+        height: 60,
+        borderRadius: BorderRadius.sm,
+        backgroundColor: Colors.border,
+    },
+    searchResultInfo: {
+        flex: 1,
+    },
+    searchResultTitle: {
+        fontSize: FontSizes.md,
+        fontWeight: '600',
+        color: Colors.text,
+        marginBottom: 4,
+    },
+    searchResultMeta: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.xs,
-        marginBottom: Spacing.md,
-        paddingVertical: Spacing.xs,
-        paddingHorizontal: Spacing.sm,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: BorderRadius.sm,
-        alignSelf: 'flex-start',
     },
-    detectedTypeText: {
-        fontSize: FontSizes.sm,
-        fontWeight: '600',
-    },
-    detectedAction: {
-        fontSize: FontSizes.xs,
-        color: Colors.textSecondary,
-        marginLeft: Spacing.xs,
-    },
-    smartPlayBtn: {
-        borderRadius: BorderRadius.md,
-        overflow: 'hidden',
-        marginBottom: Spacing.md,
-    },
-    smartPlayBtnDisabled: {
-        opacity: 0.5,
-    },
-    smartPlayBtnGradient: {
-        flexDirection: 'row',
+    platformBadge: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        gap: Spacing.sm,
-        paddingVertical: Spacing.md,
     },
-    smartPlayBtnText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: FontSizes.md,
+    searchResultArtist: {
+        fontSize: FontSizes.sm,
+        color: Colors.textSecondary,
+        flex: 1,
     },
-    examplesRow: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.xs,
-        alignItems: 'center',
-    },
-    examplesLabel: {
+    searchResultDuration: {
         fontSize: FontSizes.xs,
         color: Colors.textTertiary,
-        marginRight: Spacing.xs,
-    },
-    exampleText: {
-        fontSize: FontSizes.xs,
-        color: Colors.textSecondary,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        paddingHorizontal: Spacing.xs,
-        paddingVertical: 2,
-        borderRadius: BorderRadius.sm,
     },
 });
 

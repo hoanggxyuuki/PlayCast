@@ -25,6 +25,7 @@ import { Colors, FontSizes, Spacing } from '../../constants/theme';
 import { useHistory } from '../../contexts/HistoryContext';
 import { useQueue } from '../../contexts/QueueContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useTranslation } from '../../i18n/useTranslation';
 import { getSoundCloudRelatedTracks, getYouTubeQualities, getYouTubeRelatedVideos, VideoQuality } from '../../services/AutoplayService';
 import { DownloadService } from '../../services/downloadService';
 import { OnlineSearchService, SoundCloudResult, YouTubeResult } from '../../services/OnlineSearchService';
@@ -46,7 +47,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   onShuffleModeChange,
   playlistInfo,
 }) => {
-
+  const { t } = useTranslation();
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -578,7 +579,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               style={[styles.toggleBtn, displayMode === 'audio' && styles.toggleBtnActive]}
               onPress={() => setDisplayMode('audio')}
             >
-              <Text style={[styles.toggleText, displayMode === 'audio' && styles.toggleTextActive]}>Hình ảnh</Text>
+              <Text style={[styles.toggleText, displayMode === 'audio' && styles.toggleTextActive]}>{t('image')}</Text>
             </TouchableOpacity>
           </View>
         </View>
