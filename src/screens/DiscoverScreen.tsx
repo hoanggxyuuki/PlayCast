@@ -24,9 +24,12 @@ import { BorderRadius, Colors, FontSizes, Gradients, Layout, Spacing } from '../
 import { useHistory } from '../contexts/HistoryContext';
 import { useTranslation } from '../i18n/useTranslation';
 
-import { OnlineFavorite, useOnlineFavorites } from '../contexts/OnlineFavoritesContext';
+import { AddToPlaylistModal } from '../components/playlist/AddToPlaylistModal';
+import { useOnlineFavorites } from '../contexts/OnlineFavoritesContext';
 import { usePlaylist } from '../contexts/PlaylistContext';
-import { OnlineSearchResult, OnlineSearchService, SearchPlatform } from '../services/OnlineSearchService';
+import { useQueue } from '../contexts/QueueContext';
+import { DownloadService } from '../services/downloadService';
+import { OnlineFavorite, OnlineSearchResult, OnlineSearchService, SearchPlatform } from '../services/OnlineSearchService';
 import { Channel } from '../types';
 
 type DiscoverTab = 'local' | 'online' | 'iptv';
@@ -46,6 +49,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
     const { addPlaylistFromUrl, addPlaylist } = usePlaylist();
     const { isFavorite, toggleFavorite } = useOnlineFavorites();
     const { addToHistory } = useHistory();
+    const { addToQueue, removeFromQueue, isInQueue } = useQueue();
 
     const [activeTab, setActiveTab] = useState<DiscoverTab>(initialTab || 'local');
 
@@ -63,6 +67,10 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
     const [isAddingIptv, setIsAddingIptv] = useState(false);
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
     const [showPlayer, setShowPlayer] = useState(false);
+    const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+    const [channelForPlaylist, setChannelForPlaylist] = useState<Channel | null>(null);
+    const [showTrackMenu, setShowTrackMenu] = useState(false);
+    const [selectedTrack, setSelectedTrack] = useState<OnlineSearchResult | null>(null);
 
     const handlePickLocalFile = async () => {
         try {
@@ -243,6 +251,12 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                 url: streamUrl,
                 logo: result.thumbnail,
                 group: result.platform.charAt(0).toUpperCase() + result.platform.slice(1),
+                sourceUrl: result.platform === 'youtube'
+                    ? `https://www.youtube.com/watch?v=${result.id}`
+                    : result.platform === 'soundcloud'
+                        ? result.id
+                        : undefined,
+                sourceType: result.platform as 'youtube' | 'soundcloud',
             };
 
             setSelectedChannel(channel);
@@ -354,7 +368,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                                                         <Ionicons name="play" size={24} color="#fff" />
                                                     </View>
                                                 )}
-                                                {}
+                                                { }
                                                 <View style={[
                                                     styles.platformBadge,
                                                     { backgroundColor: item.platform === 'youtube' ? '#FF0000' : '#FF5500' }
@@ -374,27 +388,14 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                                                 )}
                                             </View>
                                             <TouchableOpacity
-                                                style={[styles.favoriteBtn, isFavorite(item.id) && styles.favoriteBtnActive]}
+                                                style={styles.moreBtn}
                                                 onPress={(e) => {
                                                     e.stopPropagation();
-                                                    const favItem: Omit<OnlineFavorite, 'addedAt'> = {
-                                                        id: item.id,
-                                                        platform: item.platform as 'youtube' | 'soundcloud',
-                                                        title: item.title,
-                                                        artist: item.artist,
-                                                        thumbnail: item.thumbnail,
-                                                        duration: item.duration,
-                                                        viewCount: item.viewCount,
-                                                        videoId: item.platform === 'youtube' ? item.id : undefined,
-                                                    };
-                                                    toggleFavorite(favItem);
+                                                    setSelectedTrack(item);
+                                                    setShowTrackMenu(true);
                                                 }}
                                             >
-                                                <Ionicons
-                                                    name={isFavorite(item.id) ? 'heart' : 'heart-outline'}
-                                                    size={22}
-                                                    color={isFavorite(item.id) ? '#FF4B6E' : Colors.textSecondary}
-                                                />
+                                                <Ionicons name="ellipsis-vertical" size={20} color={Colors.textSecondary} />
                                             </TouchableOpacity>
                                             <Ionicons name="play-circle" size={32} color={Colors.primary} />
                                         </TouchableOpacity>
@@ -471,6 +472,167 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ initialTab }) =>
                     <AdvancedVideoPlayer channel={selectedChannel} onClose={() => { setShowPlayer(false); setSelectedChannel(null); }} />
                 </Modal>
             )}
+
+            <AddToPlaylistModal
+                visible={showAddToPlaylist}
+                onClose={() => {
+                    setShowAddToPlaylist(false);
+                    setChannelForPlaylist(null);
+                }}
+                channel={channelForPlaylist}
+            />
+
+            {/* Track Options Menu */}
+            <Modal
+                visible={showTrackMenu}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowTrackMenu(false)}
+            >
+                <TouchableOpacity
+                    style={styles.menuOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowTrackMenu(false)}
+                >
+                    <View style={styles.menuContainer}>
+                        {selectedTrack && (
+                            <>
+                                <View style={styles.menuHeader}>
+                                    <Text style={styles.menuTitle} numberOfLines={2}>{selectedTrack.title}</Text>
+                                    <Text style={styles.menuArtist}>{selectedTrack.artist}</Text>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => {
+                                        const favItem: Omit<OnlineFavorite, 'addedAt'> = {
+                                            id: selectedTrack.id,
+                                            platform: selectedTrack.platform as 'youtube' | 'soundcloud',
+                                            title: selectedTrack.title,
+                                            artist: selectedTrack.artist,
+                                            thumbnail: selectedTrack.thumbnail,
+                                            duration: selectedTrack.duration,
+                                            viewCount: selectedTrack.viewCount,
+                                            videoId: selectedTrack.platform === 'youtube' ? selectedTrack.id : undefined,
+                                        };
+                                        toggleFavorite(favItem);
+                                        setShowTrackMenu(false);
+                                    }}
+                                >
+                                    <Ionicons
+                                        name={isFavorite(selectedTrack.id) ? 'heart' : 'heart-outline'}
+                                        size={24}
+                                        color={isFavorite(selectedTrack.id) ? '#FF4B6E' : Colors.text}
+                                    />
+                                    <Text style={styles.menuItemText}>
+                                        {isFavorite(selectedTrack.id) ? 'Remove from Favorites' : 'Add to Favorites'}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => {
+                                        const channel: Channel = {
+                                            id: `${selectedTrack.platform}-${selectedTrack.id}`,
+                                            name: selectedTrack.title,
+                                            url: '',
+                                            logo: selectedTrack.thumbnail,
+                                            group: selectedTrack.platform === 'youtube' ? 'YouTube' : 'SoundCloud',
+                                            sourceUrl: selectedTrack.platform === 'youtube'
+                                                ? `https://www.youtube.com/watch?v=${selectedTrack.id}`
+                                                : selectedTrack.id,
+                                            sourceType: selectedTrack.platform as 'youtube' | 'soundcloud',
+                                        };
+                                        setChannelForPlaylist(channel);
+                                        setShowTrackMenu(false);
+                                        setShowAddToPlaylist(true);
+                                    }}
+                                >
+                                    <Ionicons name="list-outline" size={24} color={Colors.text} />
+                                    <Text style={styles.menuItemText}>Add to Playlist</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => {
+                                        const channelId = `${selectedTrack.platform}-${selectedTrack.id}`;
+                                        if (isInQueue(channelId)) {
+                                            removeFromQueue(channelId);
+                                            setShowTrackMenu(false);
+                                            Alert.alert('Removed!', `"${selectedTrack.title}" removed from queue`);
+                                        } else {
+                                            const channel: Channel = {
+                                                id: channelId,
+                                                name: selectedTrack.title,
+                                                url: '',
+                                                logo: selectedTrack.thumbnail,
+                                                group: selectedTrack.platform === 'youtube' ? 'YouTube' : 'SoundCloud',
+                                                sourceUrl: selectedTrack.platform === 'youtube'
+                                                    ? `https://www.youtube.com/watch?v=${selectedTrack.id}`
+                                                    : selectedTrack.id,
+                                                sourceType: selectedTrack.platform as 'youtube' | 'soundcloud',
+                                            };
+                                            addToQueue(channel);
+                                            setShowTrackMenu(false);
+                                            Alert.alert('Added!', `"${selectedTrack.title}" added to queue`);
+                                        }
+                                    }}
+                                >
+                                    <Ionicons
+                                        name={isInQueue(`${selectedTrack.platform}-${selectedTrack.id}`) ? 'remove-circle-outline' : 'add-circle-outline'}
+                                        size={24}
+                                        color={isInQueue(`${selectedTrack.platform}-${selectedTrack.id}`) ? '#FF4B6E' : Colors.text}
+                                    />
+                                    <Text style={styles.menuItemText}>
+                                        {isInQueue(`${selectedTrack.platform}-${selectedTrack.id}`) ? 'Remove from Queue' : 'Add to Queue'}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={async () => {
+                                        setShowTrackMenu(false);
+                                        try {
+                                            Alert.alert('Downloading...', `Starting download for "${selectedTrack.title}"`);
+                                            let streamUrl = '';
+                                            if (selectedTrack.platform === 'youtube') {
+                                                streamUrl = await OnlineSearchService.getYouTubeStreamUrl(selectedTrack.id);
+                                            } else {
+                                                const scResult = await OnlineSearchService.getSoundCloudStreamUrl(selectedTrack.id);
+                                                streamUrl = scResult.streamUrl;
+                                            }
+                                            await DownloadService.startDownload(
+                                                selectedTrack.id,
+                                                selectedTrack.title,
+                                                selectedTrack.artist,
+                                                selectedTrack.thumbnail,
+                                                selectedTrack.duration || 0,
+                                                selectedTrack.platform as 'youtube' | 'soundcloud',
+                                                streamUrl,
+                                                selectedTrack.platform === 'youtube' ? 'video/mp4' : 'audio/mpeg'
+                                            );
+                                            Alert.alert('Success!', `"${selectedTrack.title}" download started`);
+                                        } catch (error: any) {
+                                            Alert.alert('Download Error', error.message || 'Failed to start download');
+                                        }
+                                    }}
+                                >
+                                    <Ionicons name="download-outline" size={24} color={Colors.text} />
+                                    <Text style={styles.menuItemText}>Download</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.menuItem, styles.menuItemCancel]}
+                                    onPress={() => setShowTrackMenu(false)}
+                                >
+                                    <Ionicons name="close-circle-outline" size={24} color={Colors.textSecondary} />
+                                    <Text style={[styles.menuItemText, { color: Colors.textSecondary }]}>Cancel</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 };
@@ -529,8 +691,6 @@ const styles = StyleSheet.create({
     addButton: { marginTop: Spacing.lg, borderRadius: BorderRadius.md, overflow: 'hidden' },
     addButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md },
     addButtonText: { color: '#fff', fontWeight: '600', fontSize: FontSizes.md },
-    favoriteBtn: { padding: Spacing.sm, marginRight: Spacing.xs },
-    favoriteBtnActive: { backgroundColor: 'rgba(255, 75, 110, 0.15)', borderRadius: BorderRadius.full },
 
     pasteUrlCard: { marginBottom: Spacing.lg },
     pasteUrlHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
@@ -545,6 +705,16 @@ const styles = StyleSheet.create({
     iptvHeader: { alignItems: 'center', marginBottom: Spacing.md, gap: Spacing.sm },
     helpBox: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, marginTop: Spacing.md, backgroundColor: 'rgba(255,255,255,0.05)', padding: Spacing.md, borderRadius: BorderRadius.md },
     helpText: { flex: 1, fontSize: FontSizes.xs, color: Colors.textSecondary, lineHeight: 16 },
+
+    moreBtn: { padding: Spacing.sm },
+    menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+    menuContainer: { backgroundColor: Colors.backgroundLight, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, paddingBottom: Spacing.xl },
+    menuHeader: { padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: Colors.border },
+    menuTitle: { fontSize: FontSizes.lg, fontWeight: '600', color: Colors.text },
+    menuArtist: { fontSize: FontSizes.sm, color: Colors.textSecondary, marginTop: Spacing.xs },
+    menuItem: { flexDirection: 'row', alignItems: 'center', padding: Spacing.lg, gap: Spacing.md },
+    menuItemText: { fontSize: FontSizes.md, color: Colors.text },
+    menuItemCancel: { borderTopWidth: 1, borderTopColor: Colors.border, marginTop: Spacing.sm },
 });
 
 export default DiscoverScreen;

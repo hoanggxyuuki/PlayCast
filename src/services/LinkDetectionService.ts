@@ -1,12 +1,15 @@
 import { OnlineSearchService } from './OnlineSearchService';
 
-export type LinkType = 'youtube' | 'soundcloud' | 'iptv_playlist' | 'direct_video' | 'direct_audio' | 'hls_stream' | 'webview' | 'unknown';
+export type LinkType = 'youtube' | 'youtube_playlist' | 'soundcloud' | 'soundcloud_playlist' | 'iptv_playlist' | 'direct_video' | 'direct_audio' | 'hls_stream' | 'webview' | 'unknown';
 
 export interface DetectedLink {
     type: LinkType;
     url: string;
     title?: string;
     videoId?: string;
+    playlistId?: string;  // For YouTube playlists
+    setUser?: string;     // For SoundCloud sets
+    setSlug?: string;     // For SoundCloud sets
     platformName?: string;
     isPlayable: boolean;
     requiresProcessing: boolean;
@@ -21,10 +24,19 @@ export interface LinkHandleResult {
     error?: string;
 }
 
+// YouTube Playlist patterns - check BEFORE single video patterns
+const YOUTUBE_PLAYLIST_PATTERNS = [
+    /youtube\.com\/playlist\?list=([a-zA-Z0-9_-]+)/,
+    /youtube\.com\/watch\?.*[&?]list=([a-zA-Z0-9_-]+)/,
+];
+
 const YOUTUBE_PATTERNS = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
     /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
 ];
+
+// SoundCloud Set/Playlist pattern - check BEFORE single track pattern
+const SOUNDCLOUD_SET_PATTERN = /soundcloud\.com\/([^\/]+)\/sets\/([^\/\?\#]+)/;
 
 const SOUNDCLOUD_PATTERN = /soundcloud\.com\/([^\/]+)\/([^\/\?]+)/;
 
@@ -61,6 +73,21 @@ export class LinkDetectionService {
             return { type: 'unknown', url: trimmedUrl, isPlayable: false, requiresProcessing: false };
         }
 
+        // Check YouTube PLAYLIST first (before single video)
+        for (const pattern of YOUTUBE_PLAYLIST_PATTERNS) {
+            const match = trimmedUrl.match(pattern);
+            if (match) {
+                return {
+                    type: 'youtube_playlist',
+                    url: trimmedUrl,
+                    playlistId: match[1],
+                    isPlayable: false,  // Not directly playable, needs import
+                    requiresProcessing: true,
+                };
+            }
+        }
+
+        // Check single YouTube video
         for (const pattern of YOUTUBE_PATTERNS) {
             const match = trimmedUrl.match(pattern);
             if (match) {
@@ -74,6 +101,20 @@ export class LinkDetectionService {
             }
         }
 
+        // Check SoundCloud SET/PLAYLIST first (before single track)
+        const setMatch = trimmedUrl.match(SOUNDCLOUD_SET_PATTERN);
+        if (setMatch) {
+            return {
+                type: 'soundcloud_playlist',
+                url: trimmedUrl,
+                setUser: setMatch[1],
+                setSlug: setMatch[2],
+                isPlayable: false,  // Not directly playable, needs import
+                requiresProcessing: true,
+            };
+        }
+
+        // Check single SoundCloud track
         if (SOUNDCLOUD_PATTERN.test(trimmedUrl)) {
             return {
                 type: 'soundcloud',
@@ -217,7 +258,9 @@ export class LinkDetectionService {
     static getLinkTypeLabel(type: LinkType): string {
         switch (type) {
             case 'youtube': return 'YouTube Video';
+            case 'youtube_playlist': return 'YouTube Playlist';
             case 'soundcloud': return 'SoundCloud Track';
+            case 'soundcloud_playlist': return 'SoundCloud Playlist';
             case 'iptv_playlist': return 'IPTV Playlist (M3U)';
             case 'direct_video': return 'Direct Video';
             case 'direct_audio': return 'Audio File';
@@ -230,7 +273,9 @@ export class LinkDetectionService {
     static getLinkTypeIcon(type: LinkType): string {
         switch (type) {
             case 'youtube': return 'logo-youtube';
+            case 'youtube_playlist': return 'list';
             case 'soundcloud': return 'cloudy';
+            case 'soundcloud_playlist': return 'list';
             case 'iptv_playlist': return 'tv-outline';
             case 'direct_video': return 'videocam';
             case 'direct_audio': return 'musical-notes';
@@ -243,7 +288,9 @@ export class LinkDetectionService {
     static getLinkTypeColor(type: LinkType): string {
         switch (type) {
             case 'youtube': return '#FF0000';
+            case 'youtube_playlist': return '#FF0000';
             case 'soundcloud': return '#FF5500';
+            case 'soundcloud_playlist': return '#FF5500';
             case 'iptv_playlist': return '#764ba2';
             case 'direct_video': return '#4facfe';
             case 'direct_audio': return '#43e97b';

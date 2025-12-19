@@ -503,6 +503,164 @@ class OnlineSearchServiceClass {
         return options;
     }
 
+    // Fetch all videos from a YouTube playlist
+    async getYouTubePlaylistItems(playlistId: string): Promise<{
+        title: string;
+        items: Array<{ videoId: string; title: string; author: string; thumbnail: string; duration: number }>;
+    }> {
+        try {
+            console.log(`[YouTube] Fetching playlist items for: ${playlistId}`);
+
+            const requestBody = {
+                context: this.buildInnertubeContext('web'),
+                browseId: `VL${playlistId}`,
+            };
+
+            const apiUrl = 'https://www.youtube.com/youtubei/v1/browse?prettyPrint=false';
+
+            let response: Response;
+            if (this.isWeb) {
+                response = await this.fetchWithTimeout(this.proxyUrl(apiUrl), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody),
+                }, 20000);
+            } else {
+                response = await this.fetchWithTimeout(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    },
+                    body: JSON.stringify(requestBody),
+                }, 20000);
+            }
+
+            if (!response.ok) {
+                throw new Error(`Browse API returned ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // Extract playlist title
+            const playlistTitle = data?.header?.playlistHeaderRenderer?.title?.simpleText ||
+                data?.metadata?.playlistMetadataRenderer?.title ||
+                'YouTube Playlist';
+
+            // Extract items from response
+            const items: Array<{ videoId: string; title: string; author: string; thumbnail: string; duration: number }> = [];
+
+            const getText = (obj: any): string => {
+                if (!obj) return '';
+                if (typeof obj === 'string') return obj;
+                if (obj.simpleText) return obj.simpleText;
+                if (obj.runs) return obj.runs.map((r: any) => r.text).join('');
+                return '';
+            };
+
+            const parseDuration = (text: string): number => {
+                if (!text) return 0;
+                const parts = text.split(':').map(Number);
+                if (parts.length === 2) return parts[0] * 60 + parts[1];
+                if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+                return 0;
+            };
+
+            // Navigate to playlist contents
+            const contents = data?.contents?.twoColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.playlistVideoListRenderer?.contents || [];
+
+            for (const item of contents) {
+                const renderer = item?.playlistVideoRenderer;
+                if (!renderer?.videoId) continue;
+
+                items.push({
+                    videoId: renderer.videoId,
+                    title: getText(renderer.title),
+                    author: getText(renderer.shortBylineText),
+                    thumbnail: renderer.thumbnail?.thumbnails?.[0]?.url || `https://i.ytimg.com/vi/${renderer.videoId}/hqdefault.jpg`,
+                    duration: parseDuration(getText(renderer.lengthText)),
+                });
+            }
+
+            console.log(`[YouTube] Found ${items.length} items in playlist "${playlistTitle}"`);
+            return { title: playlistTitle, items };
+        } catch (error: any) {
+            console.error(`[YouTube] Playlist fetch failed: ${error.message}`);
+            throw new Error(`Could not fetch YouTube playlist: ${error.message}`);
+        }
+    }
+
+    // Fetch all tracks from a SoundCloud set/playlist
+    async getSoundCloudPlaylistItems(url: string): Promise<{
+        title: string;
+        items: Array<{ id: string; title: string; artist: string; thumbnail: string; duration: number }>;
+    }> {
+        console.log(`[SoundCloud] Fetching playlist items for: ${url}`);
+
+        // Try proxy server first for better compatibility
+        try {
+            const proxyUrl = `${SOUNDCLOUD_PROXY_SERVER}/playlist?url=${encodeURIComponent(url)}`;
+            console.log(`[SoundCloud Proxy] Getting playlist via proxy...`);
+
+            const response = await this.fetchWithTimeout(proxyUrl, {}, 20000);
+
+            if (response.ok) {
+                const data = await response.json();
+
+                if (data.tracks && Array.isArray(data.tracks)) {
+                    console.log(`[SoundCloud] Found ${data.tracks.length} tracks in playlist "${data.title}"`);
+                    return {
+                        title: data.title || 'SoundCloud Playlist',
+                        items: data.tracks.map((track: any) => ({
+                            id: String(track.id),
+                            title: track.title || 'Unknown',
+                            artist: track.artist || 'Unknown',
+                            thumbnail: track.thumbnail || '',
+                            duration: track.duration || 0,
+                        })),
+                    };
+                }
+            }
+        } catch (error: any) {
+            console.log(`[SoundCloud Proxy] Playlist failed: ${error.message}, trying direct...`);
+        }
+
+        // Fallback to direct API
+        try {
+            const clientId = await this.getSoundCloudClientId();
+            const resolveUrl = `${SOUNDCLOUD_API_V2_BASE}resolve?url=${encodeURIComponent(url)}&client_id=${clientId}`;
+
+            const resolveRes = await this.fetchWithTimeout(this.proxyUrl(resolveUrl), {
+                headers: { 'User-Agent': SOUNDCLOUD_USER_AGENT }
+            }, 15000);
+
+            if (!resolveRes.ok) throw new Error(`Resolve failed: ${resolveRes.status}`);
+
+            const playlistData = await resolveRes.json();
+
+            if (playlistData.kind !== 'playlist') {
+                throw new Error('URL is not a playlist');
+            }
+
+            const tracks = playlistData.tracks || [];
+
+            console.log(`[SoundCloud] Found ${tracks.length} tracks in playlist "${playlistData.title}"`);
+            return {
+                title: playlistData.title || 'SoundCloud Playlist',
+                items: tracks.map((track: any) => ({
+                    id: String(track.id),
+                    title: track.title || 'Unknown',
+                    artist: track.user?.username || 'Unknown',
+                    thumbnail: track.artwork_url?.replace('-large', '-t500x500') || '',
+                    duration: Math.floor((track.duration || 0) / 1000),
+                })),
+            };
+        } catch (error: any) {
+            console.error(`[SoundCloud] Playlist fetch failed: ${error.message}`);
+            throw new Error(`Could not fetch SoundCloud playlist: ${error.message}`);
+        }
+    }
+
     private async getSoundCloudClientId(): Promise<string> {
         if (this.soundCloudClientId) {
             return this.soundCloudClientId;
@@ -796,8 +954,16 @@ class OnlineSearchServiceClass {
 
     formatDuration(seconds: number): string {
         if (!seconds || seconds <= 0) return '0:00';
-        const mins = Math.floor(seconds / 60);
+
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
         const secs = Math.floor(seconds % 60);
+
+        if (hours > 0) {
+            // Format: "1:20:05" for videos >= 1 hour
+            return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        // Format: "20:05" for videos < 1 hour
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 

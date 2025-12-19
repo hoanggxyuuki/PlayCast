@@ -152,6 +152,12 @@ export const OnlineSearchScreen = () => {
         url: streamUrl,
         logo: result.thumbnail,
         group: result.platform.charAt(0).toUpperCase() + result.platform.slice(1),
+        sourceUrl: result.platform === 'youtube'
+          ? `https://www.youtube.com/watch?v=${result.id}`
+          : result.platform === 'soundcloud'
+            ? result.url || result.id
+            : undefined,
+        sourceType: result.platform as 'youtube' | 'soundcloud',
       };
 
       setSelectedChannel(channel);

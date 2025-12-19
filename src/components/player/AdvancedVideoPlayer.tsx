@@ -83,7 +83,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showQueueModal, setShowQueueModal] = useState(false);
 
   const { addToHistory, updateProgress } = useHistory();
-  const { queue, playNext: queueNext, playPrevious: queuePrev, hasNext, hasPrevious, addToQueue, isInQueue, shuffleQueue, setCurrentIndex } = useQueue();
+  const { queue, playNext: queueNext, playPrevious: queuePrev, hasNext, hasPrevious, addToQueue, removeFromQueue, isInQueue, shuffleQueue, setCurrentIndex } = useQueue();
   const { settings } = useSettings();
   const insets = useSafeAreaInsets();
 
@@ -93,6 +93,10 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   const showControlsRef = useRef(true);
   const currentTimeRef = useRef(0);
+  const isHandlingEnd = useRef(false);
+  const upNextIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const videoLoadedAt = useRef<number>(0); // Track when video actually loaded
+  const lastDuration = useRef<number>(0); // Track current video's duration
 
   useEffect(() => {
     ScreenOrientation.unlockAsync();
@@ -114,23 +118,84 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
 
   useEffect(() => {
     if (channel) {
-      const isSoundCloud = channel.group?.toLowerCase() === 'soundcloud' || channel.url.includes('soundcloud');
+      const isSoundCloud = channel.group?.toLowerCase() === 'soundcloud' || channel.url?.includes('soundcloud');
       const isSpotify = channel.group?.toLowerCase() === 'spotify';
       const isAudioContent = isSoundCloud || isSpotify;
       setDisplayMode(isAudioContent ? 'audio' : 'video');
     }
   }, [channel]);
 
+  // Auto-refresh stream URL when activeChannel has empty URL but has sourceUrl
+  // This handles imported playlist items that store sourceUrl instead of temporary stream URLs
+  useEffect(() => {
+    const refreshStreamUrl = async () => {
+      if (!activeChannel) return;
+
+      // Check if URL is empty/missing but sourceUrl exists
+      const needsRefresh = (!activeChannel.url || activeChannel.url === '') &&
+        activeChannel.sourceUrl &&
+        activeChannel.sourceType;
+
+      if (!needsRefresh) return;
+
+      console.log('[Player] Auto-refreshing stream URL for:', activeChannel.name);
+      setIsLoading(true);
+
+      try {
+        let newStreamUrl: string | null = null;
+
+        if (activeChannel.sourceType === 'youtube') {
+          const videoId = activeChannel.sourceUrl.match(/[?&]v=([^&]+)/)?.[1] ||
+            activeChannel.sourceUrl.match(/youtu\.be\/([^?]+)/)?.[1];
+          if (videoId) {
+            newStreamUrl = await OnlineSearchService.getYouTubeStreamUrl(videoId);
+          }
+        } else if (activeChannel.sourceType === 'soundcloud') {
+          const result = await OnlineSearchService.getSoundCloudStreamUrl(activeChannel.sourceUrl);
+          newStreamUrl = result.streamUrl;
+        }
+
+        if (newStreamUrl) {
+          console.log('[Player] Auto-refresh successful');
+          setActiveChannel(prev => prev ? { ...prev, url: newStreamUrl! } : prev);
+        } else {
+          console.error('[Player] Auto-refresh failed: no stream URL returned');
+          setHasError(true);
+        }
+      } catch (error: any) {
+        console.error('[Player] Auto-refresh error:', error.message);
+        setHasError(true);
+      }
+    };
+
+    refreshStreamUrl();
+  }, [activeChannel?.id]);
+
+  // Reset playback state when activeChannel changes to prevent false onVideoEnd triggers
+  useEffect(() => {
+    if (activeChannel?.id) {
+      currentTimeRef.current = 0;
+      setCurrentTime(0);
+      setDuration(0);
+      setShowUpNext(false);
+      isHandlingEnd.current = false;
+      // Clear any pending countdown
+      if (upNextIntervalRef.current) {
+        clearInterval(upNextIntervalRef.current);
+        upNextIntervalRef.current = null;
+      }
+    }
+  }, [activeChannel?.id]);
 
   // Note: Stream refresh now happens only on 403 error in onVideoError
   // This prevents unnecessary loading delay on first play
 
   useEffect(() => {
-    if (!channel) return;
+    if (!activeChannel) return;
 
     progressInterval.current = setInterval(() => {
       if (isPlaying && duration > 0) {
-        updateProgress(channel.id, currentTime, duration);
+        updateProgress(activeChannel.id, currentTime, duration);
       }
     }, 5000);
 
@@ -139,22 +204,22 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
         clearInterval(progressInterval.current);
       }
     };
-  }, [channel, isPlaying, currentTime, duration]);
+  }, [activeChannel, isPlaying, currentTime, duration]);
 
   useEffect(() => {
-    if (channel) {
+    if (activeChannel) {
       addToHistory({
-        channelId: channel.id,
-        channelName: channel.name,
-        channelUrl: channel.url,
-        logo: channel.logo,
+        channelId: activeChannel.id,
+        channelName: activeChannel.name,
+        channelUrl: activeChannel.url || '',
+        logo: activeChannel.logo,
         lastWatchedAt: new Date(),
         progress: 0,
         duration: 0,
         currentTime: 0,
       });
     }
-  }, [channel]);
+  }, [activeChannel?.id]);
 
   useEffect(() => {
     if (showControls && isPlaying) {
@@ -186,13 +251,23 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       const currentTrack = activeChannel;
       if (!currentTrack) return;
 
-      const isYouTube = currentTrack.group?.toLowerCase() === 'youtube' || currentTrack.url.includes('googlevideo');
-      const isSoundCloud = currentTrack.group?.toLowerCase() === 'soundcloud' || currentTrack.url.includes('soundcloud');
+      // Check platform: either by group, sourceType, or URL patterns
+      const isYouTube = currentTrack.sourceType === 'youtube' ||
+        currentTrack.group?.toLowerCase() === 'youtube' ||
+        currentTrack.url?.includes('googlevideo');
+      const isSoundCloud = currentTrack.sourceType === 'soundcloud' ||
+        currentTrack.group?.toLowerCase() === 'soundcloud' ||
+        currentTrack.url?.includes('soundcloud');
 
       try {
         if (isYouTube) {
-          const videoId = currentTrack.id.replace('youtube-', '');
-          console.log('[YouTube] Fetching related videos for:', currentTrack.name);
+          // Extract videoId from id or sourceUrl
+          let videoId = currentTrack.id.replace('youtube-', '');
+          if (currentTrack.sourceUrl) {
+            const match = currentTrack.sourceUrl.match(/[?&]v=([^&]+)/);
+            if (match) videoId = match[1];
+          }
+          console.log('[YouTube] Fetching related videos for:', currentTrack.name, 'videoId:', videoId);
 
           const quals = await getYouTubeQualities(videoId);
           console.log('[YouTube] Fetched qualities:', quals.length);
@@ -209,7 +284,9 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
             }
           }
         } else if (isSoundCloud && settings.autoPlayNext) {
-          const trackId = currentTrack.id.replace('soundcloud-', '');
+          // Extract trackId from id or sourceUrl
+          const trackId = currentTrack.sourceUrl || currentTrack.id.replace('soundcloud-', '');
+          console.log('[SoundCloud] Fetching related tracks for:', currentTrack.name);
           const related = await getSoundCloudRelatedTracks(trackId);
           if (related.length > 0) {
             setNextVideo(related[0]);
@@ -227,6 +304,12 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     console.log('Video loaded:', data.duration);
     setIsLoading(false);
     setDuration(data.duration);
+
+    // Track when this video actually loaded and reset playback position
+    videoLoadedAt.current = Date.now();
+    lastDuration.current = data.duration;
+    currentTimeRef.current = 0; // IMPORTANT: Reset currentTime when new video loads
+    setCurrentTime(0);
 
     if (settings.continueWatching && startPosition > 0) {
       videoRef.current?.seek(startPosition);
@@ -288,51 +371,108 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const onVideoEnd = () => {
-    // Use internal loop mode state (controlled by user toggle)
-    if (internalLoopMode === 'one') {
-      console.log('[Player] Loop one - replaying current track');
-      videoRef.current?.seek(0);
-      setIsPlaying(true);
-      return;
-    }
-
-    if (onNext) {
-      onNext();
-    } else if (hasNext()) {
-      const next = queueNext();
-      if (next) {
-        console.log('[Player] Playing next from queue:', next.name);
-        setActiveChannel(next);
-        setCurrentTime(0);
-        setIsLoading(true);
-        setIsPlaying(true);
+    try {
+      // Guard: prevent multiple triggers during loading or when already handling
+      if (isLoading || isHandlingEnd.current) {
+        console.log('[Player] onVideoEnd ignored - loading or already handling');
+        return;
       }
-    } else if (internalLoopMode === 'all' && queue.length > 0) {
-      // Loop all - restart from beginning of queue
-      console.log('[Player] Loop all - restarting queue');
-      setCurrentIndex(0);
-      const first = queue[0]?.channel;
-      if (first) {
-        setActiveChannel(first);
-        setCurrentTime(0);
-        setIsLoading(true);
-        setIsPlaying(true);
-      }
-    } else if (nextVideo && settings.autoPlayNext) {
-      // Play related content
-      setShowUpNext(true);
-      setUpNextCountdown(5);
 
-      const countdown = setInterval(() => {
-        setUpNextCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(countdown);
-            playNextVideo();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      // Guard: video must have been loaded for at least 3 seconds
+      const timeSinceLoad = Date.now() - videoLoadedAt.current;
+      if (timeSinceLoad < 3000) {
+        console.log('[Player] onVideoEnd ignored - video just loaded', timeSinceLoad, 'ms ago');
+        return;
+      }
+
+      // Guard: only trigger if video actually played (currentTime > 10 seconds or near end)
+      const isNearEnd = lastDuration.current > 0 && currentTimeRef.current >= lastDuration.current - 5;
+      if (currentTimeRef.current < 10 && !isNearEnd) {
+        console.log('[Player] onVideoEnd ignored - video barely started, currentTime:', currentTimeRef.current);
+        return;
+      }
+
+      isHandlingEnd.current = true;
+      console.log('[Player] Video ended legitimately, currentTime:', currentTimeRef.current, 'duration:', lastDuration.current);
+
+      // Use internal loop mode state (controlled by user toggle)
+      console.log('[Player] Checking loop mode:', internalLoopMode);
+      if (internalLoopMode === 'one') {
+        console.log('[Player] Loop one - replaying current track');
+        videoRef.current?.seek(0);
+        setIsPlaying(true);
+        isHandlingEnd.current = false;
+        return;
+      }
+
+      // Priority 1: Playlist callback (if playing from ChannelsScreen)
+      console.log('[Player] Checking onNext callback:', !!onNext);
+      if (onNext) {
+        console.log('[Player] Calling onNext callback');
+        onNext();
+        isHandlingEnd.current = false;
+        return;
+      }
+
+      // Priority 2: Queue (if not empty)
+      console.log('[Player] Checking queue - hasNext:', hasNext(), 'queue length:', queue.length);
+      if (hasNext()) {
+        const next = queueNext();
+        if (next) {
+          console.log('[Player] Playing next from queue:', next.name);
+          playChannelWithRefresh(next);
+        }
+        isHandlingEnd.current = false;
+        return;
+      }
+
+      // Priority 3: Loop all - restart queue
+      if (internalLoopMode === 'all' && queue.length > 0) {
+        console.log('[Player] Loop all - restarting queue');
+        setCurrentIndex(0);
+        const first = queue[0]?.channel;
+        if (first) {
+          playChannelWithRefresh(first);
+        }
+        isHandlingEnd.current = false;
+        return;
+      }
+
+      // Priority 4: Related content (auto-play similar tracks)
+      console.log('[Player] Checking related content - nextVideo:', !!nextVideo, 'autoPlayNext:', settings.autoPlayNext);
+
+      if (nextVideo) {
+        // Auto-play related content (always if available as fallback)
+        console.log('[Player] Showing Up Next UI for related content');
+        setShowUpNext(true);
+        setUpNextCountdown(5);
+
+        // Clear any existing interval
+        if (upNextIntervalRef.current) {
+          clearInterval(upNextIntervalRef.current);
+        }
+
+        upNextIntervalRef.current = setInterval(() => {
+          setUpNextCountdown((prev) => {
+            if (prev <= 1) {
+              if (upNextIntervalRef.current) {
+                clearInterval(upNextIntervalRef.current);
+                upNextIntervalRef.current = null;
+              }
+              playNextVideo();
+              isHandlingEnd.current = false;
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        console.log('[Player] No next content available - queue empty, no related videos');
+        isHandlingEnd.current = false;
+      }
+    } catch (error: any) {
+      console.error('[Player] onVideoEnd error:', error.message || error);
+      isHandlingEnd.current = false;
     }
   };
 
@@ -433,6 +573,46 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
     showControlsAnimated();
   };
 
+  // Helper function to refresh stream URL before playing from queue
+  const playChannelWithRefresh = async (ch: Channel) => {
+    console.log('[Player] Playing channel with refresh:', ch.name);
+    setIsLoading(true);
+    setIsPlaying(true);
+    setCurrentTime(0);
+
+    // If channel has source info (YouTube/SoundCloud), refresh stream URL
+    if (ch.sourceType && ch.sourceUrl) {
+      try {
+        let newStreamUrl: string | null = null;
+
+        if (ch.sourceType === 'youtube') {
+          // Extract videoId from sourceUrl
+          const videoId = ch.sourceUrl.match(/[?&]v=([^&]+)/)?.[1] || ch.sourceUrl.match(/youtu\.be\/([^?]+)/)?.[1];
+          if (videoId) {
+            console.log('[Player] Refreshing YouTube stream for videoId:', videoId);
+            newStreamUrl = await OnlineSearchService.getYouTubeStreamUrl(videoId);
+          }
+        } else if (ch.sourceType === 'soundcloud') {
+          console.log('[Player] Refreshing SoundCloud stream for:', ch.sourceUrl);
+          const result = await OnlineSearchService.getSoundCloudStreamUrl(ch.sourceUrl);
+          newStreamUrl = result.streamUrl;
+        }
+
+        if (newStreamUrl) {
+          console.log('[Player] Got fresh stream URL');
+          setActiveChannel({ ...ch, url: newStreamUrl });
+          return;
+        }
+      } catch (error) {
+        console.error('[Player] Failed to refresh stream URL:', error);
+        // Fallback to existing URL if refresh fails
+      }
+    }
+
+    // Fallback: use existing URL (for local files, IPTV, or if refresh failed)
+    setActiveChannel(ch);
+  };
+
   const handlePrevious = () => {
     if (onPrevious) {
       onPrevious();
@@ -440,10 +620,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       const prev = queuePrev();
       if (prev) {
         console.log('Playing previous:', prev.name);
-        setActiveChannel(prev);
-        setCurrentTime(0);
-        setIsLoading(true);
-        setIsPlaying(true);
+        playChannelWithRefresh(prev);
       }
     }
   };
@@ -455,10 +632,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
       const next = queueNext();
       if (next) {
         console.log('Playing next:', next.name);
-        setActiveChannel(next);
-        setCurrentTime(0);
-        setIsLoading(true);
-        setIsPlaying(true);
+        playChannelWithRefresh(next);
       }
     }
   };
@@ -653,9 +827,9 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
           <View style={styles.landscapeContent}>
             { }
             <View style={styles.landscapeArtwork}>
-              {channel?.logo && (
+              {activeChannel?.logo && (
                 <Image
-                  source={{ uri: channel.logo }}
+                  source={{ uri: activeChannel.logo }}
                   style={styles.landscapeArtworkImage}
                   resizeMode="cover"
                 />
@@ -747,7 +921,9 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                     <TouchableOpacity
                       style={styles.trackActionBtn}
                       onPress={() => {
-                        if (!isInQueue(activeChannel.id)) {
+                        if (isInQueue(activeChannel.id)) {
+                          removeFromQueue(activeChannel.id);
+                        } else {
                           addToQueue(activeChannel);
                         }
                       }}
@@ -980,8 +1156,8 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 setShowMoreMenu(false);
                 try {
                   await Share.share({
-                    message: `Check out "${channel.name}" on PlayCast!\n${channel.url}`,
-                    title: channel.name,
+                    message: `Check out "${activeChannel.name}" on PlayCast!\n${activeChannel.url || activeChannel.sourceUrl || ''}`,
+                    title: activeChannel.name,
                   });
                 } catch (error) {
                   console.error('Share error:', error);
@@ -997,9 +1173,10 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
               onPress={async () => {
                 setShowMoreMenu(false);
 
-                const isHLSStream = channel.url.includes('.m3u8') ||
-                  channel.url.includes('/hls/') ||
-                  channel.url.includes('m3u8');
+                const currentUrl = activeChannel.url || '';
+                const isHLSStream = currentUrl.includes('.m3u8') ||
+                  currentUrl.includes('/hls/') ||
+                  currentUrl.includes('m3u8');
 
                 if (isHLSStream && !isDownloading) {
                   Alert.alert(
@@ -1011,17 +1188,17 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                 }
 
                 if (isDownloading) {
-                  await DownloadService.cancelDownload(channel.id);
+                  await DownloadService.cancelDownload(activeChannel.id);
                   setIsDownloading(false);
                   setDownloadProgress(0);
                 } else {
                   setIsDownloading(true);
-                  const unsubscribe = DownloadService.onProgress(channel.id, (progress) => {
+                  const unsubscribe = DownloadService.onProgress(activeChannel.id, (progress) => {
                     setDownloadProgress(progress.progress);
                     if (progress.status === 'completed') {
                       setIsDownloading(false);
                       setDownloadProgress(0);
-                      Alert.alert('Download Complete', `"${channel.name}" has been downloaded successfully!`);
+                      Alert.alert('Download Complete', `"${activeChannel.name}" has been downloaded successfully!`);
                     } else if (progress.status === 'failed') {
                       setIsDownloading(false);
                       setDownloadProgress(0);
@@ -1030,13 +1207,13 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                   });
                   try {
                     await DownloadService.startDownload(
-                      channel.id,
-                      channel.name,
-                      channel.group || 'Unknown',
-                      channel.logo || '',
+                      activeChannel.id,
+                      activeChannel.name,
+                      activeChannel.group || 'Unknown',
+                      activeChannel.logo || '',
                       duration,
                       'local',
-                      channel.url,
+                      currentUrl,
                       'video/mp4'
                     );
                   } catch (error) {
@@ -1098,10 +1275,7 @@ export const AdvancedVideoPlayer: React.FC<VideoPlayerProps> = ({
                     style={[styles.queueItem, activeChannel.id === item.channel.id && styles.queueItemActive]}
                     onPress={() => {
                       setCurrentIndex(index);
-                      setActiveChannel(item.channel);
-                      setCurrentTime(0);
-                      setIsLoading(true);
-                      setIsPlaying(true);
+                      playChannelWithRefresh(item.channel);
                       setShowQueueModal(false);
                     }}
                   >

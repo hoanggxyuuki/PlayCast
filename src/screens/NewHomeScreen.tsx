@@ -21,14 +21,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdvancedVideoPlayer } from '../components/player/AdvancedVideoPlayer';
 import { WebViewPlayer } from '../components/player/WebViewPlayer';
+import { AddToPlaylistModal } from '../components/playlist/AddToPlaylistModal';
 import { FadeInView } from '../components/ui/AnimatedComponents';
 import { CarouselSlide, HeroCarousel } from '../components/ui/HeroCarousel';
 import { BorderRadius, Colors, FontSizes, Gradients, Layout, Shadows, Spacing } from '../constants/theme';
 import { useHistory } from '../contexts/HistoryContext';
+import { OnlineFavorite, useOnlineFavorites } from '../contexts/OnlineFavoritesContext';
 import { usePlaylist } from '../contexts/PlaylistContext';
 import { useQueue } from '../contexts/QueueContext';
 import { useCustomTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../i18n/useTranslation';
+import { DownloadService } from '../services/downloadService';
 import { DetectedLink, LinkDetectionService } from '../services/LinkDetectionService';
 import { OnlineSearchService } from '../services/OnlineSearchService';
 import { Channel } from '../types';
@@ -55,7 +58,7 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
 }) => {
     const { playlists } = usePlaylist();
     const { getRecentlyWatched } = useHistory();
-    const { currentItem } = useQueue();
+    const { currentItem, addToQueue, removeFromQueue, isInQueue } = useQueue();
     const { t } = useTranslation();
     const { currentTheme } = useCustomTheme();
     const themeColors = currentTheme.colors;
@@ -74,8 +77,13 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
     const [searchResults, setSearchResults] = useState<Array<{ id: string; title: string; artist: string; thumbnail: string; platform: 'youtube' | 'soundcloud'; duration?: number }>>([]);
     const [showSearchResults, setShowSearchResults] = useState(false);
     const [isInputFocused, setIsInputFocused] = useState(false);
+    const [showTrackMenu, setShowTrackMenu] = useState(false);
+    const [selectedTrack, setSelectedTrack] = useState<{ id: string; title: string; artist: string; thumbnail: string; platform: 'youtube' | 'soundcloud'; duration?: number } | null>(null);
+    const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+    const [channelForPlaylist, setChannelForPlaylist] = useState<Channel | null>(null);
     const pulseAnim = useRef(new Animated.Value(1)).current;
-    const { addPlaylistFromUrl } = usePlaylist();
+    const { addPlaylistFromUrl, addPlaylist } = usePlaylist();
+    const { isFavorite, toggleFavorite } = useOnlineFavorites();
 
     const recentHistory = getRecentlyWatched(10);
     const hasContent = playlists.length > 0 || recentHistory.length > 0;
@@ -224,7 +232,74 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
             if (isUrl(input)) {
                 const detected = LinkDetectionService.detectLinkType(input);
 
-                if (detected.type === 'iptv_playlist') {
+                // Handle YouTube Playlist
+                if (detected.type === 'youtube_playlist' && detected.playlistId) {
+                    try {
+                        const { title, items } = await OnlineSearchService.getYouTubePlaylistItems(detected.playlistId);
+
+                        if (items.length === 0) {
+                            throw new Error('Playlist trống hoặc không tìm thấy');
+                        }
+
+                        // Create channels with sourceUrl/sourceType for stream refresh
+                        const channels: Channel[] = items.map(item => ({
+                            id: `youtube-${item.videoId}`,
+                            name: item.title,
+                            url: '', // Will be fetched on play via playChannelWithRefresh
+                            logo: item.thumbnail,
+                            group: item.author || 'YouTube',
+                            sourceUrl: `https://www.youtube.com/watch?v=${item.videoId}`,
+                            sourceType: 'youtube' as const,
+                        }));
+
+                        await addPlaylist({
+                            name: title,
+                            url: input,
+                            type: 'json',
+                            channels,
+                        });
+
+                        Alert.alert('Thành công!', `Đã import ${items.length} video từ "${title}"`);
+                        setPasteUrl('');
+                    } catch (err: any) {
+                        throw new Error(err.message || 'Không thể tải YouTube playlist');
+                    }
+                }
+                // Handle SoundCloud Playlist/Set
+                else if (detected.type === 'soundcloud_playlist') {
+                    try {
+                        const { title, items } = await OnlineSearchService.getSoundCloudPlaylistItems(input);
+
+                        if (items.length === 0) {
+                            throw new Error('Playlist trống hoặc không tìm thấy');
+                        }
+
+                        // Create channels with sourceUrl/sourceType for stream refresh
+                        const channels: Channel[] = items.map(item => ({
+                            id: `soundcloud-${item.id}`,
+                            name: item.title,
+                            url: '', // Will be fetched on play via playChannelWithRefresh
+                            logo: item.thumbnail,
+                            group: item.artist || 'SoundCloud',
+                            sourceUrl: item.id, // Track ID for SoundCloud
+                            sourceType: 'soundcloud' as const,
+                        }));
+
+                        await addPlaylist({
+                            name: title,
+                            url: input,
+                            type: 'json',
+                            channels,
+                        });
+
+                        Alert.alert('Thành công!', `Đã import ${items.length} bài từ "${title}"`);
+                        setPasteUrl('');
+                    } catch (err: any) {
+                        throw new Error(err.message || 'Không thể tải SoundCloud playlist');
+                    }
+                }
+                // Handle IPTV M3U playlist
+                else if (detected.type === 'iptv_playlist') {
                     await addPlaylistFromUrl(input, 'IPTV Playlist', 'm3u');
                     Alert.alert('Thành công!', 'Đã thêm playlist vào thư viện');
                     setPasteUrl('');
@@ -682,6 +757,16 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                                                 )}
                                             </View>
                                         </View>
+                                        <TouchableOpacity
+                                            style={styles.moreBtn}
+                                            onPress={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedTrack(item);
+                                                setShowTrackMenu(true);
+                                            }}
+                                        >
+                                            <Ionicons name="ellipsis-vertical" size={20} color={Colors.textSecondary} />
+                                        </TouchableOpacity>
                                         <Ionicons name="play-circle" size={32} color={Colors.primary} />
                                     </TouchableOpacity>
                                 )}
@@ -843,6 +928,167 @@ export const NewHomeScreen: React.FC<NewHomeScreenProps> = ({
                 url={webViewUrl}
                 title={webViewTitle}
                 onClose={() => setShowWebView(false)}
+            />
+
+            {/* Track Options Menu */}
+            <Modal
+                visible={showTrackMenu}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowTrackMenu(false)}
+            >
+                <TouchableOpacity
+                    style={styles.menuOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowTrackMenu(false)}
+                >
+                    <View style={styles.menuContainer}>
+                        {selectedTrack && (
+                            <>
+                                <View style={styles.menuHeader}>
+                                    <Text style={styles.menuTitle} numberOfLines={2}>{selectedTrack.title}</Text>
+                                    <Text style={styles.menuArtist}>{selectedTrack.artist}</Text>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => {
+                                        const favItem: Omit<OnlineFavorite, 'addedAt'> = {
+                                            id: selectedTrack.id,
+                                            platform: selectedTrack.platform as 'youtube' | 'soundcloud',
+                                            title: selectedTrack.title,
+                                            artist: selectedTrack.artist,
+                                            thumbnail: selectedTrack.thumbnail,
+                                            duration: selectedTrack.duration || 0,
+                                            viewCount: 0,
+                                            videoId: selectedTrack.platform === 'youtube' ? selectedTrack.id : undefined,
+                                        };
+                                        toggleFavorite(favItem);
+                                        setShowTrackMenu(false);
+                                    }}
+                                >
+                                    <Ionicons
+                                        name={isFavorite(selectedTrack.id) ? 'heart' : 'heart-outline'}
+                                        size={24}
+                                        color={isFavorite(selectedTrack.id) ? '#FF4B6E' : Colors.text}
+                                    />
+                                    <Text style={styles.menuItemText}>
+                                        {isFavorite(selectedTrack.id) ? 'Remove from Favorites' : 'Add to Favorites'}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => {
+                                        const channel: Channel = {
+                                            id: `${selectedTrack.platform}-${selectedTrack.id}`,
+                                            name: selectedTrack.title,
+                                            url: '',
+                                            logo: selectedTrack.thumbnail,
+                                            group: selectedTrack.platform === 'youtube' ? 'YouTube' : 'SoundCloud',
+                                            sourceUrl: selectedTrack.platform === 'youtube'
+                                                ? `https://www.youtube.com/watch?v=${selectedTrack.id}`
+                                                : selectedTrack.id,
+                                            sourceType: selectedTrack.platform as 'youtube' | 'soundcloud',
+                                        };
+                                        setChannelForPlaylist(channel);
+                                        setShowTrackMenu(false);
+                                        setShowAddToPlaylist(true);
+                                    }}
+                                >
+                                    <Ionicons name="list-outline" size={24} color={Colors.text} />
+                                    <Text style={styles.menuItemText}>Add to Playlist</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => {
+                                        const channelId = `${selectedTrack.platform}-${selectedTrack.id}`;
+                                        if (isInQueue(channelId)) {
+                                            removeFromQueue(channelId);
+                                            setShowTrackMenu(false);
+                                            Alert.alert('Removed!', `"${selectedTrack.title}" removed from queue`);
+                                        } else {
+                                            const channel: Channel = {
+                                                id: channelId,
+                                                name: selectedTrack.title,
+                                                url: '',
+                                                logo: selectedTrack.thumbnail,
+                                                group: selectedTrack.platform === 'youtube' ? 'YouTube' : 'SoundCloud',
+                                                sourceUrl: selectedTrack.platform === 'youtube'
+                                                    ? `https://www.youtube.com/watch?v=${selectedTrack.id}`
+                                                    : selectedTrack.id,
+                                                sourceType: selectedTrack.platform as 'youtube' | 'soundcloud',
+                                            };
+                                            addToQueue(channel);
+                                            setShowTrackMenu(false);
+                                            Alert.alert('Added!', `"${selectedTrack.title}" added to queue`);
+                                        }
+                                    }}
+                                >
+                                    <Ionicons
+                                        name={isInQueue(`${selectedTrack.platform}-${selectedTrack.id}`) ? 'remove-circle-outline' : 'add-circle-outline'}
+                                        size={24}
+                                        color={isInQueue(`${selectedTrack.platform}-${selectedTrack.id}`) ? '#FF4B6E' : Colors.text}
+                                    />
+                                    <Text style={styles.menuItemText}>
+                                        {isInQueue(`${selectedTrack.platform}-${selectedTrack.id}`) ? 'Remove from Queue' : 'Add to Queue'}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={async () => {
+                                        setShowTrackMenu(false);
+                                        try {
+                                            Alert.alert('Downloading...', `Starting download for "${selectedTrack.title}"`);
+                                            let streamUrl = '';
+                                            if (selectedTrack.platform === 'youtube') {
+                                                streamUrl = await OnlineSearchService.getYouTubeStreamUrl(selectedTrack.id);
+                                            } else {
+                                                const scResult = await OnlineSearchService.getSoundCloudStreamUrl(selectedTrack.id);
+                                                streamUrl = scResult.streamUrl;
+                                            }
+                                            await DownloadService.startDownload(
+                                                selectedTrack.id,
+                                                selectedTrack.title,
+                                                selectedTrack.artist,
+                                                selectedTrack.thumbnail,
+                                                selectedTrack.duration || 0,
+                                                selectedTrack.platform as 'youtube' | 'soundcloud',
+                                                streamUrl,
+                                                selectedTrack.platform === 'youtube' ? 'video/mp4' : 'audio/mpeg'
+                                            );
+                                            Alert.alert('Success!', `"${selectedTrack.title}" download started`);
+                                        } catch (error: any) {
+                                            Alert.alert('Download Error', error.message || 'Failed to start download');
+                                        }
+                                    }}
+                                >
+                                    <Ionicons name="download-outline" size={24} color={Colors.text} />
+                                    <Text style={styles.menuItemText}>Download</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.menuItem, styles.menuItemCancel]}
+                                    onPress={() => setShowTrackMenu(false)}
+                                >
+                                    <Ionicons name="close-circle-outline" size={24} color={Colors.textSecondary} />
+                                    <Text style={[styles.menuItemText, { color: Colors.textSecondary }]}>Cancel</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            <AddToPlaylistModal
+                visible={showAddToPlaylist}
+                onClose={() => {
+                    setShowAddToPlaylist(false);
+                    setChannelForPlaylist(null);
+                }}
+                channel={channelForPlaylist}
             />
         </View>
     );
@@ -1393,6 +1639,50 @@ const styles = StyleSheet.create({
     searchResultDuration: {
         fontSize: FontSizes.xs,
         color: Colors.textTertiary,
+    },
+    moreBtn: {
+        padding: Spacing.sm,
+    },
+    menuOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'flex-end',
+    },
+    menuContainer: {
+        backgroundColor: Colors.backgroundLight,
+        borderTopLeftRadius: BorderRadius.xl,
+        borderTopRightRadius: BorderRadius.xl,
+        paddingBottom: Spacing.xl,
+    },
+    menuHeader: {
+        padding: Spacing.lg,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border,
+    },
+    menuTitle: {
+        fontSize: FontSizes.lg,
+        fontWeight: '600',
+        color: Colors.text,
+    },
+    menuArtist: {
+        fontSize: FontSizes.sm,
+        color: Colors.textSecondary,
+        marginTop: Spacing.xs,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: Spacing.lg,
+        gap: Spacing.md,
+    },
+    menuItemText: {
+        fontSize: FontSizes.md,
+        color: Colors.text,
+    },
+    menuItemCancel: {
+        borderTopWidth: 1,
+        borderTopColor: Colors.border,
+        marginTop: Spacing.sm,
     },
 });
 

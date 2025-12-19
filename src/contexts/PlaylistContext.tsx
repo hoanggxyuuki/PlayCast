@@ -1,8 +1,8 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Playlist, Channel } from '../types';
-import { StorageService } from '../services/storageService';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { M3UParser } from '../services/m3uParser';
+import { StorageService } from '../services/storageService';
+import { Channel, Playlist } from '../types';
 
 interface PlaylistContextType {
   playlists: Playlist[];
@@ -13,6 +13,9 @@ interface PlaylistContextType {
 
   addPlaylist: (playlist: Omit<Playlist, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   addPlaylistFromUrl: (url: string, name: string, type: 'm3u' | 'json') => Promise<void>;
+  createEmptyPlaylist: (name: string) => Promise<string>;
+  addChannelToPlaylist: (playlistId: string, channel: Channel) => Promise<void>;
+  removeChannelFromPlaylist: (playlistId: string, channelId: string) => Promise<void>;
   deletePlaylist: (id: string) => Promise<void>;
   refreshPlaylist: (id: string) => Promise<void>;
 
@@ -74,10 +77,6 @@ export const PlaylistProvider: React.FC<PlaylistProviderProps> = ({ children }) 
       setIsLoading(true);
       setError(null);
 
-      if (playlist.channels.length === 0) {
-        throw new Error('Playlist has no channels');
-      }
-
       const newPlaylist = await StorageService.addPlaylist(playlist);
       setPlaylists(prev => [...prev, newPlaylist]);
     } catch (err: any) {
@@ -85,6 +84,74 @@ export const PlaylistProvider: React.FC<PlaylistProviderProps> = ({ children }) 
       throw err;
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const createEmptyPlaylist = async (name: string): Promise<string> => {
+    try {
+      setError(null);
+      const newPlaylist = await StorageService.addPlaylist({
+        name,
+        url: '',
+        type: 'local' as any,
+        channels: [],
+      });
+      setPlaylists(prev => [...prev, newPlaylist]);
+      return newPlaylist.id;
+    } catch (err: any) {
+      setError(err.message || 'Failed to create playlist');
+      throw err;
+    }
+  };
+
+  const addChannelToPlaylist = async (playlistId: string, channel: Channel) => {
+    try {
+      // Try to find in current state first
+      let playlist = playlists.find(p => p.id === playlistId);
+
+      // If not found in state, try fetching fresh from storage (handles race condition)
+      if (!playlist) {
+        const freshPlaylists = await StorageService.loadPlaylists();
+        playlist = freshPlaylists.find(p => p.id === playlistId);
+      }
+
+      if (!playlist) throw new Error('Playlist not found');
+
+      // Check if channel already exists in playlist
+      if (playlist.channels.some(c => c.id === channel.id)) {
+        throw new Error('Track already in playlist');
+      }
+
+      const updatedChannels = [...playlist.channels, channel];
+      await StorageService.updatePlaylist(playlistId, { channels: updatedChannels });
+
+      setPlaylists(prev =>
+        prev.map(p =>
+          p.id === playlistId ? { ...p, channels: updatedChannels, updatedAt: new Date() } : p
+        )
+      );
+    } catch (err: any) {
+      setError(err.message || 'Failed to add to playlist');
+      throw err;
+    }
+  };
+
+  const removeChannelFromPlaylist = async (playlistId: string, channelId: string) => {
+    try {
+      const playlist = playlists.find(p => p.id === playlistId);
+      if (!playlist) throw new Error('Playlist not found');
+
+      const updatedChannels = playlist.channels.filter(c => c.id !== channelId);
+      await StorageService.updatePlaylist(playlistId, { channels: updatedChannels });
+
+      setPlaylists(prev =>
+        prev.map(p =>
+          p.id === playlistId ? { ...p, channels: updatedChannels, updatedAt: new Date() } : p
+        )
+      );
+    } catch (err: any) {
+      setError(err.message || 'Failed to remove from playlist');
+      throw err;
     }
   };
 
@@ -202,6 +269,9 @@ export const PlaylistProvider: React.FC<PlaylistProviderProps> = ({ children }) 
     error,
     addPlaylist,
     addPlaylistFromUrl,
+    createEmptyPlaylist,
+    addChannelToPlaylist,
+    removeChannelFromPlaylist,
     deletePlaylist,
     refreshPlaylist,
     toggleFavorite,

@@ -173,7 +173,8 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
             if (item.platform === 'youtube' && item.videoId) {
                 streamUrl = await OnlineSearchService.getYouTubeStreamUrl(item.videoId);
             } else if (item.platform === 'soundcloud') {
-                streamUrl = await OnlineSearchService.getSoundCloudStreamUrl(item.id);
+                const scResult = await OnlineSearchService.getSoundCloudStreamUrl(item.id);
+                streamUrl = scResult.streamUrl;
             }
 
             if (streamUrl) {
@@ -183,6 +184,10 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onNavigateToChanne
                     url: streamUrl,
                     group: item.artist,
                     logo: item.thumbnail,
+                    sourceUrl: item.platform === 'youtube'
+                        ? `https://www.youtube.com/watch?v=${item.videoId}`
+                        : item.id,
+                    sourceType: item.platform,
                 };
                 handlePlayChannel(channel);
             } else {

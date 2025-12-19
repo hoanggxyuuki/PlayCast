@@ -51,3 +51,5 @@ yarn.lock
 
 # yt-dlp
 yt-dlp
+credentials.json
+credentials/
